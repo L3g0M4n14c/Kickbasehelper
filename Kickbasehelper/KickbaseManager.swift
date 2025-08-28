@@ -1233,34 +1233,96 @@ class KickbaseManager: ObservableObject {
     }
     
     private func parsePlayer(from playerData: [String: Any]) -> TeamPlayer {
-        // Generiere eine eindeutige ID falls die API-ID leer oder doppelt ist
-        let apiId = playerData["id"] as? String ?? ""
-        let firstName = playerData["firstName"] as? String ?? ""
-        let lastName = playerData["lastName"] as? String ?? ""
-        let teamId = playerData["teamId"] as? String ?? ""
-        let number = playerData["number"] as? Int ?? 0
+        print("🔍 Parsing individual player data:")
+        print("   Available keys: \(Array(playerData.keys))")
+        print("   Raw player data: \(playerData)")
         
-        // Erstelle eine eindeutige ID aus mehreren Feldern
+        // Erweiterte Feldextraktion mit Fallbacks und Debugging
+        let apiId = playerData["id"] as? String ?? playerData["i"] as? String ?? ""
+        let firstName = playerData["firstName"] as? String ?? 
+                       playerData["fn"] as? String ?? 
+                       playerData["name"] as? String ?? 
+                       playerData["n"] as? String ?? ""
+        let lastName = playerData["lastName"] as? String ?? 
+                      playerData["ln"] as? String ?? 
+                      playerData["surname"] as? String ?? ""
+        let teamName = playerData["teamName"] as? String ?? 
+                      playerData["tn"] as? String ?? 
+                      playerData["club"] as? String ?? 
+                      playerData["team"] as? String ?? ""
+        let teamId = playerData["teamId"] as? String ?? 
+                    playerData["ti"] as? String ?? 
+                    playerData["clubId"] as? String ?? ""
+        let number = playerData["number"] as? Int ?? 
+                    playerData["n"] as? Int ?? 
+                    playerData["jerseyNumber"] as? Int ?? 0
+        let position = playerData["position"] as? Int ?? 
+                      playerData["pos"] as? Int ?? 
+                      playerData["p"] as? Int ?? 0
+        let marketValue = playerData["marketValue"] as? Int ?? 
+                         playerData["mv"] as? Int ?? 
+                         playerData["value"] as? Int ?? 
+                         playerData["worth"] as? Int ?? 0
+        let marketValueTrend = playerData["marketValueTrend"] as? Int ?? 
+                              playerData["mvt"] as? Int ?? 
+                              playerData["trend"] as? Int ?? 
+                              playerData["t"] as? Int ?? 0
+        let totalPoints = playerData["totalPoints"] as? Int ?? 
+                         playerData["tp"] as? Int ?? 
+                         playerData["points"] as? Int ?? 
+                         playerData["pts"] as? Int ?? 0
+        let averagePoints = playerData["averagePoints"] as? Double ?? 
+                           playerData["ap"] as? Double ?? 
+                           playerData["avgPoints"] as? Double ?? 
+                           (playerData["averagePoints"] as? Int).map(Double.init) ?? 0.0
+        
+        // Debug: Zeige extrahierte Werte
+        print("   🔍 Extracted values:")
+        print("     ID: '\(apiId)'")
+        print("     First Name: '\(firstName)'")
+        print("     Last Name: '\(lastName)'")
+        print("     Team Name: '\(teamName)'")
+        print("     Number: \(number)")
+        print("     Position: \(position)")
+        print("     Market Value: \(marketValue)")
+        print("     Market Value Trend: \(marketValueTrend)")
+        print("     Total Points: \(totalPoints)")
+        print("     Average Points: \(averagePoints)")
+        
+        // Generiere eine eindeutige ID falls die API-ID leer oder doppelt ist
         let uniqueId = apiId.isEmpty ? 
             "\(firstName)-\(lastName)-\(teamId)-\(number)-\(UUID().uuidString.prefix(8))" : 
             apiId
         
-        return Player(
+        // Fallback für Namen falls beide leer sind
+        let finalFirstName = firstName.isEmpty ? "Unknown" : firstName
+        let finalLastName = lastName.isEmpty ? "Player" : lastName
+        let finalTeamName = teamName.isEmpty ? "Unknown Team" : teamName
+        
+        let player = Player(
             id: uniqueId,
-            firstName: firstName,
-            lastName: lastName,
-            profileBigUrl: playerData["profileBigUrl"] as? String ?? "",
-            teamName: playerData["teamName"] as? String ?? "",
+            firstName: finalFirstName,
+            lastName: finalLastName,
+            profileBigUrl: playerData["profileBigUrl"] as? String ?? 
+                          playerData["imageUrl"] as? String ?? 
+                          playerData["photo"] as? String ?? "",
+            teamName: finalTeamName,
             teamId: teamId,
-            position: playerData["position"] as? Int ?? 0,
+            position: position,
             number: number,
-            averagePoints: playerData["averagePoints"] as? Double ?? 0.0,
-            totalPoints: playerData["totalPoints"] as? Int ?? 0,
-            marketValue: playerData["marketValue"] as? Int ?? 0,
-            marketValueTrend: playerData["marketValueTrend"] as? Int ?? 0,
-            status: playerData["status"] as? Int ?? 0,
-            userOwnsPlayer: playerData["userOwnsPlayer"] as? Bool ?? false
+            averagePoints: averagePoints,
+            totalPoints: totalPoints,
+            marketValue: marketValue,
+            marketValueTrend: marketValueTrend,
+            status: playerData["status"] as? Int ?? 
+                   playerData["st"] as? Int ?? 0,
+            userOwnsPlayer: playerData["userOwnsPlayer"] as? Bool ?? 
+                           playerData["owned"] as? Bool ?? 
+                           playerData["mine"] as? Bool ?? true
         )
+        
+        print("   ✅ Created player: \(player.firstName) \(player.lastName) (\(player.teamName)) - €\(player.marketValue/1000)k")
+        return player
     }
     
     // MARK: - Debugging Methods
