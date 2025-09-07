@@ -76,11 +76,18 @@ struct Player: Codable, Identifiable {
     let totalPoints: Int
     let marketValue: Int
     let marketValueTrend: Int
+    let tfhmvt: Int  // Marktwertänderung seit letztem Update
+    let stl: Int     // Neues API-Feld
     let status: Int
     let userOwnsPlayer: Bool
     
     var fullName: String {
         return "\(firstName) \(lastName)"
+    }
+    
+    // Neue computed property für den vollständigen Teamnamen basierend auf teamId
+    var fullTeamName: String {
+        return TeamMapping.getTeamName(for: teamId) ?? teamName
     }
     
     var positionName: String {
@@ -125,9 +132,16 @@ struct MarketPlayer: Codable, Identifiable {
     let expiry: String
     let offers: Int
     let seller: MarketSeller
+    let stl: Int     // Verletzungsstatus aus API-Daten
+    let status: Int  // Status-Feld für Verletzung/Angeschlagen
     
     var fullName: String {
         return "\(firstName) \(lastName)"
+    }
+    
+    // Neue computed property für den vollständigen Teamnamen basierend auf teamId
+    var fullTeamName: String {
+        return TeamMapping.getTeamName(for: teamId) ?? teamName
     }
     
     var positionName: String {
@@ -194,4 +208,41 @@ struct UserStats: Codable {
     let won: Int
     let drawn: Int
     let lost: Int
+}
+
+// MARK: - Team Mapping
+struct TeamMapping {
+    // Wird durch Auto-Discovery gefüllt - siehe discoverAndMapTeams() in KickbaseManager
+    static var teamIdToName: [String: String] = [:]
+    
+    static var teamNameToId: [String: String] = {
+        var reversed: [String: String] = [:]
+        for (id, name) in teamIdToName {
+            reversed[name] = id
+        }
+        return reversed
+    }()
+    
+    static func getTeamName(for id: String) -> String? {
+        return teamIdToName[id]
+    }
+    
+    static func getTeamId(for name: String) -> String? {
+        return teamNameToId[name]
+    }
+    
+    static func getAllTeams() -> [String: String] {
+        return teamIdToName
+    }
+    
+    // Funktion zum Aktualisieren des Mappings durch Auto-Discovery
+    static func updateMapping(with discoveredTeams: [String: String]) {
+        teamIdToName = discoveredTeams
+        // Aktualisiere auch das umgekehrte Mapping
+        var reversed: [String: String] = [:]
+        for (id, name) in teamIdToName {
+            reversed[name] = id
+        }
+        teamNameToId = reversed
+    }
 }

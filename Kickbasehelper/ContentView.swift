@@ -13,22 +13,22 @@ struct ContentView: View {
     @StateObject private var kickbaseManager = KickbaseManager()
 
     var body: some View {
-        NavigationStack {
+        Group {
             if authManager.isAuthenticated {
                 MainDashboardView()
-                    .environmentObject(kickbaseManager)
                     .environmentObject(authManager)
+                    .environmentObject(kickbaseManager)
+                    .onAppear {
+                        if let token = authManager.accessToken {
+                            kickbaseManager.setAuthToken(token)
+                        }
+                        Task {
+                            await kickbaseManager.loadUserData()
+                        }
+                    }
             } else {
                 LoginView()
                     .environmentObject(authManager)
-            }
-        }
-        .onAppear {
-            if authManager.isAuthenticated && authManager.accessToken != nil {
-                kickbaseManager.setAuthToken(authManager.accessToken!)
-                Task {
-                    await kickbaseManager.loadUserData()
-                }
             }
         }
     }

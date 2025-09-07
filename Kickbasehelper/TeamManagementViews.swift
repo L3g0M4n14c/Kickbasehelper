@@ -16,33 +16,6 @@ struct TeamTab: View {
     var body: some View {
         NavigationView {
             VStack {
-                // Debug Info
-                VStack(alignment: .leading, spacing: 5) {
-                    Text("Debug Info:")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Text("Spieler geladen: \(kickbaseManager.teamPlayers.count)")
-                        .font(.caption)
-                        .foregroundColor(.blue)
-                    Text("Gefilterte Spieler: \(filteredAndSortedPlayers.count)")
-                        .font(.caption)
-                        .foregroundColor(.green)
-                    if let league = kickbaseManager.selectedLeague {
-                        Text("Liga: \(league.name)")
-                            .font(.caption)
-                            .foregroundColor(.orange)
-                    } else {
-                        Text("Keine Liga ausgewählt")
-                            .font(.caption)
-                            .foregroundColor(.red)
-                    }
-                }
-                .padding(.horizontal)
-                .padding(.vertical, 5)
-                .background(Color(.systemGray6))
-                .cornerRadius(8)
-                .padding(.horizontal)
-                
                 // Search and Sort Controls
                 VStack(spacing: 10) {
                     HStack {
@@ -132,7 +105,7 @@ struct TeamTab: View {
             kickbaseManager.teamPlayers.filter { player in
                 player.firstName.localizedCaseInsensitiveContains(searchText) ||
                 player.lastName.localizedCaseInsensitiveContains(searchText) ||
-                player.teamName.localizedCaseInsensitiveContains(searchText)
+                player.fullTeamName.localizedCaseInsensitiveContains(searchText)
             }
         
         return filtered.sorted(by: { player1, player2 in
@@ -175,11 +148,26 @@ struct TeamPlayerRow: View {
             
             // Player Info
             VStack(alignment: .leading, spacing: 2) {
-                Text(teamPlayer.fullName)
-                    .font(.headline)
-                    .lineLimit(1)
+                HStack(spacing: 4) {
+                    Text(teamPlayer.fullName)
+                        .font(.headline)
+                        .lineLimit(1)
+                    
+                    // Status-Icons basierend auf st-Feld aus API-Daten anzeigen
+                    if teamPlayer.status == 1 {
+                        // Verletzt - rotes Kreuz
+                        Image(systemName: "cross.circle.fill")
+                            .foregroundColor(.red)
+                            .font(.caption)
+                    } else if teamPlayer.status == 2 {
+                        // Angeschlagen - Tabletten-Icon
+                        Image(systemName: "pills.fill")
+                            .foregroundColor(.orange)
+                            .font(.caption)
+                    }
+                }
                 
-                Text(teamPlayer.teamName)
+                Text(teamPlayer.fullTeamName)
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .lineLimit(1)
@@ -187,18 +175,27 @@ struct TeamPlayerRow: View {
             
             Spacer()
             
-            // Stats
+            // Stats - Durchschnittspunktzahl als große Zahl, Gesamtpunktzahl als kleine Zahl
             VStack(alignment: .trailing, spacing: 2) {
+                Text("\(teamPlayer.averagePoints, specifier: "%.1f")")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+                
+                Text("\(teamPlayer.totalPoints) Gesamt")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
                 HStack(spacing: 4) {
                     Text("€\(teamPlayer.marketValue / 1000)k")
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
                     
-                    if teamPlayer.marketValueTrend > 0 {
+                    if teamPlayer.tfhmvt > 0 {
                         Image(systemName: "arrow.up")
                             .foregroundColor(.green)
                             .font(.caption2)
-                    } else if teamPlayer.marketValueTrend < 0 {
+                    } else if teamPlayer.tfhmvt < 0 {
                         Image(systemName: "arrow.down")
                             .foregroundColor(.red)
                             .font(.caption2)
@@ -208,10 +205,6 @@ struct TeamPlayerRow: View {
                             .font(.caption2)
                     }
                 }
-                
-                Text("\(teamPlayer.totalPoints) Punkte")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
             }
         }
         .padding(.vertical, 4)
@@ -277,7 +270,7 @@ struct MarketTab: View {
             let matchesSearch = searchText.isEmpty ||
                 player.firstName.localizedCaseInsensitiveContains(searchText) ||
                 player.lastName.localizedCaseInsensitiveContains(searchText) ||
-                player.teamName.localizedCaseInsensitiveContains(searchText)
+                player.fullTeamName.localizedCaseInsensitiveContains(searchText)
             
             let matchesPosition = selectedPosition == 0 || player.position == selectedPosition
             
@@ -304,12 +297,27 @@ struct MarketPlayerRow: View {
             
             // Player Info
             VStack(alignment: .leading, spacing: 2) {
-                Text(marketPlayer.fullName)
-                    .font(.headline)
-                    .lineLimit(1)
+                HStack(spacing: 4) {
+                    Text(marketPlayer.fullName)
+                        .font(.headline)
+                        .lineLimit(1)
+                    
+                    // Status-Icons basierend auf status-Feld aus API-Daten anzeigen
+                    if marketPlayer.status == 1 {
+                        // Verletzt - rotes Kreuz
+                        Image(systemName: "cross.circle.fill")
+                            .foregroundColor(.red)
+                            .font(.caption)
+                    } else if marketPlayer.status == 2 {
+                        // Angeschlagen - Tabletten-Icon
+                        Image(systemName: "pills.fill")
+                            .foregroundColor(.orange)
+                            .font(.caption)
+                    }
+                }
                 
                 HStack {
-                    Text(marketPlayer.teamName)
+                    Text(marketPlayer.fullTeamName)
                         .font(.caption)
                         .foregroundColor(.secondary)
                     

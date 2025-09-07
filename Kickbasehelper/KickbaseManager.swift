@@ -257,6 +257,9 @@ class KickbaseManager: ObservableObject {
         for (index, leagueData) in leaguesArray.enumerated() {
             print("🔄 Parsing league \(index + 1): \(Array(leagueData.keys))")
             
+            // Debug: Zeige alle verfügbaren Keys
+            print("📋 Available league keys: \(leagueData.keys.sorted())")
+            
             // Parse currentUser mit noch flexibleren Feldnamen (inklusive "it", "anol" Keys)
             var currentUser = LeagueUser(
                 id: "unknown",
@@ -278,10 +281,29 @@ class KickbaseManager: ObservableObject {
                               leagueData["user"] as? [String: Any] ??
                               leagueData["it"] as? [String: Any] ??
                               leagueData["anol"] as? [String: Any] {
+                
+                // Debug: Zeige verfügbare User-Keys
+                print("👤 Available user keys: \(userData.keys.sorted())")
+                
+                // Prüfe verschiedene mögliche Feldnamen für teamName
+                let possibleTeamNames = [
+                    userData["teamName"] as? String,
+                    userData["tn"] as? String,
+                    userData["team_name"] as? String,
+                    userData["tname"] as? String,
+                    userData["club"] as? String,
+                    userData["clubName"] as? String,
+                    userData["teamname"] as? String
+                ].compactMap { $0 }
+                
+                let teamName = possibleTeamNames.first ?? "Team"
+                
+                print("🏆 Found team name: '\(teamName)' from keys: \(possibleTeamNames)")
+                
                 currentUser = LeagueUser(
                     id: userData["id"] as? String ?? userData["i"] as? String ?? "unknown",
                     name: userData["name"] as? String ?? userData["n"] as? String ?? "User",
-                    teamName: userData["teamName"] as? String ?? userData["tn"] as? String ?? "Team",
+                    teamName: teamName,
                     budget: userData["budget"] as? Int ?? userData["b"] as? Int ?? 5000000,
                     teamValue: userData["teamValue"] as? Int ?? userData["tv"] as? Int ?? 50000000,
                     points: userData["points"] as? Int ?? userData["p"] as? Int ?? 0,
@@ -293,6 +315,8 @@ class KickbaseManager: ObservableObject {
                     ttm: userData["ttm"] as? Int ?? userData["t"] as? Int ?? 0
                 )
                 print("✅ Parsed user: \(currentUser.name) - \(currentUser.teamName)")
+            } else {
+                print("❌ No user data found in league data")
             }
             
             let league = League(
@@ -363,13 +387,15 @@ class KickbaseManager: ObservableObject {
                 lastName: "Mustermann",
                 profileBigUrl: "",
                 teamName: "FC Demo",
-                teamId: "team-1",
+                teamId: "40", // Union Berlin
                 position: 4,
                 number: 9,
                 averagePoints: 5.0,
                 totalPoints: 45,
                 marketValue: 15000000,
                 marketValueTrend: 500000,
+                tfhmvt: 250000, // Marktwertänderung seit letztem Update
+                stl: 0, // Nicht verletzt
                 status: 0,
                 userOwnsPlayer: true
             ),
@@ -379,13 +405,51 @@ class KickbaseManager: ObservableObject {
                 lastName: "Beispiel",
                 profileBigUrl: "",
                 teamName: "Demo United",
-                teamId: "team-2",
+                teamId: "1", // Bayern München
                 position: 3,
                 number: 10,
                 averagePoints: 4.2,
                 totalPoints: 38,
                 marketValue: 12000000,
                 marketValueTrend: -200000,
+                tfhmvt: -150000, // Marktwertänderung seit letztem Update
+                stl: 1, // Verletzt (rotes Kreuz anzeigen)
+                status: 0,
+                userOwnsPlayer: true
+            ),
+            TeamPlayer(
+                id: "mock-player-3",
+                firstName: "Peter",
+                lastName: "Verletzt",
+                profileBigUrl: "",
+                teamName: "FC Testverein",
+                teamId: "2", // Dortmund
+                position: 2,
+                number: 5,
+                averagePoints: 3.8,
+                totalPoints: 30,
+                marketValue: 8000000,
+                marketValueTrend: -1000000,
+                tfhmvt: -500000,
+                stl: 1, // Verletzt (rotes Kreuz anzeigen)
+                status: 0,
+                userOwnsPlayer: true
+            ),
+            TeamPlayer(
+                id: "mock-player-4",
+                firstName: "Klaus",
+                lastName: "Gesund",
+                profileBigUrl: "",
+                teamName: "SV Musterstadt",
+                teamId: "3", // Leipzig
+                position: 1,
+                number: 1,
+                averagePoints: 4.5,
+                totalPoints: 40,
+                marketValue: 6000000,
+                marketValueTrend: 200000,
+                tfhmvt: 100000,
+                stl: 0, // Nicht verletzt
                 status: 0,
                 userOwnsPlayer: true
             )
@@ -669,6 +733,55 @@ class KickbaseManager: ObservableObject {
         return nil
     }
     
+    // MARK: - Punktzahl-Extraktions-Helper-Funktionen
+    
+    private func extractTotalPoints(from playerData: [String: Any]) -> Int {
+        let possibleKeys = [
+            "p",                                 // Hauptfeld für Gesamtpunkte laut User
+            "totalPoints", "tp", "points", "pts", "totalPts",
+            "gesamtpunkte", "total", "score", "seasonPoints", "sp"
+        ]
+        
+        for key in possibleKeys {
+            if let value = playerData[key] as? Int {
+                print("   ✅ Found totalPoints in field '\(key)': \(value)")
+                return value
+            } else if let value = playerData[key] as? Double {
+                print("   ✅ Found totalPoints in field '\(key)': \(Int(value))")
+                return Int(value)
+            } else if let value = playerData[key] as? String, let intValue = Int(value) {
+                print("   ✅ Found totalPoints in field '\(key)': \(intValue)")
+                return intValue
+            }
+        }
+        
+        print("   ⚠️ No totalPoints found in any field")
+        return 0 // Fallback wenn keine Punktzahl gefunden wird
+    }
+    
+    private func extractAveragePoints(from playerData: [String: Any]) -> Double {
+        let possibleKeys = [
+            "averagePoints", "ap", "avgPoints", "durchschnitt",
+            "avg", "averageScore", "avgp", "avp"
+        ]
+        
+        for key in possibleKeys {
+            if let value = playerData[key] as? Double {
+                print("   ✅ Found averagePoints in field '\(key)': \(value)")
+                return value
+            } else if let value = playerData[key] as? Int {
+                print("   ✅ Found averagePoints in field '\(key)': \(Double(value))")
+                return Double(value)
+            } else if let value = playerData[key] as? String, let doubleValue = Double(value) {
+                print("   ✅ Found averagePoints in field '\(key)': \(doubleValue)")
+                return doubleValue
+            }
+        }
+        
+        print("   ⚠️ No averagePoints found in any field")
+        return 0.0 // Fallback wenn keine Durchschnittspunktzahl gefunden wird
+    }
+    
     func loadTeamPlayers(for league: League) async {
         print("👥 Loading team players (squad) for league: \(league.name)")
         
@@ -892,7 +1005,7 @@ class KickbaseManager: ObservableObject {
                             // Prüfe ob das Array Spieler-ähnliche Objekte enthält
                             if let firstItem = array.first {
                                 let keys = firstItem.keys
-                                let hasPlayerKeys = keys.contains("firstName") || keys.contains("lastName") || 
+                                let hasPlayerKeys = keys.contains("firstName") || keys.contains("lastName") ||
                                                   keys.contains("name") || keys.contains("position") ||
                                                   keys.contains("fn") || keys.contains("ln") ||
                                                   keys.contains("n") || keys.contains("p")
@@ -906,7 +1019,7 @@ class KickbaseManager: ObservableObject {
                                     print("   → Array in \(topKey).\(nestedKey) hat keine Player-Keys: \(Array(keys))")
                                 }
                             }
-                        } else if let array = nestedValue as? [[String: Any]] {
+                        } else if let array = nestedValue as? [[String: Any]], array.isEmpty {
                             print("   → Leeres Array in \(topKey).\(nestedKey)")
                         }
                     }
@@ -915,7 +1028,7 @@ class KickbaseManager: ObservableObject {
                     // Prüfe ob das direkte Array Spieler-ähnliche Objekte enthält
                     if let firstItem = directArray.first {
                         let keys = firstItem.keys
-                        let hasPlayerKeys = keys.contains("firstName") || keys.contains("lastName") || 
+                        let hasPlayerKeys = keys.contains("firstName") || keys.contains("lastName") ||
                                           keys.contains("name") || keys.contains("position") ||
                                           keys.contains("fn") || keys.contains("ln") ||
                                           keys.contains("n") || keys.contains("p")
@@ -1044,7 +1157,9 @@ class KickbaseManager: ObservableObject {
                                         price: playerData["price"] as? Int ?? 0,
                                         expiry: playerData["expiry"] as? String ?? "",
                                         offers: playerData["offers"] as? Int ?? 0,
-                                        seller: seller
+                                        seller: seller,
+                                        stl: playerData["stl"] as? Int ?? 0,
+                                        status: playerData["st"] as? Int ?? 0
                                     )
                                     parsedPlayers.append(player)
                                 }
@@ -1239,42 +1354,44 @@ class KickbaseManager: ObservableObject {
         
         // Erweiterte Feldextraktion mit Fallbacks und Debugging
         let apiId = playerData["id"] as? String ?? playerData["i"] as? String ?? ""
-        let firstName = playerData["firstName"] as? String ?? 
-                       playerData["fn"] as? String ?? 
-                       playerData["name"] as? String ?? 
+        let firstName = playerData["firstName"] as? String ??
+                       playerData["fn"] as? String ??
+                       playerData["name"] as? String ??
                        playerData["n"] as? String ?? ""
-        let lastName = playerData["lastName"] as? String ?? 
-                      playerData["ln"] as? String ?? 
+        let lastName = playerData["lastName"] as? String ??
+                      playerData["ln"] as? String ??
                       playerData["surname"] as? String ?? ""
-        let teamName = playerData["teamName"] as? String ?? 
-                      playerData["tn"] as? String ?? 
-                      playerData["club"] as? String ?? 
+        let teamName = playerData["teamName"] as? String ??
+                      playerData["tn"] as? String ??
+                      playerData["club"] as? String ??
                       playerData["team"] as? String ?? ""
-        let teamId = playerData["teamId"] as? String ?? 
-                    playerData["ti"] as? String ?? 
+        let teamId = playerData["teamId"] as? String ??
+                    playerData["ti"] as? String ??
+                    playerData["tid"] as? String ??
                     playerData["clubId"] as? String ?? ""
-        let number = playerData["number"] as? Int ?? 
-                    playerData["n"] as? Int ?? 
+        let number = playerData["number"] as? Int ??
+                    playerData["n"] as? Int ??
                     playerData["jerseyNumber"] as? Int ?? 0
-        let position = playerData["position"] as? Int ?? 
-                      playerData["pos"] as? Int ?? 
+        let position = playerData["position"] as? Int ??
+                      playerData["pos"] as? Int ??
                       playerData["p"] as? Int ?? 0
-        let marketValue = playerData["marketValue"] as? Int ?? 
-                         playerData["mv"] as? Int ?? 
-                         playerData["value"] as? Int ?? 
+        let marketValue = playerData["marketValue"] as? Int ??
+                         playerData["mv"] as? Int ??
+                         playerData["value"] as? Int ??
                          playerData["worth"] as? Int ?? 0
-        let marketValueTrend = playerData["marketValueTrend"] as? Int ?? 
-                              playerData["mvt"] as? Int ?? 
-                              playerData["trend"] as? Int ?? 
+        let marketValueTrend = playerData["marketValueTrend"] as? Int ??
+                              playerData["mvt"] as? Int ??
+                              playerData["trend"] as? Int ??
                               playerData["t"] as? Int ?? 0
-        let totalPoints = playerData["totalPoints"] as? Int ?? 
-                         playerData["tp"] as? Int ?? 
-                         playerData["points"] as? Int ?? 
-                         playerData["pts"] as? Int ?? 0
-        let averagePoints = playerData["averagePoints"] as? Double ?? 
-                           playerData["ap"] as? Double ?? 
-                           playerData["avgPoints"] as? Double ?? 
-                           (playerData["averagePoints"] as? Int).map(Double.init) ?? 0.0
+        
+        // Extrahiere das neue tfhmvt Feld für Marktwertänderung seit letztem Update
+        let tfhmvt = playerData["tfhmvt"] as? Int ?? 0
+        
+        // Extrahiere das st Feld für Status (Verletzung/Krankheit)
+        let stStatus = playerData["st"] as? Int ?? 0
+        
+        let totalPoints = extractTotalPoints(from: playerData)
+        let averagePoints = extractAveragePoints(from: playerData)
         
         // Debug: Zeige extrahierte Werte
         print("   🔍 Extracted values:")
@@ -1286,25 +1403,52 @@ class KickbaseManager: ObservableObject {
         print("     Position: \(position)")
         print("     Market Value: \(marketValue)")
         print("     Market Value Trend: \(marketValueTrend)")
+        print("     TFHMVT (seit letztem Update): \(tfhmvt)")
+        print("     ST Status: \(stStatus)")
         print("     Total Points: \(totalPoints)")
         print("     Average Points: \(averagePoints)")
         
+        // Debug: Zeige ALLE verfügbaren Felder in den API-Daten
+        print("   📋 ALL API fields available:")
+        for (key, value) in playerData.sorted(by: { $0.key < $1.key }) {
+            print("     \(key): \(value)")
+        }
+        
         // Generiere eine eindeutige ID falls die API-ID leer oder doppelt ist
-        let uniqueId = apiId.isEmpty ? 
-            "\(firstName)-\(lastName)-\(teamId)-\(number)-\(UUID().uuidString.prefix(8))" : 
+        let uniqueId = apiId.isEmpty ?
+            "\(firstName)-\(lastName)-\(teamId)-\(number)-\(UUID().uuidString.prefix(8))" :
             apiId
         
-        // Fallback für Namen falls beide leer sind
-        let finalFirstName = firstName.isEmpty ? "Unknown" : firstName
-        let finalLastName = lastName.isEmpty ? "Player" : lastName
+        // Fallback für Namen - verbesserte Logik
+        let finalFirstName: String
+        let finalLastName: String
+        
+        if firstName.isEmpty && lastName.isEmpty {
+            // Wenn beide Namen fehlen, verwende "Unbekannter Spieler"
+            finalFirstName = "Unbekannter"
+            finalLastName = "Spieler"
+        } else if firstName.isEmpty {
+            // Wenn nur der Vorname fehlt, verwende den Nachnamen
+            finalFirstName = lastName
+            finalLastName = ""
+        } else if lastName.isEmpty {
+            // Wenn nur der Nachname fehlt, verwende den Vornamen als vollständigen Namen
+            finalFirstName = firstName
+            finalLastName = ""
+        } else {
+            // Beide Namen sind vorhanden
+            finalFirstName = firstName
+            finalLastName = lastName
+        }
+        
         let finalTeamName = teamName.isEmpty ? "Unknown Team" : teamName
         
         let player = Player(
             id: uniqueId,
             firstName: finalFirstName,
             lastName: finalLastName,
-            profileBigUrl: playerData["profileBigUrl"] as? String ?? 
-                          playerData["imageUrl"] as? String ?? 
+            profileBigUrl: playerData["profileBigUrl"] as? String ??
+                          playerData["imageUrl"] as? String ??
                           playerData["photo"] as? String ?? "",
             teamName: finalTeamName,
             teamId: teamId,
@@ -1314,14 +1458,15 @@ class KickbaseManager: ObservableObject {
             totalPoints: totalPoints,
             marketValue: marketValue,
             marketValueTrend: marketValueTrend,
-            status: playerData["status"] as? Int ?? 
-                   playerData["st"] as? Int ?? 0,
-            userOwnsPlayer: playerData["userOwnsPlayer"] as? Bool ?? 
-                           playerData["owned"] as? Bool ?? 
+            tfhmvt: tfhmvt,
+            stl: playerData["stl"] as? Int ?? 0,
+            status: playerData["st"] as? Int ?? 0,
+            userOwnsPlayer: playerData["userOwnsPlayer"] as? Bool ??
+                           playerData["owned"] as? Bool ??
                            playerData["mine"] as? Bool ?? true
         )
         
-        print("   ✅ Created player: \(player.firstName) \(player.lastName) (\(player.teamName)) - €\(player.marketValue/1000)k")
+        print("   ✅ Created player: \(player.firstName) \(player.lastName) (\(player.teamName)) - €\(player.marketValue/1000)k - TFHMVT: €\(player.tfhmvt/1000)k")
         return player
     }
     
@@ -1361,6 +1506,51 @@ class KickbaseManager: ObservableObject {
         }
         
         print("🔑 Auth token available: \(authToken != nil)")
+        print("===============================")
+        
+        // Debug Team IDs und Namen aus geladenen Spielern
+        debugTeamIdsFromPlayers()
+    }
+    
+    func debugTeamIdsFromPlayers() {
+        print("🏟️ === TEAM ID DEBUGGING ===")
+        
+        var uniqueTeams: [String: String] = [:]
+        
+        // Sammle alle einzigartigen Team-IDs und Namen aus Team-Spielern
+        for player in teamPlayers {
+            if !player.teamId.isEmpty {
+                uniqueTeams[player.teamId] = player.teamName
+            }
+        }
+        
+        // Sammle auch aus Markt-Spielern
+        for player in marketPlayers {
+            if !player.teamId.isEmpty {
+                uniqueTeams[player.teamId] = player.teamName
+            }
+        }
+        
+        if uniqueTeams.isEmpty {
+            print("❌ Keine Team-IDs in geladenen Spielerdaten gefunden")
+        } else {
+            print("📋 Gefundene Team-IDs in API-Daten:")
+            for (id, name) in uniqueTeams.sorted(by: { $0.key < $1.key }) {
+                let mappedName = TeamMapping.getTeamName(for: id)
+                let status = mappedName != nil ? "✅ GEMAPPT" : "❌ NICHT GEMAPPT"
+                print("   ID: \(id) -> API-Name: '\(name)' | Mapping: '\(mappedName ?? "FEHLT")' | Status: \(status)")
+            }
+            
+            // Zeige Mapping-Probleme
+            let unmappedIds = uniqueTeams.filter { TeamMapping.getTeamName(for: $0.key) == nil }
+            if !unmappedIds.isEmpty {
+                print("⚠️ Fehlende Mappings für folgende Team-IDs:")
+                for (id, name) in unmappedIds {
+                    print("   \"\(id)\": \"\(name)\",")
+                }
+            }
+        }
+        
         print("===============================")
     }
     
