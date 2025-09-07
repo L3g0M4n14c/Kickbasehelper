@@ -97,85 +97,95 @@ struct TeamView: View {
 // MARK: - Player Row mit prominenten Punktzahlen
 struct PlayerRowView: View {
     let player: TeamPlayer
+    @State private var showingPlayerDetail = false
     
     var body: some View {
-        HStack(spacing: 12) {
-            // Position Badge
-            PositionBadge(position: player.position)
-            
-            VStack(alignment: .leading, spacing: 4) {
-                // Name mit Status-Icons
-                HStack(spacing: 4) {
-                    Text(player.fullName)
-                        .font(.headline)
-                        .fontWeight(.medium)
-                    
-                    // Status-Icons basierend auf st-Feld aus API-Daten anzeigen
-                    if player.status == 1 {
-                        // Verletzt - rotes Kreuz
-                        Image(systemName: "cross.circle.fill")
-                            .foregroundColor(.red)
-                            .font(.caption)
-                    } else if player.status == 2 {
-                        // Angeschlagen - Tabletten-Icon
-                        Image(systemName: "pills.fill")
-                            .foregroundColor(.orange)
-                            .font(.caption)
+        Button(action: {
+            print("🔄 PlayerRowView: Tapped on player \(player.fullName)")
+            showingPlayerDetail = true
+        }) {
+            HStack(spacing: 12) {
+                // Position Badge
+                PositionBadge(position: player.position)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    // Name mit Status-Icons
+                    HStack(spacing: 4) {
+                        Text(player.fullName)
+                            .font(.headline)
+                            .fontWeight(.medium)
+                        
+                        // Status-Icons basierend auf st-Feld aus API-Daten anzeigen
+                        if player.status == 1 {
+                            // Verletzt - rotes Kreuz
+                            Image(systemName: "cross.circle.fill")
+                                .foregroundColor(.red)
+                                .font(.caption)
+                        } else if player.status == 2 {
+                            // Angeschlagen - Tabletten-Icon
+                            Image(systemName: "pills.fill")
+                                .foregroundColor(.orange)
+                                .font(.caption)
+                        }
                     }
-                }
-                
-                // Team
-                Text(player.fullTeamName)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            
-            Spacer()
-            
-            // PUNKTZAHLEN - Durchschnittspunktzahl groß, Gesamtpunktzahl klein
-            VStack(alignment: .trailing, spacing: 6) {
-                // Durchschnittspunkte - groß und prominent
-                HStack(spacing: 4) {
-                    Image(systemName: "star.fill")
-                        .font(.subheadline)
-                        .foregroundColor(.orange)
-                    Text(String(format: "%.1f", player.averagePoints))
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundColor(.primary)
-                }
-                
-                // Gesamtpunkte - kleinere Anzeige
-                HStack(spacing: 4) {
-                    Image(systemName: "sum")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                    Text("\(player.totalPoints) Gesamt")
+                    
+                    // Team
+                    Text(player.fullTeamName)
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-            }
-            
-            VStack(alignment: .trailing, spacing: 4) {
-                // Marktwert
-                Text("€\(formatValue(player.marketValue))")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
                 
-                // Trend - verwende tfhmvt (Marktwertänderung seit letztem Update)
-                if player.tfhmvt != 0 {
-                    HStack(spacing: 2) {
-                        Image(systemName: player.tfhmvt >= 0 ? "arrow.up" : "arrow.down")
+                Spacer()
+                
+                // PUNKTZAHLEN - Durchschnittspunktzahl groß, Gesamtpunktzahl klein
+                VStack(alignment: .trailing, spacing: 6) {
+                    // Durchschnittspunkte - groß und prominent
+                    HStack(spacing: 4) {
+                        Image(systemName: "star.fill")
+                            .font(.subheadline)
+                            .foregroundColor(.orange)
+                        Text(String(format: "%.1f", player.averagePoints))
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .foregroundColor(.primary)
+                    }
+                    
+                    // Gesamtpunkte - kleinere Anzeige
+                    HStack(spacing: 4) {
+                        Image(systemName: "sum")
                             .font(.caption2)
-                            .foregroundColor(player.tfhmvt >= 0 ? .green : .red)
-                        Text("€\(formatValue(abs(player.tfhmvt)))")
+                            .foregroundColor(.secondary)
+                        Text("\(player.totalPoints) Gesamt")
                             .font(.caption)
-                            .foregroundColor(player.tfhmvt >= 0 ? .green : .red)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                
+                VStack(alignment: .trailing, spacing: 4) {
+                    // Marktwert
+                    Text("€\(formatValue(player.marketValue))")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                    
+                    // Trend - verwende tfhmvt (Marktwertänderung seit letztem Update)
+                    if player.tfhmvt != 0 {
+                        HStack(spacing: 2) {
+                            Image(systemName: player.tfhmvt >= 0 ? "arrow.up" : "arrow.down")
+                                .font(.caption2)
+                                .foregroundColor(player.tfhmvt >= 0 ? .green : .red)
+                            Text("€\(formatValue(abs(player.tfhmvt)))")
+                                .font(.caption)
+                                .foregroundColor(player.tfhmvt >= 0 ? .green : .red)
+                        }
                     }
                 }
             }
+            .padding(.vertical, 8)
         }
-        .padding(.vertical, 8)
+        .buttonStyle(PlainButtonStyle())
+        .sheet(isPresented: $showingPlayerDetail) {
+            PlayerDetailView(player: player)
+        }
     }
     
     private func formatValue(_ value: Int) -> String {
@@ -306,78 +316,88 @@ struct MarketView: View {
 // MARK: - Market Player Row mit Punktzahlen
 struct MarketPlayerRowView: View {
     let player: MarketPlayer
+    @State private var showingPlayerDetail = false
     
     var body: some View {
-        HStack(spacing: 12) {
-            // Position Badge
-            PositionBadge(position: player.position)
-            
-            VStack(alignment: .leading, spacing: 4) {
-                // Name mit Status-Icons
-                HStack(spacing: 4) {
-                    Text(player.fullName)
-                        .font(.headline)
-                        .fontWeight(.medium)
+        Button(action: {
+            print("🔄 MarketPlayerRowView: Tapped on player \(player.fullName)")
+            showingPlayerDetail = true
+        }) {
+            HStack(spacing: 12) {
+                // Position Badge
+                PositionBadge(position: player.position)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    // Name mit Status-Icons
+                    HStack(spacing: 4) {
+                        Text(player.fullName)
+                            .font(.headline)
+                            .fontWeight(.medium)
+                        
+                        // Status-Icons basierend auf status-Feld aus API-Daten anzeigen
+                        if player.status == 1 {
+                            // Verletzt - rotes Kreuz
+                            Image(systemName: "cross.circle.fill")
+                                .foregroundColor(.red)
+                                .font(.caption)
+                        } else if player.status == 2 {
+                            // Angeschlagen - Tabletten-Icon
+                            Image(systemName: "pills.fill")
+                                .foregroundColor(.orange)
+                                .font(.caption)
+                        }
+                    }
                     
-                    // Status-Icons basierend auf status-Feld aus API-Daten anzeigen
-                    if player.status == 1 {
-                        // Verletzt - rotes Kreuz
-                        Image(systemName: "cross.circle.fill")
-                            .foregroundColor(.red)
+                    // Team und Verkäufer
+                    Text("\(player.fullTeamName) • \(player.seller.name)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+                
+                // Punktzahlen für Marktplayer
+                VStack(alignment: .trailing, spacing: 4) {
+                    // Gesamtpunkte
+                    HStack(spacing: 4) {
+                        Image(systemName: "star.fill")
                             .font(.caption)
-                    } else if player.status == 2 {
-                        // Angeschlagen - Tabletten-Icon
-                        Image(systemName: "pills.fill")
                             .foregroundColor(.orange)
+                        Text("\(player.totalPoints)")
+                            .font(.headline)
+                            .fontWeight(.bold)
+                    }
+                    
+                    // Durchschnittspunkte
+                    HStack(spacing: 4) {
+                        Image(systemName: "chart.line.uptrend.xyaxis")
+                            .font(.caption2)
+                            .foregroundColor(.blue)
+                        Text(String(format: "%.1f Ø", player.averagePoints))
                             .font(.caption)
+                            .foregroundColor(.secondary)
                     }
                 }
                 
-                // Team und Verkäufer
-                Text("\(player.fullTeamName) • \(player.seller.name)")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            
-            Spacer()
-            
-            // Punktzahlen für Marktplayer
-            VStack(alignment: .trailing, spacing: 4) {
-                // Gesamtpunkte
-                HStack(spacing: 4) {
-                    Image(systemName: "star.fill")
-                        .font(.caption)
-                        .foregroundColor(.orange)
-                    Text("\(player.totalPoints)")
-                        .font(.headline)
+                VStack(alignment: .trailing, spacing: 4) {
+                    // Verkaufspreis
+                    Text("€\(formatValue(player.price))")
+                        .font(.subheadline)
                         .fontWeight(.bold)
-                }
-                
-                // Durchschnittspunkte
-                HStack(spacing: 4) {
-                    Image(systemName: "chart.line.uptrend.xyaxis")
-                        .font(.caption2)
-                        .foregroundColor(.blue)
-                    Text(String(format: "%.1f Ø", player.averagePoints))
+                        .foregroundColor(.green)
+                    
+                    // Marktwert
+                    Text("MW: €\(formatValue(player.marketValue))")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
             }
-            
-            VStack(alignment: .trailing, spacing: 4) {
-                // Verkaufspreis
-                Text("€\(formatValue(player.price))")
-                    .font(.subheadline)
-                    .fontWeight(.bold)
-                    .foregroundColor(.green)
-                
-                // Marktwert
-                Text("MW: €\(formatValue(player.marketValue))")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
+            .padding(.vertical, 8)
         }
-        .padding(.vertical, 8)
+        .buttonStyle(PlainButtonStyle())
+        .sheet(isPresented: $showingPlayerDetail) {
+            MarketPlayerDetailView(player: player)
+        }
     }
     
     private func formatValue(_ value: Int) -> String {

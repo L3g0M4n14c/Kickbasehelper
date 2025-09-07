@@ -127,87 +127,97 @@ struct TeamTab: View {
 
 struct TeamPlayerRow: View {
     let teamPlayer: TeamPlayer
+    @State private var showingPlayerDetail = false
     
     var body: some View {
-        HStack(spacing: 12) {
-            // Position indicator
-            VStack {
-                Text(positionAbbreviation(teamPlayer.position))
-                    .font(.caption2)
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(positionColor(teamPlayer.position))
-                    .cornerRadius(4)
-                
-                Text("\(teamPlayer.number)")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-            }
-            
-            // Player Info
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 4) {
-                    Text(teamPlayer.fullName)
-                        .font(.headline)
-                        .lineLimit(1)
+        Button(action: {
+            print("🔄 TeamPlayerRow: Tapped on player \(teamPlayer.fullName)")
+            showingPlayerDetail = true
+        }) {
+            HStack(spacing: 12) {
+                // Position indicator
+                VStack {
+                    Text(positionAbbreviation(teamPlayer.position))
+                        .font(.caption2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(positionColor(teamPlayer.position))
+                        .cornerRadius(4)
                     
-                    // Status-Icons basierend auf st-Feld aus API-Daten anzeigen
-                    if teamPlayer.status == 1 {
-                        // Verletzt - rotes Kreuz
-                        Image(systemName: "cross.circle.fill")
-                            .foregroundColor(.red)
-                            .font(.caption)
-                    } else if teamPlayer.status == 2 {
-                        // Angeschlagen - Tabletten-Icon
-                        Image(systemName: "pills.fill")
-                            .foregroundColor(.orange)
-                            .font(.caption)
-                    }
-                }
-                
-                Text(teamPlayer.fullTeamName)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
-            }
-            
-            Spacer()
-            
-            // Stats - Durchschnittspunktzahl als große Zahl, Gesamtpunktzahl als kleine Zahl
-            VStack(alignment: .trailing, spacing: 2) {
-                Text("\(teamPlayer.averagePoints, specifier: "%.1f")")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .foregroundColor(.primary)
-                
-                Text("\(teamPlayer.totalPoints) Gesamt")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                
-                HStack(spacing: 4) {
-                    Text("€\(teamPlayer.marketValue / 1000)k")
+                    Text("\(teamPlayer.number)")
                         .font(.caption2)
                         .foregroundColor(.secondary)
+                }
+                
+                // Player Info
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 4) {
+                        Text(teamPlayer.fullName)
+                            .font(.headline)
+                            .lineLimit(1)
+                        
+                        // Status-Icons basierend auf st-Feld aus API-Daten anzeigen
+                        if teamPlayer.status == 1 {
+                            // Verletzt - rotes Kreuz
+                            Image(systemName: "cross.circle.fill")
+                                .foregroundColor(.red)
+                                .font(.caption)
+                        } else if teamPlayer.status == 2 {
+                            // Angeschlagen - Tabletten-Icon
+                            Image(systemName: "pills.fill")
+                                .foregroundColor(.orange)
+                                .font(.caption)
+                        }
+                    }
                     
-                    if teamPlayer.tfhmvt > 0 {
-                        Image(systemName: "arrow.up")
-                            .foregroundColor(.green)
+                    Text(teamPlayer.fullTeamName)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                }
+                
+                Spacer()
+                
+                // Stats - Durchschnittspunktzahl als große Zahl, Gesamtpunktzahl als kleine Zahl
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("\(teamPlayer.averagePoints, specifier: "%.1f")")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.primary)
+                    
+                    Text("\(teamPlayer.totalPoints) Gesamt")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    HStack(spacing: 4) {
+                        Text("€\(teamPlayer.marketValue / 1000)k")
                             .font(.caption2)
-                    } else if teamPlayer.tfhmvt < 0 {
-                        Image(systemName: "arrow.down")
-                            .foregroundColor(.red)
-                            .font(.caption2)
-                    } else {
-                        Image(systemName: "minus")
-                            .foregroundColor(.gray)
-                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                        
+                        if teamPlayer.tfhmvt > 0 {
+                            Image(systemName: "arrow.up")
+                                .foregroundColor(.green)
+                                .font(.caption2)
+                        } else if teamPlayer.tfhmvt < 0 {
+                            Image(systemName: "arrow.down")
+                                .foregroundColor(.red)
+                                .font(.caption2)
+                        } else {
+                            Image(systemName: "minus")
+                                .foregroundColor(.gray)
+                                .font(.caption2)
+                        }
                     }
                 }
             }
+            .padding(.vertical, 4)
         }
-        .padding(.vertical, 4)
+        .buttonStyle(PlainButtonStyle())
+        .sheet(isPresented: $showingPlayerDetail) {
+            PlayerDetailView(player: teamPlayer)
+        }
     }
 }
 
@@ -282,80 +292,90 @@ struct MarketTab: View {
 
 struct MarketPlayerRow: View {
     let marketPlayer: MarketPlayer
+    @State private var showingPlayerDetail = false
     
     var body: some View {
-        HStack(spacing: 12) {
-            // Position indicator
-            Text(marketPlayer.positionName)
-                .font(.caption2)
-                .fontWeight(.bold)
-                .foregroundColor(.white)
-                .padding(.horizontal, 6)
-                .padding(.vertical, 2)
-                .background(positionColor(marketPlayer.position))
-                .cornerRadius(4)
-            
-            // Player Info
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 4) {
-                    Text(marketPlayer.fullName)
-                        .font(.headline)
-                        .lineLimit(1)
+        Button(action: {
+            print("🔄 MarketPlayerRow: Tapped on player \(marketPlayer.fullName)")
+            showingPlayerDetail = true
+        }) {
+            HStack(spacing: 12) {
+                // Position indicator
+                Text(marketPlayer.positionName)
+                    .font(.caption2)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(positionColor(marketPlayer.position))
+                    .cornerRadius(4)
+                
+                // Player Info
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 4) {
+                        Text(marketPlayer.fullName)
+                            .font(.headline)
+                            .lineLimit(1)
+                        
+                        // Status-Icons basierend auf status-Feld aus API-Daten anzeigen
+                        if marketPlayer.status == 1 {
+                            // Verletzt - rotes Kreuz
+                            Image(systemName: "cross.circle.fill")
+                                .foregroundColor(.red)
+                                .font(.caption)
+                        } else if marketPlayer.status == 2 {
+                            // Angeschlagen - Tabletten-Icon
+                            Image(systemName: "pills.fill")
+                                .foregroundColor(.orange)
+                                .font(.caption)
+                        }
+                    }
                     
-                    // Status-Icons basierend auf status-Feld aus API-Daten anzeigen
-                    if marketPlayer.status == 1 {
-                        // Verletzt - rotes Kreuz
-                        Image(systemName: "cross.circle.fill")
-                            .foregroundColor(.red)
+                    HStack {
+                        Text(marketPlayer.fullTeamName)
                             .font(.caption)
-                    } else if marketPlayer.status == 2 {
-                        // Angeschlagen - Tabletten-Icon
-                        Image(systemName: "pills.fill")
-                            .foregroundColor(.orange)
-                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        Spacer()
+                        
+                        Text("Von: \(marketPlayer.seller.name)")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
                     }
                 }
                 
-                HStack {
-                    Text(marketPlayer.fullTeamName)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    
-                    Spacer()
-                    
-                    Text("Von: \(marketPlayer.seller.name)")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                }
-            }
-            
-            Spacer()
-            
-            // Price and Market Value
-            VStack(alignment: .trailing, spacing: 2) {
-                Text("€\(marketPlayer.price / 1000)k")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.green)
+                Spacer()
                 
-                HStack(spacing: 2) {
-                    Text("MW: €\(marketPlayer.marketValue / 1000)k")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
+                // Price and Market Value
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("€\(marketPlayer.price / 1000)k")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.green)
                     
-                    if marketPlayer.marketValueTrend > 0 {
-                        Image(systemName: "arrow.up")
-                            .foregroundColor(.green)
+                    HStack(spacing: 2) {
+                        Text("MW: €\(marketPlayer.marketValue / 1000)k")
                             .font(.caption2)
-                    } else if marketPlayer.marketValueTrend < 0 {
-                        Image(systemName: "arrow.down")
-                            .foregroundColor(.red)
-                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                        
+                        if marketPlayer.marketValueTrend > 0 {
+                            Image(systemName: "arrow.up")
+                                .foregroundColor(.green)
+                                .font(.caption2)
+                        } else if marketPlayer.marketValueTrend < 0 {
+                            Image(systemName: "arrow.down")
+                                .foregroundColor(.red)
+                                .font(.caption2)
+                        }
                     }
                 }
             }
+            .padding(.vertical, 4)
         }
-        .padding(.vertical, 4)
+        .buttonStyle(PlainButtonStyle())
+        .sheet(isPresented: $showingPlayerDetail) {
+            MarketPlayerDetailView(player: marketPlayer)
+        }
     }
 }
 
