@@ -77,6 +77,7 @@ struct Player: Codable, Identifiable {
     let marketValue: Int
     let marketValueTrend: Int
     let tfhmvt: Int  // Marktwertänderung seit letztem Update
+    let prlo: Int    // Profit/Loss since purchase - Gewinn/Verlust seit Kauf
     let stl: Int     // Neues API-Feld
     let status: Int
     let userOwnsPlayer: Bool
@@ -244,5 +245,71 @@ struct TeamMapping {
             reversed[name] = id
         }
         teamNameToId = reversed
+    }
+}
+
+// MARK: - Player Detail Models
+struct PlayerDetailResponse: Codable {
+    let fn: String?     // First Name
+    let ln: String?     // Last Name
+    let tn: String?     // Team Name
+    let shn: Int?       // Shirt Number (Trikotnummer)
+    let id: String?
+    let position: Int?
+    let number: Int?
+    let averagePoints: Double?
+    let totalPoints: Int?
+    let marketValue: Int?
+    let marketValueTrend: Int?
+    let profileBigUrl: String?
+    let teamId: String?
+    let tfhmvt: Int?
+    let prlo: Int?      // Profit/Loss since purchase - Gewinn/Verlust seit Kauf
+    let stl: Int?
+    let status: Int?
+    let userOwnsPlayer: Bool?
+}
+
+// MARK: - Market Value History Models
+struct MarketValueHistoryResponse: Codable {
+    let it: [MarketValueEntry]  // Liste der Marktwert-Einträge
+}
+
+struct MarketValueEntry: Codable {
+    let dt: Int    // Datum als Unix-Timestamp
+    let mv: Int    // Marktwert am entsprechenden Tag
+}
+
+// MARK: - Market Value Change Data
+struct DailyMarketValueChange {
+    let date: String
+    let value: Int
+    let change: Int
+    let percentageChange: Double
+    let daysAgo: Int
+    
+    var isPositive: Bool {
+        return change > 0
+    }
+    
+    var isNegative: Bool {
+        return change < 0
+    }
+}
+
+struct MarketValueChange {
+    let daysSinceLastUpdate: Int
+    let absoluteChange: Int
+    let percentageChange: Double
+    let previousValue: Int
+    let currentValue: Int
+    let dailyChanges: [DailyMarketValueChange] // Neu: Tägliche Änderungen der letzten drei Tage
+    
+    var isPositive: Bool {
+        return absoluteChange > 0
+    }
+    
+    var isNegative: Bool {
+        return absoluteChange < 0
     }
 }

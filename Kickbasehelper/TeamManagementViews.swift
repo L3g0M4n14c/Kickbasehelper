@@ -182,7 +182,7 @@ struct TeamPlayerRow: View {
                 
                 // Stats - Durchschnittspunktzahl als große Zahl, Gesamtpunktzahl als kleine Zahl
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text("\(teamPlayer.averagePoints, specifier: "%.1f")")
+                    Text("\(teamPlayer.averagePoints, specifier: "%.0f")")
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundColor(.primary)

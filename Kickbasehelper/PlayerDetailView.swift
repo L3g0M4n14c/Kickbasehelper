@@ -159,7 +159,7 @@ struct PlayerStatsSection: View {
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 16) {
                 StatDetailCard(
                     title: "Durchschnittspunkte",
-                    value: String(format: "%.1f", player.averagePoints),
+                    value: String(format: "%.0f", player.averagePoints),
                     icon: "star.fill",
                     color: .orange
                 )
@@ -181,17 +181,64 @@ struct PlayerStatsSection: View {
                     icon: "number",
                     color: .indigo
                 )
+                
+                // Neue StatDetailCard für Gewinn/Verlust seit Kauf (prlo)
+                StatDetailCard(
+                    title: "Gewinn/Verlust",
+                    value: formatProfitLoss(player.prlo),
+                    icon: player.prlo >= 0 ? "arrow.up.circle.fill" : "arrow.down.circle.fill",
+                    color: player.prlo >= 0 ? .green : (player.prlo < 0 ? .red : .gray)
+                )
+                
+                // Neue StatDetailCard für Marktwertänderung seit letztem Update (tfhmvt)
+                StatDetailCard(
+                    title: "Letzte Änderung",
+                    value: formatMarketChange(player.tfhmvt),
+                    icon: player.tfhmvt >= 0 ? "arrow.up.circle" : "arrow.down.circle",
+                    color: player.tfhmvt >= 0 ? .green : (player.tfhmvt < 0 ? .red : .gray)
+                )
             }
         }
         .padding()
         .background(Color(.systemGray6))
         .cornerRadius(12)
     }
+    
+    // Hilfsmethode für Formatierung von Gewinn/Verlust
+    private func formatProfitLoss(_ value: Int) -> String {
+        let prefix = value >= 0 ? "+" : ""
+        if abs(value) >= 1000000 {
+            return "\(prefix)€\(String(format: "%.1f", Double(value) / 1000000))M"
+        } else if abs(value) >= 1000 {
+            return "\(prefix)€\(String(format: "%.0f", Double(value) / 1000))k"
+        } else if value == 0 {
+            return "±€0"
+        } else {
+            return "\(prefix)€\(value)"
+        }
+    }
+    
+    // Hilfsmethode für Formatierung von Marktwertänderungen
+    private func formatMarketChange(_ value: Int) -> String {
+        let prefix = value >= 0 ? "+" : ""
+        if abs(value) >= 1000000 {
+            return "\(prefix)€\(String(format: "%.1f", Double(value) / 1000000))M"
+        } else if abs(value) >= 1000 {
+            return "\(prefix)€\(String(format: "%.0f", Double(value) / 1000))k"
+        } else if value == 0 {
+            return "±€0"
+        } else {
+            return "\(prefix)€\(value)"
+        }
+    }
 }
 
 // MARK: - Market Value Section
 struct PlayerMarketValueSection: View {
     let player: TeamPlayer
+    @EnvironmentObject var kickbaseManager: KickbaseManager
+    @State private var marketValueChange: MarketValueChange?
+    @State private var isLoadingHistory = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -213,41 +260,155 @@ struct PlayerMarketValueSection: View {
                     
                     Spacer()
                     
-                    // Trend Icon
-                    if player.marketValueTrend != 0 {
+                    // Lade-Indikator für Marktwert-Historie
+                    if isLoadingHistory {
                         VStack(alignment: .trailing, spacing: 4) {
-                            Text("Trend")
+                            Text("Lade...")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                            HStack(spacing: 4) {
-                                Image(systemName: player.marketValueTrend >= 0 ? "arrow.up" : "arrow.down")
-                                    .foregroundColor(player.marketValueTrend >= 0 ? .green : .red)
-                                Text("€\(formatValue(abs(player.marketValueTrend)))")
-                                    .foregroundColor(player.marketValueTrend >= 0 ? .green : .red)
-                                    .fontWeight(.medium)
-                            }
+                            ProgressView()
+                                .scaleEffect(0.8)
                         }
                     }
                 }
                 
                 Divider()
                 
-                // Letzte Änderung
-                if player.tfhmvt != 0 {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Letzte Änderung")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            HStack(spacing: 4) {
-                                Image(systemName: player.tfhmvt >= 0 ? "arrow.up" : "arrow.down")
-                                    .foregroundColor(player.tfhmvt >= 0 ? .green : .red)
-                                Text("€\(formatValue(abs(player.tfhmvt)))")
-                                    .foregroundColor(player.tfhmvt >= 0 ? .green : .red)
-                                    .fontWeight(.medium)
+                // Marktwertänderung der letzten Tage (ersetzt das Trend-Feld)
+                if let change = marketValueChange {
+                    VStack(spacing: 8) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Änderung seit letztem Update")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                HStack(spacing: 4) {
+                                    Image(systemName: change.isPositive ? "arrow.up" : change.isNegative ? "arrow.down" : "minus")
+                                        .foregroundColor(change.isPositive ? .green : change.isNegative ? .red : .gray)
+                                    Text("€\(formatValue(abs(change.absoluteChange)))")
+                                        .foregroundColor(change.isPositive ? .green : change.isNegative ? .red : .gray)
+                                        .fontWeight(.medium)
+                                }
+                            }
+                            
+                            Spacer()
+                            
+                            VStack(alignment: .trailing, spacing: 4) {
+                                Text("Prozentual")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                HStack(spacing: 4) {
+                                    Text(String(format: "%+.1f%%", change.percentageChange))
+                                        .foregroundColor(change.isPositive ? .green : change.isNegative ? .red : .gray)
+                                        .fontWeight(.medium)
+                                }
                             }
                         }
-                        Spacer()
+                        
+                        // Zusätzliche Informationen
+                        if change.daysSinceLastUpdate > 0 {
+                            HStack {
+                                Text("Vor \(change.daysSinceLastUpdate) Tag\(change.daysSinceLastUpdate == 1 ? "" : "en")")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                                Text("€\(formatValue(change.previousValue)) → €\(formatValue(change.currentValue))")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        
+                        // Neu: Tägliche Änderungen der letzten drei Tage
+                        if !change.dailyChanges.isEmpty {
+                            Divider()
+                                .padding(.vertical, 4)
+                            
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Verlauf der letzten Tage")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .fontWeight(.semibold)
+                                
+                                ForEach(Array(change.dailyChanges.enumerated()), id: \.offset) { index, dailyChange in
+                                    HStack(spacing: 8) {
+                                        // Tag-Label
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(getDayLabel(for: dailyChange.daysAgo))
+                                                .font(.caption2)
+                                                .foregroundColor(.secondary)
+                                            Text(dailyChange.date)
+                                                .font(.caption2)
+                                                .foregroundColor(.secondary)
+                                        }
+                                        .frame(width: 60, alignment: .leading)
+                                        
+                                        // Marktwert
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text("€\(formatValue(dailyChange.value))")
+                                                .font(.caption)
+                                                .fontWeight(.medium)
+                                        }
+                                        .frame(width: 70, alignment: .leading)
+                                        
+                                        Spacer()
+                                        
+                                        // Änderung
+                                        HStack(spacing: 4) {
+                                            if dailyChange.change != 0 {
+                                                Image(systemName: dailyChange.isPositive ? "arrow.up.circle.fill" : "arrow.down.circle.fill")
+                                                    .foregroundColor(dailyChange.isPositive ? .green : .red)
+                                                    .font(.caption)
+                                                
+                                                VStack(alignment: .trailing, spacing: 1) {
+                                                    Text("€\(formatValue(abs(dailyChange.change)))")
+                                                        .font(.caption)
+                                                        .fontWeight(.medium)
+                                                        .foregroundColor(dailyChange.isPositive ? .green : .red)
+                                                    
+                                                    Text(String(format: "%+.1f%%", dailyChange.percentageChange))
+                                                        .font(.caption2)
+                                                        .foregroundColor(dailyChange.isPositive ? .green : .red)
+                                                }
+                                            } else {
+                                                HStack(spacing: 4) {
+                                                    Image(systemName: "minus.circle")
+                                                        .foregroundColor(.gray)
+                                                        .font(.caption)
+                                                    Text("keine Änderung")
+                                                        .font(.caption2)
+                                                        .foregroundColor(.gray)
+                                                }
+                                            }
+                                        }
+                                    }
+                                    .padding(.vertical, 2)
+                                    
+                                    if index < change.dailyChanges.count - 1 {
+                                        Divider()
+                                            .padding(.leading, 70)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else if !isLoadingHistory {
+                    // Fallback auf tfhmvt falls Marktwert-Historie nicht verfügbar
+                    if player.tfhmvt != 0 {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Letzte Änderung")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                HStack(spacing: 4) {
+                                    Image(systemName: player.tfhmvt >= 0 ? "arrow.up" : "arrow.down")
+                                        .foregroundColor(player.tfhmvt >= 0 ? .green : .red)
+                                    Text("€\(formatValue(abs(player.tfhmvt)))")
+                                        .foregroundColor(player.tfhmvt >= 0 ? .green : .red)
+                                        .fontWeight(.medium)
+                                }
+                            }
+                            Spacer()
+                        }
                     }
                 }
             }
@@ -255,6 +416,28 @@ struct PlayerMarketValueSection: View {
         .padding()
         .background(Color(.systemGray6))
         .cornerRadius(12)
+        .onAppear {
+            loadMarketValueHistory()
+        }
+    }
+    
+    private func loadMarketValueHistory() {
+        guard !isLoadingHistory,
+              let league = kickbaseManager.selectedLeague else { return }
+        
+        isLoadingHistory = true
+        
+        Task {
+            let change = await kickbaseManager.loadPlayerMarketValueHistory(
+                playerId: player.id,
+                leagueId: league.id
+            )
+            
+            await MainActor.run {
+                self.marketValueChange = change
+                self.isLoadingHistory = false
+            }
+        }
     }
     
     private func formatValue(_ value: Int) -> String {
@@ -264,6 +447,15 @@ struct PlayerMarketValueSection: View {
             return String(format: "%.0fk", Double(value) / 1000)
         } else {
             return "\(value)"
+        }
+    }
+    
+    private func getDayLabel(for daysAgo: Int) -> String {
+        switch daysAgo {
+        case 0: return "Heute"
+        case 1: return "Gestern"
+        case 2: return "Vorgestern"
+        default: return "Vor \(daysAgo + 1) Tagen"
         }
     }
 }
@@ -459,7 +651,7 @@ struct MarketPlayerStatsSection: View {
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 16) {
                 StatDetailCard(
                     title: "Durchschnittspunkte",
-                    value: String(format: "%.1f", player.averagePoints),
+                    value: String(format: "%.0f", player.averagePoints),
                     icon: "star.fill",
                     color: .orange
                 )
@@ -734,6 +926,7 @@ struct MarketPlayerValueComparisonSection: View {
         marketValue: 15000000,
         marketValueTrend: 500000,
         tfhmvt: 250000,
+        prlo: 1500000,  // Hinzugefügter prlo Parameter
         stl: 0,
         status: 0,
         userOwnsPlayer: true

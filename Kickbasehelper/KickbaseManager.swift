@@ -228,7 +228,7 @@ class KickbaseManager: ObservableObject {
                 }
             }
             
-            // Falls immer noch nichts gefunden, versuche die gesamte Antwort als Liga zu interpretieren
+            // Falls immer noch nichts gefunden, versuche die gesamte Antwort als Liga-ähnliche Daten zu interpretieren
             if leaguesArray.isEmpty {
                 print("⚠️ Could not find league data in known formats")
                 print("📋 Attempting to use entire response as single league...")
@@ -395,6 +395,7 @@ class KickbaseManager: ObservableObject {
                 marketValue: 15000000,
                 marketValueTrend: 500000,
                 tfhmvt: 250000, // Marktwertänderung seit letztem Update
+                prlo: 3000000,  // Gewinn seit Kauf: +3M
                 stl: 0, // Nicht verletzt
                 status: 0,
                 userOwnsPlayer: true
@@ -413,6 +414,7 @@ class KickbaseManager: ObservableObject {
                 marketValue: 12000000,
                 marketValueTrend: -200000,
                 tfhmvt: -150000, // Marktwertänderung seit letztem Update
+                prlo: -1500000,  // Verlust seit Kauf: -1.5M
                 stl: 1, // Verletzt (rotes Kreuz anzeigen)
                 status: 0,
                 userOwnsPlayer: true
@@ -431,6 +433,7 @@ class KickbaseManager: ObservableObject {
                 marketValue: 8000000,
                 marketValueTrend: -1000000,
                 tfhmvt: -500000,
+                prlo: 500000,    // Kleiner Gewinn seit Kauf: +500k
                 stl: 1, // Verletzt (rotes Kreuz anzeigen)
                 status: 0,
                 userOwnsPlayer: true
@@ -449,6 +452,7 @@ class KickbaseManager: ObservableObject {
                 marketValue: 6000000,
                 marketValueTrend: 200000,
                 tfhmvt: 100000,
+                prlo: 0,         // Kein Gewinn/Verlust seit Kauf
                 stl: 0, // Nicht verletzt
                 status: 0,
                 userOwnsPlayer: true
@@ -1067,7 +1071,7 @@ class KickbaseManager: ObservableObject {
         for (index, playerData) in playersArray.enumerated() {
             print("🔄 Parsing player \(index + 1): \(Array(playerData.keys))")
             
-            let player = parsePlayer(from: playerData)
+            let player = await parsePlayerWithDetails(from: playerData)
             parsedPlayers.append(player)
             
             print("✅ Parsed player: \(player.firstName) \(player.lastName) (\(player.teamName))")
@@ -1387,32 +1391,29 @@ class KickbaseManager: ObservableObject {
         // Extrahiere das neue tfhmvt Feld für Marktwertänderung seit letztem Update
         let tfhmvt = playerData["tfhmvt"] as? Int ?? 0
         
-        // Extrahiere das st Feld für Status (Verletzung/Krankheit)
-        let stStatus = playerData["st"] as? Int ?? 0
+        // Erweiterte Extraktion des prlo Feldes für Gewinn/Verlust seit Kauf
+        // Versuche verschiedene mögliche Feldnamen aus der API
+        let prlo = playerData["prlo"] as? Int ??
+                   playerData["profitLoss"] as? Int ??
+                   playerData["profit_loss"] as? Int ??
+                   playerData["pl"] as? Int ??
+                   playerData["pnl"] as? Int ??
+                   playerData["gainLoss"] as? Int ??
+                   playerData["gain_loss"] as? Int ??
+                   playerData["performance"] as? Int ??
+                   playerData["perf"] as? Int ?? 0
         
-        let totalPoints = extractTotalPoints(from: playerData)
-        let averagePoints = extractAveragePoints(from: playerData)
-        
-        // Debug: Zeige extrahierte Werte
-        print("   🔍 Extracted values:")
-        print("     ID: '\(apiId)'")
-        print("     First Name: '\(firstName)'")
-        print("     Last Name: '\(lastName)'")
-        print("     Team Name: '\(teamName)'")
-        print("     Number: \(number)")
-        print("     Position: \(position)")
-        print("     Market Value: \(marketValue)")
-        print("     Market Value Trend: \(marketValueTrend)")
-        print("     TFHMVT (seit letztem Update): \(tfhmvt)")
-        print("     ST Status: \(stStatus)")
-        print("     Total Points: \(totalPoints)")
-        print("     Average Points: \(averagePoints)")
-        
-        // Debug: Zeige ALLE verfügbaren Felder in den API-Daten
-        print("   📋 ALL API fields available:")
-        for (key, value) in playerData.sorted(by: { $0.key < $1.key }) {
-            print("     \(key): \(value)")
+        // Detailliertes Debugging für prlo-Feld
+        print("   🔍 PRLO Field Debugging:")
+        print("     Raw playerData keys: \(Array(playerData.keys))")
+        for key in playerData.keys {
+            if key.lowercased().contains("pr") || key.lowercased().contains("pl") ||
+               key.lowercased().contains("profit") || key.lowercased().contains("loss") ||
+               key.lowercased().contains("gain") || key.lowercased().contains("perf") {
+                print("     Potential prlo field '\(key)': \(playerData[key] ?? "nil")")
+            }
         }
+        print("   ✅ Final PRLO value: \(prlo)")
         
         // Generiere eine eindeutige ID falls die API-ID leer oder doppelt ist
         let uniqueId = apiId.isEmpty ?
@@ -1427,11 +1428,11 @@ class KickbaseManager: ObservableObject {
             // Wenn beide Namen fehlen, verwende "Unbekannter Spieler"
             finalFirstName = "Unbekannter"
             finalLastName = "Spieler"
-        } else if firstName.isEmpty {
-            // Wenn nur der Vorname fehlt, verwende den Nachnamen
+        } else if firstName.isEmpty && !lastName.isEmpty {
+            // Wenn nur der Vorname fehlt, verwende den Nachnamen als vollständigen Namen
             finalFirstName = lastName
             finalLastName = ""
-        } else if lastName.isEmpty {
+        } else if !firstName.isEmpty && lastName.isEmpty {
             // Wenn nur der Nachname fehlt, verwende den Vornamen als vollständigen Namen
             finalFirstName = firstName
             finalLastName = ""
@@ -1454,11 +1455,12 @@ class KickbaseManager: ObservableObject {
             teamId: teamId,
             position: position,
             number: number,
-            averagePoints: averagePoints,
-            totalPoints: totalPoints,
+            averagePoints: extractAveragePoints(from: playerData),
+            totalPoints: extractTotalPoints(from: playerData),
             marketValue: marketValue,
             marketValueTrend: marketValueTrend,
             tfhmvt: tfhmvt,
+            prlo: prlo,
             stl: playerData["stl"] as? Int ?? 0,
             status: playerData["st"] as? Int ?? 0,
             userOwnsPlayer: playerData["userOwnsPlayer"] as? Bool ??
@@ -1466,10 +1468,425 @@ class KickbaseManager: ObservableObject {
                            playerData["mine"] as? Bool ?? true
         )
         
-        print("   ✅ Created player: \(player.firstName) \(player.lastName) (\(player.teamName)) - €\(player.marketValue/1000)k - TFHMVT: €\(player.tfhmvt/1000)k")
+        print("   ✅ Created player: \(player.firstName) \(player.lastName) (\(player.teamName)) - €\(player.marketValue/1000)k - PRLO: €\(player.prlo/1000)k")
         return player
     }
     
+    // MARK: - Player Detail Loading
+    
+    private func loadPlayerDetails(playerId: String, leagueId: String) async -> PlayerDetailResponse? {
+        guard let token = authToken else {
+            print("❌ No auth token available for player details")
+            return nil
+        }
+        
+        let endpoint = "/v4/leagues/\(leagueId)/players/\(playerId)"
+        
+        do {
+            let url = URL(string: "\(baseURL)\(endpoint)")!
+            var request = URLRequest(url: url)
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            request.setValue("application/json", forHTTPHeaderField: "Accept")
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.cachePolicy = .reloadIgnoringLocalCacheData
+            
+            print("📤 Loading player details: \(url)")
+            
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            if let httpResponse = response as? HTTPURLResponse {
+                print("📊 Player Details Status Code: \(httpResponse.statusCode)")
+                
+                if let responseString = String(data: data, encoding: .utf8) {
+                    print("📥 Player Details Response: \(responseString.prefix(500))")
+                }
+                
+                if httpResponse.statusCode == 200 {
+                    if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                        print("✅ Got player details for ID: \(playerId)")
+                        print("📋 Available player detail keys: \(Array(json.keys))")
+                        
+                        // Parse PlayerDetailResponse
+                        return PlayerDetailResponse(
+                            fn: json["fn"] as? String,
+                            ln: json["ln"] as? String,
+                            tn: json["tn"] as? String,
+                            shn: json["shn"] as? Int,
+                            id: json["id"] as? String,
+                            position: json["position"] as? Int,
+                            number: json["number"] as? Int,
+                            averagePoints: json["averagePoints"] as? Double,
+                            totalPoints: json["totalPoints"] as? Int,
+                            marketValue: json["marketValue"] as? Int,
+                            marketValueTrend: json["marketValueTrend"] as? Int,
+                            profileBigUrl: json["profileBigUrl"] as? String,
+                            teamId: json["teamId"] as? String,
+                            tfhmvt: json["tfhmvt"] as? Int,
+                            prlo: json["prlo"] as? Int,
+                            stl: json["stl"] as? Int,
+                            status: json["status"] as? Int,
+                            userOwnsPlayer: json["userOwnsPlayer"] as? Bool
+                        )
+                    }
+                }
+            }
+        } catch {
+            print("❌ Error loading player details for \(playerId): \(error.localizedDescription)")
+        }
+        
+        return nil
+    }
+    
+    private func parsePlayerWithDetails(from playerData: [String: Any]) async -> TeamPlayer {
+        print("🔍 Parsing individual player data with details:")
+        print("   Available keys: \(Array(playerData.keys))")
+        print("   Raw player data: \(playerData)")
+        
+        // Extrahiere die Player-ID für den Detail-Call
+        let apiId = playerData["id"] as? String ?? playerData["i"] as? String ?? ""
+        
+        // Lade Player-Details vom Detail-Endpoint
+        var playerDetails: PlayerDetailResponse? = nil
+        if !apiId.isEmpty, let league = selectedLeague {
+            playerDetails = await loadPlayerDetails(playerId: apiId, leagueId: league.id)
+        }
+        
+        // Korrigierte Namen-Extraktion - das "name" Feld ist tatsächlich der NACHNAME
+        let squadName = playerData["name"] as? String ?? playerData["n"] as? String ?? ""
+        
+        // Verwende die korrekten Namen aus dem Detail-Endpoint (fn = firstName, ln = lastName)
+        let firstName: String
+        let lastName: String
+        
+        if let details = playerDetails {
+            // Verwende die Daten aus dem Detail-Endpoint
+            firstName = details.fn ?? ""
+            lastName = details.ln ?? squadName  // Fallback auf den Squad-Namen wenn ln nicht verfügbar
+            print("   ✅ Using names from detail endpoint - fn: '\(firstName)', ln: '\(lastName)'")
+        } else {
+            // Fallback: Das "name" Feld aus der Squad-API ist eigentlich der Nachname
+            firstName = ""  // Kein Vorname verfügbar
+            lastName = squadName
+            print("   ⚠️ Using squad data only - treating 'name' as lastName: '\(lastName)'")
+        }
+        
+        // Team-Name aus Detail-Endpoint oder Fallback
+        let teamName: String
+        if let details = playerDetails, let detailTeamName = details.tn, !detailTeamName.isEmpty {
+            teamName = detailTeamName
+            print("   ✅ Using team name from detail endpoint: '\(teamName)'")
+        } else {
+            teamName = playerData["teamName"] as? String ??
+                      playerData["tn"] as? String ??
+                      playerData["club"] as? String ??
+                      playerData["team"] as? String ?? "Unknown Team"
+            print("   ⚠️ Using team name from squad data: '\(teamName)'")
+        }
+        
+        // Trikotnummer - priorität auf shn aus Detail-Endpoint
+        let shirtNumber: Int
+        if let details = playerDetails, let detailShirtNumber = details.shn {
+            shirtNumber = detailShirtNumber
+            print("   ✅ Using shirt number from detail endpoint (shn): \(shirtNumber)")
+        } else {
+            // Fallback auf Squad-API Daten
+            shirtNumber = playerData["number"] as? Int ??
+                         playerData["n"] as? Int ??
+                         playerData["jerseyNumber"] as? Int ?? 0
+            print("   ⚠️ Using shirt number from squad data: \(shirtNumber)")
+        }
+        
+        // Andere Felder wie vorher
+        let teamId = playerData["teamId"] as? String ??
+                    playerData["ti"] as? String ??
+                    playerData["tid"] as? String ??
+                    playerData["clubId"] as? String ?? ""
+        let position = playerData["position"] as? Int ??
+                      playerData["pos"] as? Int ??
+                      playerData["p"] as? Int ?? 0
+        let marketValue = playerData["marketValue"] as? Int ??
+                         playerData["mv"] as? Int ??
+                         playerData["value"] as? Int ??
+                         playerData["worth"] as? Int ?? 0
+        let marketValueTrend = playerData["marketValueTrend"] as? Int ??
+                              playerData["mvt"] as? Int ??
+                              playerData["trend"] as? Int ??
+                              playerData["t"] as? Int ?? 0
+        
+        // Extrahiere das neue tfhmvt Feld für Marktwertänderung seit letztem Update
+        let tfhmvt = playerData["tfhmvt"] as? Int ?? 0
+        
+        // Erweiterte Extraktion des prlo Feldes für Gewinn/Verlust seit Kauf
+        // Versuche verschiedene mögliche Feldnamen aus der API
+        let prlo = playerData["prlo"] as? Int ??
+                   playerData["profitLoss"] as? Int ??
+                   playerData["profit_loss"] as? Int ??
+                   playerData["pl"] as? Int ??
+                   playerData["pnl"] as? Int ??
+                   playerData["gainLoss"] as? Int ??
+                   playerData["gain_loss"] as? Int ??
+                   playerData["performance"] as? Int ??
+                   playerData["perf"] as? Int ?? 0
+        
+        // Detailliertes Debugging für prlo-Feld
+        print("   🔍 PRLO Field Debugging:")
+        print("     Raw playerData keys: \(Array(playerData.keys))")
+        for key in playerData.keys {
+            if key.lowercased().contains("pr") || key.lowercased().contains("pl") ||
+               key.lowercased().contains("profit") || key.lowercased().contains("loss") ||
+               key.lowercased().contains("gain") || key.lowercased().contains("perf") {
+                print("     Potential prlo field '\(key)': \(playerData[key] ?? "nil")")
+            }
+        }
+        print("   ✅ Final PRLO value: \(prlo)")
+        
+        // Wenn prlo immer noch 0 ist, versuche es auch aus dem Detail-Endpoint zu holen
+        var finalPrlo = prlo
+        if prlo == 0, let details = playerDetails {
+            // Versuche prlo auch aus dem Detail-Endpoint zu extrahieren
+            if let detailPrlo = details.prlo {
+                finalPrlo = detailPrlo
+                print("   ✅ Found PRLO in detail endpoint: \(finalPrlo)")
+            } else {
+                print("   ⚠️ No PRLO found in detail endpoint either")
+            }
+        }
+        
+        // Extrahiere das st Feld für Status (Verletzung/Krankheit)
+        let stStatus = playerData["st"] as? Int ?? 0
+        
+        let totalPoints = extractTotalPoints(from: playerData)
+        let averagePoints = extractAveragePoints(from: playerData)
+        
+        // Debug: Zeige extrahierte Werte
+        print("   🔍 Final extracted values:")
+        print("     ID: '\(apiId)'")
+        print("     First Name: '\(firstName)'")
+        print("     Last Name: '\(lastName)'")
+        print("     Team Name: '\(teamName)'")
+        print("     Number: \(shirtNumber)")
+        print("     Position: \(position)")
+        print("     Market Value: \(marketValue)")
+        print("     Market Value Trend: \(marketValueTrend)")
+        print("     TFHMVT (seit letztem Update): \(tfhmvt)")
+        print("     PRLO (Gewinn/Verlust): \(finalPrlo)")
+        print("     ST Status: \(stStatus)")
+        print("     Total Points: \(totalPoints)")
+        print("     Average Points: \(averagePoints)")
+        
+        // Generiere eine eindeutige ID falls die API-ID leer oder doppelt ist
+        let uniqueId = apiId.isEmpty ?
+            "\(firstName)-\(lastName)-\(teamId)-\(shirtNumber)-\(UUID().uuidString.prefix(8))" :
+            apiId
+        
+        // Fallback für Namen - verbesserte Logik
+        let finalFirstName: String
+        let finalLastName: String
+        
+        if firstName.isEmpty && lastName.isEmpty {
+            // Wenn beide Namen fehlen, verwende "Unbekannter Spieler"
+            finalFirstName = "Unbekannter"
+            finalLastName = "Spieler"
+        } else if firstName.isEmpty && !lastName.isEmpty {
+            // Wenn nur der Vorname fehlt, verwende den Nachnamen als vollständigen Namen
+            finalFirstName = lastName
+            finalLastName = ""
+        } else if !firstName.isEmpty && lastName.isEmpty {
+            // Wenn nur der Nachname fehlt, verwende den Vornamen als vollständigen Namen
+            finalFirstName = firstName
+            finalLastName = ""
+        } else {
+            // Beide Namen sind vorhanden
+            finalFirstName = firstName
+            finalLastName = lastName
+        }
+        
+        let finalTeamName = teamName.isEmpty ? "Unknown Team" : teamName
+        
+        let player = Player(
+            id: uniqueId,
+            firstName: finalFirstName,
+            lastName: finalLastName,
+            profileBigUrl: playerData["profileBigUrl"] as? String ??
+                          playerData["imageUrl"] as? String ??
+                          playerData["photo"] as? String ?? "",
+            teamName: finalTeamName,
+            teamId: teamId,
+            position: position,
+            number: shirtNumber,
+            averagePoints: averagePoints,
+            totalPoints: totalPoints,
+            marketValue: marketValue,
+            marketValueTrend: marketValueTrend,
+            tfhmvt: tfhmvt,
+            prlo: finalPrlo,  // Verwende den korrigierten PRLO-Wert
+            stl: playerData["stl"] as? Int ?? 0,
+            status: playerData["st"] as? Int ?? 0,
+            userOwnsPlayer: playerData["userOwnsPlayer"] as? Bool ??
+                           playerData["owned"] as? Bool ??
+                           playerData["mine"] as? Bool ?? true
+        )
+        
+        print("   ✅ Created player: \(player.firstName) \(player.lastName) (\(player.teamName)) - €\(player.marketValue/1000)k - PRLO: €\(player.prlo/1000)k")
+        return player
+    }
+    
+    // MARK: - Market Value History Loading
+    
+    func loadPlayerMarketValueHistory(playerId: String, leagueId: String) async -> MarketValueChange? {
+        guard let token = authToken else {
+            print("❌ No auth token available for market value history")
+            return nil
+        }
+        
+        let endpoint = "/v4/leagues/\(leagueId)/players/\(playerId)/marketvalue/365"
+        
+        do {
+            let url = URL(string: "\(baseURL)\(endpoint)")!
+            var request = URLRequest(url: url)
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            request.setValue("application/json", forHTTPHeaderField: "Accept")
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.cachePolicy = .reloadIgnoringLocalCacheData
+            
+            print("📤 Loading market value history: \(url)")
+            
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            if let httpResponse = response as? HTTPURLResponse {
+                print("📊 Market Value History Status Code: \(httpResponse.statusCode)")
+                
+                if let responseString = String(data: data, encoding: .utf8) {
+                    print("📥 Market Value History Response: \(responseString.prefix(1000))")
+                }
+                
+                if httpResponse.statusCode == 200 {
+                    if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                        print("✅ Got market value history for player ID: \(playerId)")
+                        print("📋 Available history keys: \(Array(json.keys))")
+                        
+                        return parseMarketValueHistory(from: json)
+                    } else {
+                        print("⚠️ Could not parse JSON from market value history response")
+                    }
+                } else {
+                    print("⚠️ HTTP \(httpResponse.statusCode) for market value history endpoint")
+                }
+            }
+        } catch {
+            print("❌ Error loading market value history for \(playerId): \(error.localizedDescription)")
+        }
+        
+        return nil
+    }
+    
+    private func parseMarketValueHistory(from json: [String: Any]) -> MarketValueChange? {
+        print("🔍 Parsing market value history from response...")
+        print("📋 History JSON keys: \(Array(json.keys))")
+        
+        // Extrahiere die "it" Liste mit den Marktwert-Einträgen
+        guard let itArray = json["it"] as? [[String: Any]] else {
+            print("❌ No 'it' array found in market value history response")
+            return nil
+        }
+        
+        print("📊 Found \(itArray.count) market value entries")
+        
+        // Konvertiere zu MarketValueEntry Objekten
+        var entries: [MarketValueEntry] = []
+        for entryData in itArray {
+            if let dt = entryData["dt"] as? Int,
+               let mv = entryData["mv"] as? Int {
+                entries.append(MarketValueEntry(dt: dt, mv: mv))
+            }
+        }
+        
+        // Sortiere nach dt (Datum) absteigend um die neuesten Einträge zuerst zu haben
+        entries.sort { $0.dt > $1.dt }
+        
+        print("📅 Sorted entries by date (newest first):")
+        for (index, entry) in entries.prefix(5).enumerated() {
+            // dt ist die Anzahl der Tage seit 1.1.1970, nicht Sekunden
+            let date = Date(timeIntervalSince1970: TimeInterval(entry.dt * 24 * 60 * 60))
+            let formatter = DateFormatter()
+            formatter.dateStyle = .short
+            formatter.timeStyle = .none
+            print("   \(index + 1). \(formatter.string(from: date)): €\(entry.mv/1000)k (dt: \(entry.dt))")
+        }
+        
+        // Nimm die letzten vier Datensätze (für drei Tagesvergleiche)
+        let lastFourEntries = Array(entries.prefix(4))
+        
+        guard lastFourEntries.count >= 2 else {
+            print("⚠️ Nicht genügend Marktwert-Einträge für Änderungsberechnung (benötigt mindestens 2, gefunden: \(lastFourEntries.count))")
+            return nil
+        }
+        
+        // Berechne die Änderung seit dem letzten Tag (für Hauptwerte)
+        let currentEntry = lastFourEntries[0]  // Neuester Eintrag
+        let previousEntry = lastFourEntries[1] // Vorletzter Eintrag
+        
+        let absoluteChange = currentEntry.mv - previousEntry.mv
+        let percentageChange = previousEntry.mv != 0 ?
+            (Double(absoluteChange) / Double(previousEntry.mv)) * 100.0 : 0.0
+        
+        // Berechne Tage seit letztem Update (dt ist bereits in Tagen)
+        let daysDifference = currentEntry.dt - previousEntry.dt
+        
+        // Berechne tägliche Änderungen für die letzten drei Tage
+        var dailyChanges: [DailyMarketValueChange] = []
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateStyle = .medium
+        dateFormatter.timeStyle = .none
+        dateFormatter.locale = Locale(identifier: "de_DE")
+        
+        // Erstelle Daily Changes für bis zu 3 Tage
+        let maxDays = min(3, lastFourEntries.count - 1)
+        for i in 0..<maxDays {
+            let currentDayEntry = lastFourEntries[i]
+            let previousDayEntry = lastFourEntries[i + 1]
+            
+            let dailyChange = currentDayEntry.mv - previousDayEntry.mv
+            let dailyPercentageChange = previousDayEntry.mv != 0 ?
+                (Double(dailyChange) / Double(previousDayEntry.mv)) * 100.0 : 0.0
+            
+            // dt ist die Anzahl der Tage seit 1.1.1970, konvertiere zu Date
+            let date = Date(timeIntervalSince1970: TimeInterval(currentDayEntry.dt * 24 * 60 * 60))
+            let dateString = dateFormatter.string(from: date)
+            
+            let dailyMarketValueChange = DailyMarketValueChange(
+                date: dateString,
+                value: currentDayEntry.mv,
+                change: dailyChange,
+                percentageChange: dailyPercentageChange,
+                daysAgo: i
+            )
+            
+            dailyChanges.append(dailyMarketValueChange)
+            
+            print("📈 Day \(i + 1) (\(dateString)): €\(currentDayEntry.mv/1000)k (Änderung: €\(dailyChange/1000)k, \(String(format: "%.1f", dailyPercentageChange))%) [dt: \(currentDayEntry.dt)]")
+        }
+        
+        let marketValueChange = MarketValueChange(
+            daysSinceLastUpdate: daysDifference,
+            absoluteChange: absoluteChange,
+            percentageChange: percentageChange,
+            previousValue: previousEntry.mv,
+            currentValue: currentEntry.mv,
+            dailyChanges: dailyChanges
+        )
+        
+        print("✅ Calculated market value change:")
+        print("   📈 Absolute change: €\(absoluteChange/1000)k")
+        print("   📊 Percentage change: \(String(format: "%.1f", percentageChange))%")
+        print("   📅 Days since last update: \(daysDifference)")
+        print("   💰 Previous value: €\(previousEntry.mv/1000)k")
+        print("   💰 Current value: €\(currentEntry.mv/1000)k")
+        print("   📊 Daily changes count: \(dailyChanges.count)")
+        
+        return marketValueChange
+    }
+
     // MARK: - Debugging Methods
     
     func debugCurrentState() {
