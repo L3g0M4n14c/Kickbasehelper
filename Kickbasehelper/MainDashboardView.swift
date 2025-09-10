@@ -24,11 +24,11 @@ struct MainDashboardView: View {
                     }
                     .tag(1)
                 
-                // Stats Tab
-                StatsView()
+                // Sales Recommendation Tab (ersetzt Stats Tab)
+                SalesRecommendationView()
                     .tabItem {
-                        Image(systemName: "chart.bar.fill")
-                        Text("Stats")
+                        Image(systemName: "dollarsign.circle.fill")
+                        Text("Verkaufen")
                     }
                     .tag(2)
                 
@@ -821,159 +821,830 @@ struct MarketPlayerRowView: View {
     }
 }
 
-// MARK: - Stats View mit detaillierten Punktzahl-Statistiken
-struct StatsView: View {
-    @EnvironmentObject var kickbaseManager: KickbaseManager
-    
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                if let stats = kickbaseManager.userStats {
-                    DetailedStatsView(stats: stats)
-                }
-                
-                // Team-Punktzahl Übersicht
-                TeamPointsOverview()
-                
-                if let league = kickbaseManager.selectedLeague {
-                    LeagueInfoView(league: league)
-                }
-            }
-            .padding()
-        }
-    }
+// MARK: - Helper functions for conversion and utilities
+
+// Konvertiert MarketPlayer zu TeamPlayer für die PlayerDetailView
+private func convertMarketPlayerToTeamPlayer(_ marketPlayer: MarketPlayer) -> TeamPlayer {
+    return Player(
+        id: marketPlayer.id,
+        firstName: marketPlayer.firstName,
+        lastName: marketPlayer.lastName,
+        profileBigUrl: marketPlayer.profileBigUrl,
+        teamName: marketPlayer.teamName,
+        teamId: marketPlayer.teamId,
+        position: marketPlayer.position,
+        number: marketPlayer.number,
+        averagePoints: marketPlayer.averagePoints,
+        totalPoints: marketPlayer.totalPoints,
+        marketValue: marketPlayer.marketValue,
+        marketValueTrend: marketPlayer.marketValueTrend,
+        tfhmvt: 0, // MarketPlayer hat kein tfhmvt-Feld
+        prlo: marketPlayer.prlo ?? 0,
+        stl: marketPlayer.stl,
+        status: marketPlayer.status,
+        userOwnsPlayer: false // MarketPlayer gehört nicht dem User
+    )
 }
 
-// MARK: - Team Punktzahl Übersicht
-struct TeamPointsOverview: View {
-    @EnvironmentObject var kickbaseManager: KickbaseManager
+// MARK: - Player Count Overview
+struct PlayerCountOverview: View {
+    let playerCounts: (total: Int, goalkeepers: Int, defenders: Int, midfielders: Int, forwards: Int)
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Team Punktzahl-Übersicht")
-                .font(.title2)
-                .fontWeight(.bold)
+        HStack(spacing: 8) {
+            // Gesamt
+            PlayerCountCard(
+                title: "Gesamt",
+                count: playerCounts.total,
+                minRequired: 11,
+                icon: "person.3.fill",
+                color: .blue
+            )
             
-            let totalTeamPoints = kickbaseManager.teamPlayers.reduce(0) { $0 + $1.totalPoints }
-            let averageTeamPoints = kickbaseManager.teamPlayers.isEmpty ? 0.0 :
-                Double(totalTeamPoints) / Double(kickbaseManager.teamPlayers.count)
+            // Torwart
+            PlayerCountCard(
+                title: "TW",
+                count: playerCounts.goalkeepers,
+                minRequired: 1,
+                icon: "sportscourt.fill",
+                color: .yellow
+            )
             
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 16) {
-                StatCard(
-                    title: "Teampunkte Gesamt",
-                    value: "\(totalTeamPoints)",
-                    icon: "star.fill",
-                    color: .orange
-                )
-                StatCard(
-                    title: "Ø pro Spieler",
-                    value: String(format: "%.0f", averageTeamPoints),
-                    icon: "chart.line.uptrend.xyaxis",
-                    color: .blue
-                )
-                StatCard(
-                    title: "Beste Punktzahl",
-                    value: "\(kickbaseManager.teamPlayers.map(\.totalPoints).max() ?? 0)",
-                    icon: "crown.fill",
-                    color: .yellow
-                )
-                StatCard(
-                    title: "Spieleranzahl",
-                    value: "\(kickbaseManager.teamPlayers.count)",
-                    icon: "person.3.fill",
-                    color: .green
-                )
-            }
+            // Verteidiger
+            PlayerCountCard(
+                title: "VT",
+                count: playerCounts.defenders,
+                minRequired: 3,
+                icon: "shield.fill",
+                color: .green
+            )
+            
+            // Mittelfeld
+            PlayerCountCard(
+                title: "MF",
+                count: playerCounts.midfielders,
+                minRequired: 2,
+                icon: "rectangle.3.group.fill",
+                color: .blue
+            )
+            
+            // Sturm
+            PlayerCountCard(
+                title: "ST",
+                count: playerCounts.forwards,
+                minRequired: 1,
+                icon: "target",
+                color: .red
+            )
         }
-        .padding()
+        .padding(.horizontal)
+        .padding(.vertical, 8)
         .background(Color(.systemGray6))
-        .cornerRadius(12)
-    }
-}
-
-struct DetailedStatsView: View {
-    let stats: UserStats
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Meine Liga-Statistiken")
-                .font(.title2)
-                .fontWeight(.bold)
-            
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 16) {
-                StatCard(title: "Gesamtpunkte", value: "\(stats.points)", icon: "star.fill", color: .orange)
-                StatCard(title: "Platzierung", value: "#\(stats.placement)", icon: "trophy.fill", color: .yellow)
-                StatCard(title: "Siege", value: "\(stats.won)", icon: "checkmark.circle.fill", color: .green)
-                StatCard(title: "Niederlagen", value: "\(stats.lost)", icon: "xmark.circle.fill", color: .red)
-            }
-        }
-        .padding()
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
-    }
-}
-
-struct StatCard: View {
-    let title: String
-    let value: String
-    let icon: String
-    let color: Color
-    
-    var body: some View {
-        VStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundColor(color)
-            
-            Text(value)
-                .font(.title)
-                .fontWeight(.bold)
-            
-            Text(title)
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-        }
-        .frame(height: 100)
-        .frame(maxWidth: .infinity)
-        .background(Color(.systemBackground))
         .cornerRadius(8)
     }
 }
 
-struct LeagueInfoView: View {
-    let league: League
+// MARK: - Player Count Card
+struct PlayerCountCard: View {
+    let title: String
+    let count: Int
+    let minRequired: Int
+    let icon: String
+    let color: Color
+    
+    private var textColor: Color {
+        return count < minRequired ? .red : .green
+    }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Liga-Informationen")
+        VStack(spacing: 2) {
+            Image(systemName: icon)
+                .font(.caption)
+                .foregroundColor(color)
+            
+            Text("\(count)")
+                .font(.headline)
+                .fontWeight(.bold)
+                .foregroundColor(textColor)
+            
+            Text(title)
+                .font(.caption2)
+                .foregroundColor(.secondary)
+                .fontWeight(.medium)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 50)
+        .background(Color(.systemBackground))
+        .cornerRadius(6)
+    }
+}
+
+// MARK: - Sales Recommendation View
+struct SalesRecommendationView: View {
+    @EnvironmentObject var kickbaseManager: KickbaseManager
+    @State private var selectedGoal: OptimizationGoal = .balancePositive
+    @State private var recommendedSales: [SalesRecommendation] = []
+    @State private var selectedSales: Set<String> = []
+    
+    enum OptimizationGoal: String, CaseIterable {
+        case balancePositive = "Budget ins Plus"
+        case maximizeProfit = "Maximaler Profit"
+        case keepBestPlayers = "Beste Spieler behalten"
+    }
+    
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 20) {
+                // Header
+                SalesRecommendationHeader(
+                    currentBudget: kickbaseManager.userStats?.budget ?? 0,
+                    recommendedSaleValue: recommendedSales.map { $0.expectedValue }.reduce(0, +),
+                    selectedSaleValue: selectedSales.compactMap { id in
+                        recommendedSales.first(where: { $0.player.id == id })?.expectedValue
+                    }.reduce(0, +)
+                )
+                
+                // Optimierungsziel Auswahl
+                VStack(spacing: 16) {
+                    Text("Optimierungsziel")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                    
+                    Picker("Ziel wählen", selection: $selectedGoal) {
+                        ForEach(OptimizationGoal.allCases, id: \.self) { goal in
+                            Text(goal.rawValue).tag(goal)
+                        }
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
+                }
+                .padding()
+                .background(Color(.systemGray6))
+                .cornerRadius(12)
+                
+                // Verkaufs-Empfehlungen
+                SalesRecommendationSummary(recommendations: recommendedSales, optimizationGoal: selectedGoal)
+                
+                // Detaillierte Empfehlungen
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("Detaillierte Empfehlungen")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                    
+                    ForEach(recommendedSales) { recommendation in
+                        SalesRecommendationRow(
+                            recommendation: recommendation,
+                            isSelected: selectedSales.contains(recommendation.player.id),
+                            onToggle: { isSelected in
+                                if isSelected {
+                                    selectedSales.insert(recommendation.player.id)
+                                } else {
+                                    selectedSales.remove(recommendation.player.id)
+                                }
+                            }
+                        )
+                    }
+                }
+                .padding()
+                .background(Color(.systemGray6))
+                .cornerRadius(12)
+            }
+            .padding()
+        }
+        .onAppear {
+            generateIntelligentRecommendations()
+        }
+        .onChange(of: selectedGoal) {
+            generateIntelligentRecommendations()
+        }
+    }
+    
+    private func generateIntelligentRecommendations() {
+        let allPlayers = kickbaseManager.teamPlayers
+        let currentBudget = kickbaseManager.userStats?.budget ?? 0
+        
+        recommendedSales = []
+        
+        // Analysiere alle Spieler und erstelle Empfehlungen basierend auf echten Kriterien
+        for player in allPlayers {
+            if let recommendation = analyzePlayerForSale(
+                player: player,
+                allPlayers: allPlayers,
+                currentBudget: currentBudget,
+                optimizationGoal: selectedGoal
+            ) {
+                recommendedSales.append(recommendation)
+            }
+        }
+        
+        // Sortiere nach Priorität und Impact - beste Verkaufskandidaten zuerst
+        recommendedSales.sort { recommendation1, recommendation2 in
+            let priority1Value = getPriorityValue(recommendation1.priority)
+            let priority2Value = getPriorityValue(recommendation2.priority)
+            let impact1Value = getImpactValue(recommendation1.impact)
+            let impact2Value = getImpactValue(recommendation2.impact)
+            
+            // Erstelle einen kombinierten Score: Hohe Priorität (niedrige Zahl) + Niedriger Impact (niedrige Zahl) = besserer Kandidat
+            let score1 = priority1Value + impact1Value
+            let score2 = priority2Value + impact2Value
+            
+            if score1 != score2 {
+                return score1 < score2 // Niedrigerer Score = besserer Verkaufskandidat
+            }
+            
+            // Bei gleichem Score: Sekundäre Sortierung nach Optimierungsziel
+            switch selectedGoal {
+            case .balancePositive:
+                return recommendation1.player.marketValue > recommendation2.player.marketValue
+            case .maximizeProfit:
+                return recommendation1.expectedValue > recommendation2.expectedValue
+            case .keepBestPlayers:
+                return recommendation1.player.averagePoints < recommendation2.player.averagePoints
+            }
+        }
+    }
+    
+    private func analyzePlayerForSale(
+        player: TeamPlayer,
+        allPlayers: [TeamPlayer],
+        currentBudget: Int,
+        optimizationGoal: OptimizationGoal
+    ) -> SalesRecommendation? {
+        
+        var reasons: [String] = []
+        var shouldSell = false
+        var priority: SalesRecommendation.Priority = .low
+        
+        // 1. KRITISCHE KRITERIEN - Immer verkaufen
+        
+        // Verletzte Spieler (Status 1)
+        if player.status == 1 {
+            reasons.append("Verletzt")
+            shouldSell = true
+            priority = .high
+        }
+        
+        // Gesperrte Spieler (Status 8)
+        if player.status == 8 {
+            reasons.append("Gesperrt")
+            shouldSell = true
+            priority = .high
+        }
+        
+        // Spieler im Aufbautraining (Status 4)
+        if player.status == 4 {
+            reasons.append("Aufbautraining")
+            shouldSell = true
+            priority = .high
+        }
+        
+        // 2. POSITIONSLIMITS PRÜFEN
+        let positionAnalysis = analyzePositionRedundancy(player: player, allPlayers: allPlayers)
+        if positionAnalysis.isRedundant {
+            reasons.append("Überzählig auf Position")
+            shouldSell = true
+            if priority == .low {
+                priority = positionAnalysis.isWeakestInPosition ? .medium : .low
+            }
+        }
+        
+        // 3. BUDGET-BASIERTE KRITERIEN (nur wenn Budget negativ)
+        if currentBudget < 0 {
+            let budgetPressure = abs(currentBudget)
+            
+            // Bei hohem Budgetdruck verkaufe teure Spieler
+            if player.marketValue >= budgetPressure / 2 {
+                reasons.append("Budget im Minus")
+                shouldSell = true
+                if priority == .low {
+                    priority = .medium
+                }
+            }
+        }
+        
+        // 4. OPTIMIERUNGSZIEL-SPEZIFISCHE KRITERIEN
+        switch optimizationGoal {
+        case .balancePositive:
+            // Verkaufe Spieler mit schlechtem Preis-Leistungs-Verhältnis
+            if isPlayerOverpriced(player: player, allPlayers: allPlayers) {
+                reasons.append("Schlechtes Preis-Leistungs-Verhältnis")
+                shouldSell = true
+            }
+            
+        case .maximizeProfit:
+            // Verkaufe Spieler mit positiver Marktwertentwicklung
+            if player.tfhmvt > 0 && player.tfhmvt > player.marketValue / 10 {
+                reasons.append("Hoher Marktwertgewinn")
+                shouldSell = true
+            }
+            
+        case .keepBestPlayers:
+            // Verkaufe schwächste Spieler auf der Position
+            if isPlayerWeakestInPosition(player: player, allPlayers: allPlayers) && positionAnalysis.isRedundant {
+                reasons.append("Schwächster Spieler auf Position")
+                shouldSell = true
+            }
+        }
+        
+        // 5. PERFORMANCE-KRITERIEN (nur bei geringer Priorität)
+        if priority == .low {
+            let teamAveragePoints = allPlayers.map(\.averagePoints).reduce(0, +) / Double(allPlayers.count)
+            
+            if player.averagePoints < teamAveragePoints * 0.6 {
+                reasons.append("Schwache Performance")
+                shouldSell = true
+            }
+            
+            // Fallender Marktwert
+            if player.tfhmvt < 0 && abs(player.tfhmvt) > player.marketValue / 8 {
+                reasons.append("Fallender Marktwert")
+                shouldSell = true
+            }
+        }
+        
+        guard shouldSell else { return nil }
+        
+        // Erwarteter Verkaufswert berechnen
+        let expectedValue = calculateExpectedSaleValue(player: player)
+        
+        // Aufstellungsimpact berechnen
+        let lineupImpact = calculateLineupImpact(player: player, allPlayers: allPlayers)
+        
+        return SalesRecommendation(
+            player: player,
+            reason: reasons.joined(separator: " • "),
+            priority: priority,
+            expectedValue: expectedValue,
+            impact: lineupImpact
+        )
+    }
+    
+    private func analyzePositionRedundancy(player: TeamPlayer, allPlayers: [TeamPlayer]) -> (isRedundant: Bool, isWeakestInPosition: Bool) {
+        let samePositionPlayers = allPlayers.filter { $0.position == player.position && $0.status != 1 && $0.status != 4 && $0.status != 8 }
+        let minRequired = getMinRequiredForPosition(player.position)
+        
+        let isRedundant = samePositionPlayers.count > minRequired
+        
+        if !isRedundant {
+            return (false, false)
+        }
+        
+        // Sortiere Spieler auf der Position nach Durchschnittspunkten
+        let sortedPlayers = samePositionPlayers.sorted { $0.averagePoints > $1.averagePoints }
+        let playerRank = sortedPlayers.firstIndex(where: { $0.id == player.id }) ?? 0
+        
+        // Ist schwächster wenn er unter den Mindestspielern liegt
+        let isWeakestInPosition = playerRank >= minRequired
+        
+        return (true, isWeakestInPosition)
+    }
+    
+    private func isPlayerOverpriced(player: TeamPlayer, allPlayers: [TeamPlayer]) -> Bool {
+        let valuePerPoint = player.averagePoints > 0 ? Double(player.marketValue) / player.averagePoints : Double.infinity
+        let teamAverageValuePerPoint = allPlayers.compactMap { player in
+            player.averagePoints > 0 ? Double(player.marketValue) / player.averagePoints : nil
+        }.reduce(0, +) / Double(allPlayers.count)
+        
+        return valuePerPoint > teamAverageValuePerPoint * 1.4
+    }
+    
+    private func isPlayerWeakestInPosition(player: TeamPlayer, allPlayers: [TeamPlayer]) -> Bool {
+        let samePositionPlayers = allPlayers.filter { $0.position == player.position && $0.status != 1 && $0.status != 4 && $0.status != 8 }
+        let sortedPlayers = samePositionPlayers.sorted { $0.averagePoints > $1.averagePoints }
+        
+        guard let playerIndex = sortedPlayers.firstIndex(where: { $0.id == player.id }) else { return false }
+        
+        // Ist unter den schlechtesten 30% der Position
+        return Double(playerIndex) >= Double(sortedPlayers.count) * 0.7
+    }
+    
+    private func calculateExpectedSaleValue(player: TeamPlayer) -> Int {
+        // Konservative Schätzung: 95% des Marktwerts
+        return Int(Double(player.marketValue) * 0.95)
+    }
+    
+    private func calculateLineupImpact(player: TeamPlayer, allPlayers: [TeamPlayer]) -> SalesRecommendation.LineupImpact {
+        let availablePlayers = allPlayers.filter { $0.status != 1 && $0.status != 4 && $0.status != 8 }
+        let samePositionPlayers = availablePlayers.filter { $0.position == player.position }
+        let minRequired = getMinRequiredForPosition(player.position)
+        
+        // Wenn Spieler verletzt/gesperrt/Aufbautraining ist, minimaler Impact
+        if player.status == 1 || player.status == 4 || player.status == 8 {
+            return .minimal
+        }
+        
+        // Wenn Verkauf die Mindestanzahl unterschreiten würde
+        if samePositionPlayers.count <= minRequired {
+            return .significant
+        }
+        
+        // Sortiere verfügbare Spieler nach Leistung
+        let sortedPlayers = samePositionPlayers.sorted { $0.averagePoints > $1.averagePoints }
+        guard let playerRank = sortedPlayers.firstIndex(where: { $0.id == player.id }) else { return .minimal }
+        
+        if playerRank < minRequired {
+            return .significant // Top-Spieler auf Position
+        } else if playerRank < samePositionPlayers.count / 2 {
+            return .moderate // Mittelfeldplatz
+        } else {
+            return .minimal // Schwächerer Spieler
+        }
+    }
+    
+    private func getMinRequiredForPosition(_ position: Int) -> Int {
+        switch position {
+        case 1: return 1 // Torwart
+        case 2: return 3 // Verteidiger
+        case 3: return 2 // Mittelfeld
+        case 4: return 1 // Sturm
+        default: return 1
+        }
+    }
+    
+    private func getPriorityValue(_ priority: SalesRecommendation.Priority) -> Int {
+        switch priority {
+        case .high: return 0
+        case .medium: return 1
+        case .low: return 2
+        }
+    }
+    
+    private func getImpactValue(_ impact: SalesRecommendation.LineupImpact) -> Int {
+        switch impact {
+        case .minimal: return 0
+        case .moderate: return 1
+        case .significant: return 2
+        }
+    }
+}
+
+// MARK: - Sales Recommendation Data Models
+struct SalesRecommendation: Identifiable {
+    let id = UUID()
+    let player: TeamPlayer
+    let reason: String
+    let priority: Priority
+    let expectedValue: Int
+    let impact: LineupImpact
+    
+    enum Priority: String, CaseIterable {
+        case high = "Hoch"
+        case medium = "Mittel"
+        case low = "Niedrig"
+        
+        var color: Color {
+            switch self {
+            case .high: return .red
+            case .medium: return .orange
+            case .low: return .green
+            }
+        }
+    }
+    
+    enum LineupImpact: String, CaseIterable {
+        case minimal = "Minimal"
+        case moderate = "Moderat"
+        case significant = "Erheblich"
+        
+        var color: Color {
+            switch self {
+            case .minimal: return .green
+            case .moderate: return .orange
+            case .significant: return .red
+            }
+        }
+    }
+}
+
+// MARK: - Sales Recommendation Header
+struct SalesRecommendationHeader: View {
+    let currentBudget: Int
+    let recommendedSaleValue: Int
+    let selectedSaleValue: Int
+    
+    private var budgetAfterRecommended: Int {
+        return currentBudget + recommendedSaleValue
+    }
+    
+    private var budgetAfterSelected: Int {
+        return currentBudget + selectedSaleValue
+    }
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            // Aktuelle Budget-Situation
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Aktuelles Budget")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Text("€\(formatValueWithSeparators(currentBudget))")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(currentBudget < 0 ? .red : .green)
+                }
+                
+                Spacer()
+                
+                if currentBudget < 0 {
+                    VStack(alignment: .trailing, spacing: 4) {
+                        Text("Benötigt")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Text("€\(formatValueWithSeparators(abs(currentBudget)))")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .foregroundColor(.red)
+                    }
+                }
+            }
+            .padding()
+            .background(currentBudget < 0 ? Color.red.opacity(0.1) : Color.green.opacity(0.1))
+            .cornerRadius(12)
+            
+            // Empfohlene vs. Ausgewählte Verkäufe
+            if recommendedSaleValue > 0 || selectedSaleValue > 0 {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 12) {
+                    // Empfohlene Verkäufe
+                    VStack(spacing: 8) {
+                        Text("Empfohlen")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        VStack(spacing: 4) {
+                            Text("€\(formatValueWithSeparators(recommendedSaleValue))")
+                                .font(.headline)
+                                .fontWeight(.bold)
+                                .foregroundColor(.blue)
+                            
+                            Text("Budget: €\(formatValueWithSeparators(budgetAfterRecommended))")
+                                .font(.caption)
+                                .foregroundColor(budgetAfterRecommended >= 0 ? .green : .red)
+                        }
+                    }
+                    .padding()
+                    .background(Color(.systemGray6))
+                    .cornerRadius(8)
+                    
+                    // Ausgewählte Verkäufe
+                    VStack(spacing: 8) {
+                        Text("Ausgewählt")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        VStack(spacing: 4) {
+                            Text("€\(formatValueWithSeparators(selectedSaleValue))")
+                                .font(.headline)
+                                .fontWeight(.bold)
+                                .foregroundColor(.orange)
+                            
+                            if selectedSaleValue > 0 {
+                                Text("Budget: €\(formatValueWithSeparators(budgetAfterSelected))")
+                                    .font(.caption)
+                                    .foregroundColor(budgetAfterSelected >= 0 ? .green : .red)
+                            } else {
+                                Text("Keine Auswahl")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                    .padding()
+                    .background(Color(.systemGray6))
+                    .cornerRadius(8)
+                }
+            }
+        }
+    }
+    
+    private func formatValue(_ value: Int) -> String {
+        if value >= 1000000 {
+            return String(format: "%.1fM", Double(value) / 1000000)
+        } else if value >= 1000 {
+            return String(format: "%.0fk", Double(value) / 1000)
+        } else {
+            return "\(value)"
+        }
+    }
+    
+    private func formatValueWithSeparators(_ value: Int) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.groupingSeparator = "."
+        formatter.groupingSize = 3
+        
+        if let formattedString = formatter.string(from: NSNumber(value: value)) {
+            return formattedString
+        } else {
+            return "\(value)"
+        }
+    }
+}
+
+// MARK: - Sales Recommendation Summary
+struct SalesRecommendationSummary: View {
+    let recommendations: [SalesRecommendation]
+    let optimizationGoal: SalesRecommendationView.OptimizationGoal
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Empfehlungsübersicht")
                 .font(.title2)
                 .fontWeight(.bold)
             
-            InfoRow(label: "Liga", value: league.name)
-            InfoRow(label: "Saison", value: league.season)
-            InfoRow(label: "Spieltag", value: "\(league.matchDay)")
-            InfoRow(label: "Admin", value: league.adminName)
-            InfoRow(label: "Ersteller", value: league.creatorName)
+            // Strategieerklärung
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Strategie: \(optimizationGoal.rawValue)")
+                    .font(.headline)
+                    .foregroundColor(.blue)
+                
+                Text(getStrategyDescription(for: optimizationGoal))
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+            .padding()
+            .background(Color(.systemBackground))
+            .cornerRadius(8)
+            
+            // Prioritäten-Übersicht
+            let priorityCounts = getPriorityCounts()
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 12) {
+                ForEach(SalesRecommendation.Priority.allCases, id: \.self) { priority in
+                    VStack(spacing: 4) {
+                        Image(systemName: getPriorityIcon(priority))
+                            .font(.title2)
+                            .foregroundColor(priority.color)
+                        
+                        Text("\(priorityCounts[priority] ?? 0)")
+                            .font(.title)
+                            .fontWeight(.bold)
+                        
+                        Text(priority.rawValue)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color(.systemGray6))
+                    .cornerRadius(8)
+                }
+            }
         }
         .padding()
         .background(Color(.systemGray6))
         .cornerRadius(12)
     }
+    
+    private func getStrategyDescription(for goal: SalesRecommendationView.OptimizationGoal) -> String {
+        switch goal {
+        case .balancePositive:
+            return "Verkaufe Spieler um das Budget ins Plus zu bringen, dabei werden Spielerleistung und Positionsbesetzung berücksichtigt."
+        case .maximizeProfit:
+            return "Verkaufe Spieler mit dem höchsten Gewinn seit dem Kauf, um maximalen Profit zu erzielen."
+        case .keepBestPlayers:
+            return "Verkaufe schwächere Spieler zuerst, um die besten Leistungsträger im Team zu behalten."
+        }
+    }
+    
+    private func getPriorityCounts() -> [SalesRecommendation.Priority: Int] {
+        var counts: [SalesRecommendation.Priority: Int] = [:]
+        
+        for priority in SalesRecommendation.Priority.allCases {
+            counts[priority] = recommendations.filter { $0.priority == priority }.count
+        }
+        
+        return counts
+    }
+    
+    private func getPriorityIcon(_ priority: SalesRecommendation.Priority) -> String {
+        switch priority {
+        case .high: return "exclamationmark.triangle.fill"
+        case .medium: return "minus.circle.fill"
+        case .low: return "checkmark.circle.fill"
+        }
+    }
 }
 
-// MARK: - Helper Views
-struct InfoRow: View {
-    let label: String
-    let value: String
+// MARK: - Sales Recommendation Row
+struct SalesRecommendationRow: View {
+    let recommendation: SalesRecommendation
+    let isSelected: Bool
+    let onToggle: (Bool) -> Void
+    
+    @State private var showingPlayerDetail = false
     
     var body: some View {
-        HStack {
-            Text(label + ":")
-                .foregroundColor(.secondary)
-            Spacer()
-            Text(value)
-                .fontWeight(.medium)
+        Button(action: {
+            showingPlayerDetail = true
+        }) {
+            HStack(spacing: 12) {
+                // Position Badge
+                PositionBadge(position: recommendation.player.position)
+                
+                VStack(alignment: .leading, spacing: 6) {
+                    // Spieler Name mit Status
+                    HStack(spacing: 4) {
+                        Text(recommendation.player.fullName)
+                            .font(.headline)
+                            .fontWeight(.medium)
+                        
+                        // Status-Icons
+                        if recommendation.player.status == 2 {
+                            Image(systemName: "pills.fill")
+                                .foregroundColor(.orange)
+                                .font(.caption)
+                        }
+                    }
+                    
+                    // Team
+                    Text(recommendation.player.fullTeamName)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    // Verkaufsgrund
+                    Text(recommendation.reason)
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                        .italic()
+                }
+                
+                Spacer()
+                
+                // Stats
+                VStack(alignment: .trailing, spacing: 4) {
+                    // Durchschnittspunkte
+                    HStack(spacing: 4) {
+                        Image(systemName: "star.fill")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                        Text(String(format: "%.0f", recommendation.player.averagePoints))
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                    }
+                    
+                    // Marktwert
+                    Text("€\(formatValue(recommendation.player.marketValue))")
+                        .font(.headline)
+                        .fontWeight(.bold)
+                        .foregroundColor(.green)
+                }
+                
+                VStack(spacing: 8) {
+                    // Priorität
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(recommendation.priority.color)
+                            .frame(width: 8, height: 8)
+                        Text(recommendation.priority.rawValue)
+                            .font(.caption)
+                            .foregroundColor(recommendation.priority.color)
+                    }
+                    
+                    // Aufstellungsimpact
+                    HStack(spacing: 4) {
+                        Image(systemName: getImpactIcon(recommendation.impact))
+                            .font(.caption2)
+                            .foregroundColor(recommendation.impact.color)
+                        Text(recommendation.impact.rawValue)
+                            .font(.caption2)
+                            .foregroundColor(recommendation.impact.color)
+                    }
+                }
+                
+                // Toggle
+                Toggle(isOn: Binding<Bool>(
+                    get: { isSelected },
+                    set: { newValue in
+                        onToggle(newValue)
+                    }
+                )) {
+                    Text("")
+                }
+                .toggleStyle(SwitchToggleStyle(tint: .blue))
+                .frame(width: 50, height: 30)
+            }
+            .padding(.vertical, 8)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .sheet(isPresented: $showingPlayerDetail) {
+            PlayerDetailView(player: recommendation.player)
+        }
+    }
+    
+    private func formatValue(_ value: Int) -> String {
+        if value >= 1000000 {
+            return String(format: "%.1fM", Double(value) / 1000000)
+        } else if value >= 1000 {
+            return String(format: "%.0fk", Double(value) / 1000)
+        } else {
+            return "\(value)"
+        }
+    }
+    
+    private func getImpactIcon(_ impact: SalesRecommendation.LineupImpact) -> String {
+        switch impact {
+        case .minimal: return "checkmark.circle.fill"
+        case .moderate: return "minus.circle.fill"
+        case .significant: return "exclamationmark.triangle.fill"
         }
     }
 }
@@ -1806,6 +2477,26 @@ struct ReservePlayerRow: View {
         }
     }
     
+    private func positionAbbreviation(_ position: Int) -> String {
+        switch position {
+        case 1: return "TW"
+        case 2: return "ABW"
+        case 3: return "MF"
+        case 4: return "ST"
+        default: return "?"
+        }
+    }
+    
+    private func positionColor(_ position: Int) -> Color {
+        switch position {
+        case 1: return .yellow
+        case 2: return .green
+        case 3: return .blue
+        case 4: return .red
+        default: return .gray
+        }
+    }
+    
     private func formatValue(_ value: Int) -> String {
         if value >= 1000000 {
             return String(format: "%.1fM", Double(value) / 1000000)
@@ -1813,6 +2504,163 @@ struct ReservePlayerRow: View {
             return String(format: "%.0fk", Double(value) / 1000)
         } else {
             return "\(value)"
+        }
+    }
+}
+
+// MARK: - Stats View mit detaillierten Punktzahl-Statistiken
+struct StatsView: View {
+    @EnvironmentObject var kickbaseManager: KickbaseManager
+    
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 20) {
+                if let stats = kickbaseManager.userStats {
+                    DetailedStatsView(stats: stats)
+                }
+                
+                // Team-Punktzahl Übersicht
+                TeamPointsOverview()
+                
+                if let league = kickbaseManager.selectedLeague {
+                    LeagueInfoView(league: league)
+                }
+            }
+            .padding()
+        }
+    }
+}
+
+// MARK: - Team Punktzahl Übersicht
+struct TeamPointsOverview: View {
+    @EnvironmentObject var kickbaseManager: KickbaseManager
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Team Punktzahl-Übersicht")
+                .font(.title2)
+                .fontWeight(.bold)
+            
+            let totalTeamPoints = kickbaseManager.teamPlayers.reduce(0) { $0 + $1.totalPoints }
+            let averageTeamPoints = kickbaseManager.teamPlayers.isEmpty ? 0.0 :
+                Double(totalTeamPoints) / Double(kickbaseManager.teamPlayers.count)
+            
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 16) {
+                StatCard(
+                    title: "Teampunkte Gesamt",
+                    value: "\(totalTeamPoints)",
+                    icon: "star.fill",
+                    color: .orange
+                )
+                StatCard(
+                    title: "Ø pro Spieler",
+                    value: String(format: "%.0f", averageTeamPoints),
+                    icon: "chart.line.uptrend.xyaxis",
+                    color: .blue
+                )
+                StatCard(
+                    title: "Beste Punktzahl",
+                    value: "\(kickbaseManager.teamPlayers.map(\.totalPoints).max() ?? 0)",
+                    icon: "crown.fill",
+                    color: .yellow
+                )
+                StatCard(
+                    title: "Spieleranzahl",
+                    value: "\(kickbaseManager.teamPlayers.count)",
+                    icon: "person.3.fill",
+                    color: .green
+                )
+            }
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+    }
+}
+
+struct DetailedStatsView: View {
+    let stats: UserStats
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Meine Liga-Statistiken")
+                .font(.title2)
+                .fontWeight(.bold)
+            
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 16) {
+                StatCard(title: "Gesamtpunkte", value: "\(stats.points)", icon: "star.fill", color: .orange)
+                StatCard(title: "Platzierung", value: "#\(stats.placement)", icon: "trophy.fill", color: .yellow)
+                StatCard(title: "Siege", value: "\(stats.won)", icon: "checkmark.circle.fill", color: .green)
+                StatCard(title: "Niederlagen", value: "\(stats.lost)", icon: "xmark.circle.fill", color: .red)
+            }
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+    }
+}
+
+struct StatCard: View {
+    let title: String
+    let value: String
+    let icon: String
+    let color: Color
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.title2)
+                .foregroundColor(color)
+            
+            Text(value)
+                .font(.title)
+                .fontWeight(.bold)
+            
+            Text(title)
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(height: 100)
+        .frame(maxWidth: .infinity)
+        .background(Color(.systemBackground))
+        .cornerRadius(8)
+    }
+}
+
+struct LeagueInfoView: View {
+    let league: League
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Liga-Informationen")
+                .font(.title2)
+                .fontWeight(.bold)
+            
+            InfoRow(label: "Liga", value: league.name)
+            InfoRow(label: "Saison", value: league.season)
+            InfoRow(label: "Spieltag", value: "\(league.matchDay)")
+            InfoRow(label: "Admin", value: league.adminName)
+            InfoRow(label: "Ersteller", value: league.creatorName)
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+    }
+}
+
+// MARK: - Helper Views
+struct InfoRow: View {
+    let label: String
+    let value: String
+    
+    var body: some View {
+        HStack {
+            Text(label + ":")
+                .foregroundColor(.secondary)
+            Spacer()
+            Text(value)
+                .fontWeight(.medium)
         }
     }
 }
@@ -1835,7 +2683,7 @@ struct TeamBudgetHeaderMain: View {
                 Text("€\(formatValueWithSeparators(currentBudget))")
                     .font(.headline)
                     .fontWeight(.bold)
-                    .foregroundColor(currentBudget < 0 ? .red : .primary)
+                    .foregroundColor(currentBudget < 0 ? .red : .green)
             }
             
             Spacer()
@@ -1878,128 +2726,4 @@ struct TeamBudgetHeaderMain: View {
             return "\(value)"
         }
     }
-}
-
-// MARK: - Helper functions for conversion and utilities
-
-// Konvertiert MarketPlayer zu TeamPlayer für die PlayerDetailView
-private func convertMarketPlayerToTeamPlayer(_ marketPlayer: MarketPlayer) -> TeamPlayer {
-    return Player(
-        id: marketPlayer.id,
-        firstName: marketPlayer.firstName,
-        lastName: marketPlayer.lastName,
-        profileBigUrl: marketPlayer.profileBigUrl,
-        teamName: marketPlayer.teamName,
-        teamId: marketPlayer.teamId,
-        position: marketPlayer.position,
-        number: marketPlayer.number,
-        averagePoints: marketPlayer.averagePoints,
-        totalPoints: marketPlayer.totalPoints,
-        marketValue: marketPlayer.marketValue,
-        marketValueTrend: marketPlayer.marketValueTrend,
-        tfhmvt: 0, // MarketPlayer hat kein tfhmvt-Feld
-        prlo: marketPlayer.prlo ?? 0,
-        stl: marketPlayer.stl,
-        status: marketPlayer.status,
-        userOwnsPlayer: false // MarketPlayer gehört nicht dem User
-    )
-}
-
-// MARK: - Player Count Overview
-struct PlayerCountOverview: View {
-    let playerCounts: (total: Int, goalkeepers: Int, defenders: Int, midfielders: Int, forwards: Int)
-    
-    var body: some View {
-        HStack(spacing: 8) {
-            // Gesamt
-            PlayerCountCard(
-                title: "Gesamt",
-                count: playerCounts.total,
-                minRequired: 11,
-                icon: "person.3.fill",
-                color: .blue
-            )
-            
-            // Torwart
-            PlayerCountCard(
-                title: "TW",
-                count: playerCounts.goalkeepers,
-                minRequired: 1,
-                icon: "sportscourt.fill",
-                color: .yellow
-            )
-            
-            // Verteidiger
-            PlayerCountCard(
-                title: "VT",
-                count: playerCounts.defenders,
-                minRequired: 3,
-                icon: "shield.fill",
-                color: .green
-            )
-            
-            // Mittelfeld
-            PlayerCountCard(
-                title: "MF",
-                count: playerCounts.midfielders,
-                minRequired: 2,
-                icon: "rectangle.3.group.fill",
-                color: .blue
-            )
-            
-            // Sturm
-            PlayerCountCard(
-                title: "ST",
-                count: playerCounts.forwards,
-                minRequired: 1,
-                icon: "target",
-                color: .red
-            )
-        }
-        .padding(.horizontal)
-        .padding(.vertical, 8)
-        .background(Color(.systemGray6))
-        .cornerRadius(8)
-    }
-}
-
-// MARK: - Player Count Card
-struct PlayerCountCard: View {
-    let title: String
-    let count: Int
-    let minRequired: Int
-    let icon: String
-    let color: Color
-    
-    private var textColor: Color {
-        return count < minRequired ? .red : .green
-    }
-    
-    var body: some View {
-        VStack(spacing: 2) {
-            Image(systemName: icon)
-                .font(.caption)
-                .foregroundColor(color)
-            
-            Text("\(count)")
-                .font(.headline)
-                .fontWeight(.bold)
-                .foregroundColor(textColor)
-            
-            Text(title)
-                .font(.caption2)
-                .foregroundColor(.secondary)
-                .fontWeight(.medium)
-        }
-        .frame(maxWidth: .infinity)
-        .frame(height: 50)
-        .background(Color(.systemBackground))
-        .cornerRadius(6)
-    }
-}
-
-#Preview {
-    MainDashboardView()
-        .environmentObject(KickbaseManager())
-        .environmentObject(AuthenticationManager())
 }
