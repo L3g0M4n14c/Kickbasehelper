@@ -116,7 +116,7 @@ struct Player: Codable, Identifiable {
 typealias TeamPlayer = Player
 
 // MARK: - Market Models
-struct MarketPlayer: Codable, Identifiable {
+struct MarketPlayer: Codable, Identifiable, Equatable {
     let id: String
     let firstName: String
     let lastName: String
@@ -135,6 +135,9 @@ struct MarketPlayer: Codable, Identifiable {
     let seller: MarketSeller
     let stl: Int     // Verletzungsstatus aus API-Daten
     let status: Int  // Status-Feld für Verletzung/Angeschlagen
+    let prlo: Int?   // Profit/Loss since purchase - Gewinn/Verlust seit Kauf
+    let owner: PlayerOwner? // Optional owner field
+    let exs: Int     // Ablaufdatum als Timestamp für Sortierung
     
     var fullName: String {
         return "\(firstName) \(lastName)"
@@ -154,6 +157,11 @@ struct MarketPlayer: Codable, Identifiable {
         default: return "?"
         }
     }
+    
+    // Equatable conformance
+    static func == (lhs: MarketPlayer, rhs: MarketPlayer) -> Bool {
+        return lhs.id == rhs.id
+    }
 }
 
 struct MarketSeller: Codable {
@@ -161,13 +169,19 @@ struct MarketSeller: Codable {
     let name: String
 }
 
-// MARK: - Gift Models
-struct Gift: Codable, Identifiable {
-    let id: String
-    let type: String
-    let amount: Int
-    let level: Int
-    let collected: Bool
+// MARK: - Player Owner (für das "u" Feld in Marktspielern)
+struct PlayerOwner: Codable {
+    let i: String       // ID des Besitzers
+    let n: String       // Name des Besitzers
+    let uim: String?    // Benutzer-Image URL
+    let isvf: Bool?     // Is verified flag
+    let st: Int?        // Status
+    
+    var id: String { i }
+    var name: String { n }
+    var userImageUrl: String? { uim }
+    var isVerified: Bool { isvf ?? false }
+    var status: Int { st ?? 0 }
 }
 
 // MARK: - Response Wrappers
@@ -177,11 +191,6 @@ struct PlayersResponse: Codable {
 
 struct MarketResponse: Codable {
     let players: [MarketPlayer]
-}
-
-struct GiftsResponse: Codable {
-    let gifts: [Gift]
-    let nextGift: String?
 }
 
 struct LeaguesResponse: Codable {
@@ -273,11 +282,13 @@ struct PlayerDetailResponse: Codable {
 // MARK: - Market Value History Models
 struct MarketValueHistoryResponse: Codable {
     let it: [MarketValueEntry]  // Liste der Marktwert-Einträge
+    let prlo: Int?              // Profit/Loss since purchase - auf Root-Ebene, nicht in den Einträgen
 }
 
 struct MarketValueEntry: Codable {
-    let dt: Int    // Datum als Unix-Timestamp
+    let dt: Int    // Datum als Unix-Timestamp (Tage seit 1.1.1970)
     let mv: Int    // Marktwert am entsprechenden Tag
+    // prlo ist NICHT hier, sondern auf Root-Ebene in MarketValueHistoryResponse
 }
 
 // MARK: - Market Value Change Data
@@ -303,7 +314,7 @@ struct MarketValueChange {
     let percentageChange: Double
     let previousValue: Int
     let currentValue: Int
-    let dailyChanges: [DailyMarketValueChange] // Neu: Tägliche Änderungen der letzten drei Tage
+    let dailyChanges: [DailyMarketValueChange]
     
     var isPositive: Bool {
         return absoluteChange > 0

@@ -169,6 +169,11 @@ struct TeamPlayerRow: View {
                             Image(systemName: "pills.fill")
                                 .foregroundColor(.orange)
                                 .font(.caption)
+                        } else if teamPlayer.status == 4 {
+                            // Aufbautraining - Hantel-Icon
+                            Image(systemName: "dumbbell.fill")
+                                .foregroundColor(.blue)
+                                .font(.caption)
                         }
                     }
                     
@@ -225,10 +230,43 @@ struct MarketTab: View {
     @EnvironmentObject var kickbaseManager: KickbaseManager
     @State private var searchText = ""
     @State private var selectedPosition: Int = 0 // 0 = All, 1 = TW, 2 = ABW, 3 = MF, 4 = ST
+    @State private var isManuallyLoading = false
+    @State private var forceRefreshId = UUID()
     
     var body: some View {
         NavigationView {
             VStack {
+                // Debug Info (nur in Debug-Builds)
+                #if DEBUG
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Debug Info:")
+                        .font(.caption2)
+                        .foregroundColor(.orange)
+                    Text("Market Players Count: \(kickbaseManager.marketPlayers.count)")
+                        .font(.caption2)
+                        .foregroundColor(.orange)
+                    Text("Filtered Count: \(filteredMarketPlayers.count)")
+                        .font(.caption2)
+                        .foregroundColor(.orange)
+                    Text("Selected League: \(kickbaseManager.selectedLeague?.name ?? "None")")
+                        .font(.caption2)
+                        .foregroundColor(.orange)
+                    Text("Is Loading: \(kickbaseManager.isLoading)")
+                        .font(.caption2)
+                        .foregroundColor(.orange)
+                    Text("Manual Loading: \(isManuallyLoading)")
+                        .font(.caption2)
+                        .foregroundColor(.orange)
+                    if let error = kickbaseManager.errorMessage {
+                        Text("Error: \(error)")
+                            .font(.caption2)
+                            .foregroundColor(.red)
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 8)
+                #endif
+                
                 // Filter Controls
                 VStack(spacing: 10) {
                     HStack {
@@ -261,17 +299,148 @@ struct MarketTab: View {
                 }
                 .padding(.horizontal)
                 
-                // Market Players List
-                List(filteredMarketPlayers, id: \.id) { player in
-                    MarketPlayerRow(marketPlayer: player)
-                }
-                .refreshable {
-                    if let league = kickbaseManager.selectedLeague {
-                        await kickbaseManager.loadMarketPlayers(for: league)
+                // Market Players List or Empty State
+                if kickbaseManager.isLoading || isManuallyLoading {
+                    VStack(spacing: 20) {
+                        Spacer()
+                        ProgressView("Lade Transfermarkt...")
+                            .progressViewStyle(CircularProgressViewStyle())
+                        Text("Ladevorgang läuft...")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                    }
+                } else if let error = kickbaseManager.errorMessage {
+                    VStack(spacing: 20) {
+                        Spacer()
+                        
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 60))
+                            .foregroundColor(.red)
+                        
+                        Text("Fehler beim Laden")
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                        
+                        Text(error)
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                        
+                        Button("Erneut versuchen") {
+                            manualReload()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(kickbaseManager.selectedLeague == nil)
+                        
+                        Spacer()
+                    }
+                } else if kickbaseManager.marketPlayers.isEmpty {
+                    VStack(spacing: 20) {
+                        Spacer()
+                        
+                        Image(systemName: "cart.fill")
+                            .font(.system(size: 60))
+                            .foregroundColor(.gray)
+                        
+                        Text("Keine Transfermarkt-Spieler verfügbar")
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                        
+                        Text("Derzeit sind keine Spieler auf dem Transfermarkt")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                        
+                        Button("Aktualisieren") {
+                            manualReload()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(kickbaseManager.selectedLeague == nil)
+                        
+                        Spacer()
+                    }
+                } else {
+                    // Market Players List
+                    List(filteredMarketPlayers, id: \.id) { player in
+                        MarketPlayerRow(marketPlayer: player)
+                            .id("\(player.id)-\(forceRefreshId)")
+                    }
+                    .id(forceRefreshId)
+                    .refreshable {
+                        await performRefresh()
                     }
                 }
             }
-            .navigationTitle("Transfermarkt")
+            .navigationTitle("Transfermarkt (\(kickbaseManager.marketPlayers.count))")
+            .onAppear {
+                print("🎯 MarketTab appeared")
+                print("   - Market players count: \(kickbaseManager.marketPlayers.count)")
+                print("   - Selected league: \(kickbaseManager.selectedLeague?.name ?? "None")")
+                print("   - Is loading: \(kickbaseManager.isLoading)")
+                
+                // Force initial load if needed
+                if kickbaseManager.marketPlayers.isEmpty && !kickbaseManager.isLoading {
+                    print("🔄 MarketTab: No market players found, triggering reload...")
+                    Task {
+                        await performInitialLoad()
+                    }
+                }
+            }
+            .onChange(of: kickbaseManager.selectedLeague) { oldLeague, newLeague in
+                print("🔄 MarketTab: League changed from \(oldLeague?.name ?? "None") to \(newLeague?.name ?? "None")")
+                if let newLeague = newLeague {
+                    Task {
+                        await performInitialLoad()
+                    }
+                }
+            }
+            .onChange(of: kickbaseManager.marketPlayers) { oldPlayers, newPlayers in
+                print("🔄 MarketTab: Market players changed from \(oldPlayers.count) to \(newPlayers.count)")
+                forceRefreshId = UUID()
+            }
+        }
+    }
+    
+    private func performInitialLoad() async {
+        guard let league = kickbaseManager.selectedLeague else {
+            print("❌ MarketTab: No league selected for initial load")
+            return
+        }
+        
+        print("🔄 MarketTab: Starting initial load for league \(league.name)")
+        await kickbaseManager.loadMarketPlayers(for: league)
+        print("✅ MarketTab: Initial load completed. Market players count: \(kickbaseManager.marketPlayers.count)")
+    }
+    
+    private func performRefresh() async {
+        guard let league = kickbaseManager.selectedLeague else {
+            print("❌ MarketTab: No league selected for refresh")
+            return
+        }
+        
+        print("🔄 MarketTab: Starting refresh for league \(league.name)")
+        await kickbaseManager.loadMarketPlayers(for: league)
+        print("✅ MarketTab: Refresh completed. Market players count: \(kickbaseManager.marketPlayers.count)")
+    }
+    
+    private func manualReload() {
+        guard let league = kickbaseManager.selectedLeague else {
+            print("❌ MarketTab: No league selected for manual reload")
+            return
+        }
+        
+        isManuallyLoading = true
+        print("🔄 MarketTab: Starting manual reload for league \(league.name)")
+        
+        Task {
+            await kickbaseManager.loadMarketPlayers(for: league)
+            await MainActor.run {
+                isManuallyLoading = false
+                print("✅ MarketTab: Manual reload completed. Market players count: \(kickbaseManager.marketPlayers.count)")
+            }
         }
     }
     
@@ -328,6 +497,11 @@ struct MarketPlayerRow: View {
                             Image(systemName: "pills.fill")
                                 .foregroundColor(.orange)
                                 .font(.caption)
+                        } else if marketPlayer.status == 4 {
+                            // Aufbautraining - Hantel-Icon
+                            Image(systemName: "dumbbell.fill")
+                                .foregroundColor(.blue)
+                                .font(.caption)
                         }
                     }
                     
@@ -379,126 +553,6 @@ struct MarketPlayerRow: View {
     }
 }
 
-struct GiftsTab: View {
-    @ObservedObject var manager: KickbaseManager
-    @State private var isCollectingAll = false
-    
-    var body: some View {
-        VStack {
-            if manager.isLoading {
-                // ...existing code...
-            } else {
-                VStack(spacing: 16) {
-                    // Alle sammeln Button
-                    Button(action: {
-                        Task {
-                            isCollectingAll = true
-                            for gift in manager.gifts.filter({ !$0.collected }) {
-                                await manager.collectGift(id: gift.id)
-                            }
-                            isCollectingAll = false
-                            await manager.loadGifts()
-                        }
-                    }) {
-                        HStack {
-                            Image(systemName: "gift.fill")
-                            Text("Alle sammeln (\(manager.gifts.filter { !$0.collected }.count))")
-                        }
-                        .foregroundColor(.white)
-                        .padding()
-                        .background(Color.orange)
-                        .cornerRadius(10)
-                    }
-                    .disabled(isCollectingAll || manager.gifts.filter { !$0.collected }.isEmpty)
-                    
-                    if isCollectingAll {
-                        ProgressView("Sammle alle Geschenke...")
-                            .progressViewStyle(CircularProgressViewStyle())
-                    }
-                    
-                    // Geschenke Liste
-                    ScrollView {
-                        LazyVStack(spacing: 12) {
-                            ForEach(manager.gifts, id: \.id) { gift in
-                                GiftCard(gift: gift, manager: manager)
-                            }
-                        }
-                        .padding()
-                    }
-                }
-            }
-        }
-        .navigationTitle("Geschenke")
-        .refreshable {
-            await manager.loadGifts()
-        }
-        .onAppear {
-            if manager.gifts.isEmpty {
-                Task {
-                    await manager.loadGifts()
-                }
-            }
-        }
-    }
-}
-
-struct GiftCard: View {
-    let gift: Gift
-    @ObservedObject var manager: KickbaseManager
-    @State private var isCollecting = false
-    
-    var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Tagesgeschenk")
-                    .font(.headline)
-                
-                Text("€\(gift.amount, specifier: "%.0f")")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .foregroundColor(.green)
-                
-                Text(gift.collected ? "Bereits gesammelt" : "Bereit zum Sammeln")
-                    .font(.caption)
-                    .foregroundColor(gift.collected ? .gray : .orange)
-            }
-            
-            Spacer()
-            
-            if !gift.collected {
-                Button(action: {
-                    Task {
-                        isCollecting = true
-                        await manager.collectGift(id: gift.id)
-                        isCollecting = false
-                        await manager.loadGifts()
-                    }
-                }) {
-                    if isCollecting {
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                            .scaleEffect(0.8)
-                    } else {
-                        Image(systemName: "hand.tap.fill")
-                            .foregroundColor(.white)
-                    }
-                }
-                .frame(width: 50, height: 50)
-                .background(Color.orange)
-                .cornerRadius(25)
-                .disabled(isCollecting)
-            } else {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundColor(.green)
-                    .font(.title2)
-            }
-        }
-        .padding()
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
-    }
-}
-
 struct FilterButton: View {
     let title: String
     let isSelected: Bool
@@ -514,6 +568,130 @@ struct FilterButton: View {
                 .background(isSelected ? Color.blue : Color(.systemGray5))
                 .foregroundColor(isSelected ? .white : .primary)
                 .cornerRadius(8)
+        }
+    }
+}
+
+struct MarketPlayerDetailView: View {
+    let player: MarketPlayer
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    // Player Header
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            Text(player.fullName)
+                                .font(.largeTitle)
+                                .fontWeight(.bold)
+                            
+                            Spacer()
+                            
+                            Text(positionAbbreviation(player.position))
+                                .font(.headline)
+                                .fontWeight(.bold)
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(positionColor(player.position))
+                                .cornerRadius(8)
+                        }
+                        
+                        Text(player.fullTeamName)
+                            .font(.title3)
+                            .foregroundColor(.secondary)
+                        
+                        if player.status == 1 {
+                            HStack {
+                                Image(systemName: "cross.circle.fill")
+                                    .foregroundColor(.red)
+                                Text("Verletzt")
+                                    .foregroundColor(.red)
+                            }
+                            .font(.caption)
+                        } else if player.status == 2 {
+                            HStack {
+                                Image(systemName: "pills.fill")
+                                    .foregroundColor(.orange)
+                                Text("Angeschlagen")
+                                    .foregroundColor(.orange)
+                            }
+                            .font(.caption)
+                        } else if player.status == 4 {
+                            HStack {
+                                Image(systemName: "dumbbell.fill")
+                                    .foregroundColor(.blue)
+                                Text("Aufbautraining")
+                                    .foregroundColor(.blue)
+                            }
+                            .font(.caption)
+                        }
+                    }
+                    
+                    Divider()
+                    
+                    // Market Info
+                    VStack(alignment: .leading, spacing: 15) {
+                        Text("Transferinformationen")
+                            .font(.headline)
+                        
+                        HStack {
+                            VStack(alignment: .leading) {
+                                Text("Preis")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Text("€\(player.price / 1000)k")
+                                    .font(.title2)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.green)
+                            }
+                            
+                            Spacer()
+                            
+                            VStack(alignment: .trailing) {
+                                Text("Marktwert")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                HStack {
+                                    Text("€\(player.marketValue / 1000)k")
+                                        .font(.title2)
+                                        .fontWeight(.semibold)
+                                    
+                                    if player.marketValueTrend > 0 {
+                                        Image(systemName: "arrow.up")
+                                            .foregroundColor(.green)
+                                    } else if player.marketValueTrend < 0 {
+                                        Image(systemName: "arrow.down")
+                                            .foregroundColor(.red)
+                                    }
+                                }
+                            }
+                        }
+                        
+                        VStack(alignment: .leading) {
+                            Text("Verkäufer")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Text(player.seller.name)
+                                .font(.body)
+                        }
+                    }
+                    
+                    Spacer()
+                }
+                .padding()
+            }
+            .navigationTitle("Spielerdetails")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Schließen") {
+                        dismiss()
+                    }
+                }
+            }
         }
     }
 }

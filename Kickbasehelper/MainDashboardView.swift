@@ -58,6 +58,19 @@ struct MainDashboardView: View {
             }
         }
         .environmentObject(kickbaseManager)
+        .onAppear {
+            // Automatisches Laden aller Daten beim ersten Start
+            Task {
+                // Warte auf Liga-Auswahl und lade dann alle Daten
+                await kickbaseManager.loadUserData()
+                
+                // Zusätzlich: Lade Team-Daten wenn Liga verfügbar
+                if let league = kickbaseManager.selectedLeague {
+                    await kickbaseManager.loadTeamPlayers(for: league)
+                    await kickbaseManager.loadMarketPlayers(for: league)
+                }
+            }
+        }
     }
 }
 
@@ -138,13 +151,18 @@ struct TeamView: View {
         return filtered.sorted(by: { player1, player2 in
             switch sortBy {
             case .name:
+                // Sortiere zuerst nach Nachname, dann nach Vorname
+                if player1.lastName == player2.lastName {
+                    return player1.firstName < player2.firstName
+                }
                 return player1.lastName < player2.lastName
             case .marketValue:
                 return player1.marketValue > player2.marketValue
             case .points:
                 return player1.totalPoints > player2.totalPoints
             case .trend:
-                return player1.marketValueTrend > player2.marketValueTrend
+                // Verwende tfhmvt (letzte Marktwertänderung) statt marketValueTrend
+                return player1.tfhmvt > player2.tfhmvt
             case .position:
                 return player1.position < player2.position
             }
@@ -184,6 +202,16 @@ struct PlayerRowView: View {
                             Image(systemName: "pills.fill")
                                 .foregroundColor(.orange)
                                 .font(.caption)
+                        } else if player.status == 4 {
+                            // Aufbautraining - Hantel-Icon
+                            Image(systemName: "dumbbell.fill")
+                                .foregroundColor(.blue)
+                                .font(.caption)
+                        } else if player.status == 8 {
+                            // Sperre - rote Karte
+                            Image(systemName: "rectangle.fill")
+                                .foregroundColor(.red)
+                                .font(.caption)
                         }
                     }
                     
@@ -206,9 +234,12 @@ struct PlayerRowView: View {
                             .font(.title2)
                             .fontWeight(.bold)
                             .foregroundColor(.primary)
+                            .onAppear {
+                                print("📊 Displaying average points: \(player.averagePoints)")
+                            }
                     }
                     
-                    // Gesamtpunkte - kleinere Anzeige
+                    // Gesamtpunkte - jetzt kleinere Anzeige
                     HStack(spacing: 4) {
                         Image(systemName: "sum")
                             .font(.caption2)
@@ -216,6 +247,9 @@ struct PlayerRowView: View {
                         Text("\(player.totalPoints) Gesamt")
                             .font(.caption)
                             .foregroundColor(.secondary)
+                            .onAppear {
+                                print("📊 Displaying total points: \(player.totalPoints)")
+                            }
                     }
                 }
                 
@@ -346,14 +380,52 @@ struct TeamStatsHeader: View {
     }
 }
 
-// MARK: - Market View mit Punktzahlen
+// MARK: - Market View mit Punktzahlen und Sortierung
 struct MarketView: View {
     @EnvironmentObject var kickbaseManager: KickbaseManager
+    @State private var sortBy: MarketSortOption = .price
+    @State private var searchText = ""
+    
+    enum MarketSortOption: String, CaseIterable {
+        case price = "Preis"
+        case marketValue = "Marktwert"
+        case points = "Punkte"
+        case position = "Position"
+        case expiry = "Ablaufdatum"
+        case offers = "Gebote"
+    }
     
     var body: some View {
-        List {
-            ForEach(kickbaseManager.marketPlayers) { player in
-                MarketPlayerRowView(player: player)
+        VStack(spacing: 0) {
+            // Search and Sort Controls
+            VStack(spacing: 10) {
+                HStack {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(.gray)
+                    TextField("Spieler suchen...", text: $searchText)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                }
+                
+                HStack {
+                    Text("Sortieren:")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    Picker("Sortierung", selection: $sortBy) {
+                        ForEach(MarketSortOption.allCases, id: \.self) { option in
+                            Text(option.rawValue).tag(option)
+                        }
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
+                }
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 8)
+            
+            List {
+                ForEach(filteredAndSortedMarketPlayers) { player in
+                    MarketPlayerRowView(player: player)
+                }
             }
         }
         .refreshable {
@@ -369,6 +441,42 @@ struct MarketView: View {
             }
         }
     }
+    
+    private var filteredAndSortedMarketPlayers: [MarketPlayer] {
+        let filtered = searchText.isEmpty ? kickbaseManager.marketPlayers :
+            kickbaseManager.marketPlayers.filter { player in
+                player.firstName.localizedCaseInsensitiveContains(searchText) ||
+                player.lastName.localizedCaseInsensitiveContains(searchText) ||
+                player.fullTeamName.localizedCaseInsensitiveContains(searchText) ||
+                player.seller.name.localizedCaseInsensitiveContains(searchText) ||
+                (player.owner?.name.localizedCaseInsensitiveContains(searchText) ?? false)
+            }
+        
+        return filtered.sorted(by: { player1, player2 in
+            switch sortBy {
+            case .price:
+                // Sortierung für Preis basiert nur auf Marktwert
+                return player1.marketValue > player2.marketValue
+            case .marketValue:
+                // Sortierung für Marktwert basiert nur auf Marktwert
+                return player1.marketValue > player2.marketValue
+            case .points:
+                return player1.averagePoints > player2.averagePoints
+            case .position:
+                return player1.position < player2.position
+            case .expiry:
+                // Sortierung nach Ablaufdatum orientiert sich am exs-Feld (niedrigster Wert oben)
+                return player1.exs < player2.exs
+            case .offers:
+                return player1.offers > player2.offers
+            }
+        })
+    }
+    
+    private func parseExpiryDate(_ dateString: String) -> Date {
+        let formatter = ISO8601DateFormatter()
+        return formatter.date(from: dateString) ?? Date.distantFuture
+    }
 }
 
 // MARK: - Market Player Row mit Punktzahlen
@@ -379,6 +487,20 @@ struct MarketPlayerRowView: View {
     var body: some View {
         Button(action: {
             print("🔄 MarketPlayerRowView: Tapped on player \(player.fullName)")
+            print("📊 Player Details:")
+            print("   ID: '\(player.id)'")
+            print("   First Name: '\(player.firstName)'")
+            print("   Last Name: '\(player.lastName)'")
+            print("   Team Name: '\(player.teamName)'")
+            print("   Position: \(player.position)")
+            print("   Average Points: \(player.averagePoints)")
+            print("   Total Points: \(player.totalPoints)")
+            print("   Market Value: \(player.marketValue)")
+            print("   Price: \(player.price)")
+            print("   Seller: '\(player.seller.name)' (ID: '\(player.seller.id)')")
+            print("   Status: \(player.status)")
+            print("   Offers: \(player.offers)")
+            print("   Expiry: '\(player.expiry)'")
             showingPlayerDetail = true
         }) {
             HStack(spacing: 12) {
@@ -391,6 +513,9 @@ struct MarketPlayerRowView: View {
                         Text(player.fullName)
                             .font(.headline)
                             .fontWeight(.medium)
+                            .onAppear {
+                                print("📝 Displaying player name: '\(player.fullName)' (firstName: '\(player.firstName)', lastName: '\(player.lastName)')")
+                            }
                         
                         // Status-Icons basierend auf status-Feld aus API-Daten anzeigen
                         if player.status == 1 {
@@ -403,37 +528,82 @@ struct MarketPlayerRowView: View {
                             Image(systemName: "pills.fill")
                                 .foregroundColor(.orange)
                                 .font(.caption)
+                        } else if player.status == 4 {
+                            // Aufbautraining - Hantel-Icon
+                            Image(systemName: "dumbbell.fill")
+                                .foregroundColor(.blue)
+                                .font(.caption)
+                        } else if player.status == 8 {
+                            // Sperre - rote Karte
+                            Image(systemName: "rectangle.fill")
+                                .foregroundColor(.red)
+                                .font(.caption)
                         }
                     }
                     
-                    // Team und Verkäufer
-                    Text("\(player.fullTeamName) • \(player.seller.name)")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    // Team, Verkäufer und Owner
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("\(player.fullTeamName) • \(player.seller.name)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .onAppear {
+                                print("📝 Displaying team and seller: '\(player.fullTeamName)' • '\(player.seller.name)'")
+                            }
+                        
+                        // Owner-Information anzeigen, falls vorhanden
+                        if let owner = player.owner {
+                            HStack(spacing: 4) {
+                                Image(systemName: "person.fill")
+                                    .font(.caption2)
+                                    .foregroundColor(.blue)
+                                Text("Besitzer: \(owner.name)")
+                                    .font(.caption2)
+                                    .foregroundColor(.blue)
+                                    .fontWeight(.medium)
+                                
+                                // Verified badge falls der User verifiziert ist
+                                if owner.isVerified {
+                                    Image(systemName: "checkmark.seal.fill")
+                                        .font(.caption2)
+                                        .foregroundColor(.green)
+                                }
+                            }
+                            .onAppear {
+                                print("👤 Displaying owner: '\(owner.name)' (ID: \(owner.id), verified: \(owner.isVerified))")
+                            }
+                        }
+                    }
                 }
                 
                 Spacer()
                 
                 // Punktzahlen für Marktplayer
                 VStack(alignment: .trailing, spacing: 4) {
-                    // Gesamtpunkte
+                    // Durchschnittspunkte - jetzt groß und prominent
                     HStack(spacing: 4) {
                         Image(systemName: "star.fill")
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundColor(.orange)
-                        Text("\(player.totalPoints)")
-                            .font(.headline)
+                        Text(String(format: "%.0f", player.averagePoints))
+                            .font(.title2)
                             .fontWeight(.bold)
+                            .foregroundColor(.primary)
+                            .onAppear {
+                                print("📊 Displaying average points: \(player.averagePoints)")
+                            }
                     }
                     
-                    // Durchschnittspunkte
+                    // Gesamtpunkte - jetzt kleinere Anzeige
                     HStack(spacing: 4) {
-                        Image(systemName: "chart.line.uptrend.xyaxis")
+                        Image(systemName: "sum")
                             .font(.caption2)
-                            .foregroundColor(.blue)
-                        Text(String(format: "%.0f Ø", player.averagePoints))
+                            .foregroundColor(.secondary)
+                        Text("\(player.totalPoints) Gesamt")
                             .font(.caption)
                             .foregroundColor(.secondary)
+                            .onAppear {
+                                print("📊 Displaying total points: \(player.totalPoints)")
+                            }
                     }
                 }
                 
@@ -443,18 +613,46 @@ struct MarketPlayerRowView: View {
                         .font(.subheadline)
                         .fontWeight(.bold)
                         .foregroundColor(.green)
+                        .onAppear {
+                            print("💰 Displaying price: €\(player.price) (formatted: €\(formatValue(player.price)))")
+                        }
                     
                     // Marktwert
                     Text("MW: €\(formatValue(player.marketValue))")
                         .font(.caption)
                         .foregroundColor(.secondary)
+                        .onAppear {
+                            print("💰 Displaying market value: €\(player.marketValue) (formatted: €\(formatValue(player.marketValue)))")
+                        }
                 }
             }
             .padding(.vertical, 8)
+            .onAppear {
+                print("👁️ MarketPlayerRowView onAppear for player: \(player.firstName) \(player.lastName)")
+                print("🔍 All player data:")
+                print("   - ID: '\(player.id)'")
+                print("   - Name: '\(player.firstName)' '\(player.lastName)'")
+                print("   - Team: '\(player.teamName)' (ID: '\(player.teamId)')")
+                print("   - Position: \(player.position)")
+                print("   - Number: \(player.number)")
+                print("   - Average Points: \(player.averagePoints)")
+                print("   - Total Points: \(player.totalPoints)")
+                print("   - Market Value: €\(player.marketValue)")
+                print("   - Market Value Trend: \(player.marketValueTrend)")
+                print("   - Price: €\(player.price)")
+                print("   - Expiry: '\(player.expiry)'")
+                print("   - Offers: \(player.offers)")
+                print("   - Seller Name: '\(player.seller.name)'")
+                print("   - Seller ID: '\(player.seller.id)'")
+                print("   - STL: \(player.stl)")
+                print("   - Status: \(player.status)")
+                print("   - PRLO: \(player.prlo ?? 0)")
+                print("   - Profile URL: '\(player.profileBigUrl)'")
+            }
         }
         .buttonStyle(PlainButtonStyle())
         .sheet(isPresented: $showingPlayerDetail) {
-            MarketPlayerDetailView(player: player)
+            PlayerDetailView(player: convertMarketPlayerToTeamPlayer(player))
         }
     }
     
@@ -598,11 +796,11 @@ struct LeagueInfoView: View {
                 .font(.title2)
                 .fontWeight(.bold)
             
-            InfoRow(title: "Liga", value: league.name)
-            InfoRow(title: "Saison", value: league.season)
-            InfoRow(title: "Spieltag", value: "\(league.matchDay)")
-            InfoRow(title: "Admin", value: league.adminName)
-            InfoRow(title: "Ersteller", value: league.creatorName)
+            InfoRow(label: "Liga", value: league.name)
+            InfoRow(label: "Saison", value: league.season)
+            InfoRow(label: "Spieltag", value: "\(league.matchDay)")
+            InfoRow(label: "Admin", value: league.adminName)
+            InfoRow(label: "Ersteller", value: league.creatorName)
         }
         .padding()
         .background(Color(.systemGray6))
@@ -610,77 +808,19 @@ struct LeagueInfoView: View {
     }
 }
 
+// MARK: - Helper Views
 struct InfoRow: View {
-    let title: String
+    let label: String
     let value: String
     
     var body: some View {
         HStack {
-            Text(title)
+            Text(label + ":")
                 .foregroundColor(.secondary)
             Spacer()
             Text(value)
                 .fontWeight(.medium)
         }
-    }
-}
-
-// MARK: - Gifts View
-struct GiftsView: View {
-    @EnvironmentObject var kickbaseManager: KickbaseManager
-    
-    var body: some View {
-        List {
-            ForEach(kickbaseManager.gifts) { gift in
-                GiftRowView(gift: gift) {
-                    Task {
-                        await kickbaseManager.collectGift(id: gift.id)
-                    }
-                }
-            }
-        }
-        .refreshable {
-            await kickbaseManager.loadGifts()
-        }
-        .onAppear {
-            Task {
-                await kickbaseManager.loadGifts()
-            }
-        }
-    }
-}
-
-struct GiftRowView: View {
-    let gift: Gift
-    let onCollect: () -> Void
-    
-    var body: some View {
-        HStack {
-            Image(systemName: "gift.fill")
-                .foregroundColor(.red)
-            
-            VStack(alignment: .leading) {
-                Text("Level \(gift.level)")
-                    .font(.headline)
-                Text("€\(gift.amount)")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-            }
-            
-            Spacer()
-            
-            if gift.collected {
-                Text("Eingesammelt")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            } else {
-                Button("Sammeln") {
-                    onCollect()
-                }
-                .buttonStyle(.borderedProminent)
-            }
-        }
-        .padding(.vertical, 4)
     }
 }
 
@@ -792,7 +932,7 @@ struct LineupOptimizerView: View {
                             
                             // Reserve players section
                             ReservePlayersView(
-                                allPlayers: kickbaseManager.teamPlayers.filter { $0.status != 1 },
+                                allPlayers: kickbaseManager.teamPlayers.filter { $0.status != 1 && $0.status != 4 && $0.status != 8 },
                                 startingLineup: optimalResult.lineup,
                                 optimizationType: selectedOptimization
                             )
@@ -811,7 +951,7 @@ struct LineupOptimizerView: View {
     }
     
     private func getBestPossibleLineup() -> (lineup: OptimalLineup, formation: Formation) {
-        let availablePlayers = kickbaseManager.teamPlayers.filter { $0.status != 1 } // Ausschluss verletzter Spieler
+        let availablePlayers = kickbaseManager.teamPlayers.filter { $0.status != 1 && $0.status != 4 && $0.status != 8 } // Ausschluss verletzter Spieler und Spieler im Aufbautraining
         
         // Gruppiere verfügbare Spieler nach Position
         let goalkeepers = availablePlayers.filter { $0.position == 1 }
@@ -1332,7 +1472,7 @@ struct ReserveBenchStatsView: View {
     
     private var benchStats: (totalPoints: Int, averagePoints: Double, bestPlayer: TeamPlayer?, totalValue: Int) {
         let totalPoints = reservePlayers.reduce(0) { $0 + $1.totalPoints }
-        let averagePoints = reservePlayers.isEmpty ? 0.0 : 
+        let averagePoints = reservePlayers.isEmpty ? 0.0 :
             Double(totalPoints) / Double(reservePlayers.count)
         
         let bestPlayer: TeamPlayer?
@@ -1523,7 +1663,30 @@ struct ReservePlayerRow: View {
     }
 }
 
-// MARK: - Helper functions moved to TeamManagementViews.swift to avoid duplication
+// MARK: - Helper functions for conversion and utilities
+
+// Konvertiert MarketPlayer zu TeamPlayer für die PlayerDetailView
+private func convertMarketPlayerToTeamPlayer(_ marketPlayer: MarketPlayer) -> TeamPlayer {
+    return Player(
+        id: marketPlayer.id,
+        firstName: marketPlayer.firstName,
+        lastName: marketPlayer.lastName,
+        profileBigUrl: marketPlayer.profileBigUrl,
+        teamName: marketPlayer.teamName,
+        teamId: marketPlayer.teamId,
+        position: marketPlayer.position,
+        number: marketPlayer.number,
+        averagePoints: marketPlayer.averagePoints,
+        totalPoints: marketPlayer.totalPoints,
+        marketValue: marketPlayer.marketValue,
+        marketValueTrend: marketPlayer.marketValueTrend,
+        tfhmvt: 0, // MarketPlayer hat kein tfhmvt-Feld
+        prlo: marketPlayer.prlo ?? 0,
+        stl: marketPlayer.stl,
+        status: marketPlayer.status,
+        userOwnsPlayer: false // MarketPlayer gehört nicht dem User
+    )
+}
 
 #Preview {
     MainDashboardView()

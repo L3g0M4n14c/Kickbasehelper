@@ -3,31 +3,44 @@ import SwiftUI
 struct PlayerDetailView: View {
     let player: TeamPlayer
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var kickbaseManager: KickbaseManager
     
     var body: some View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 20) {
-                    // Header mit Spielerfoto und Namen
-                    PlayerHeaderSection(player: player)
+                    // Hero Header mit Spielerfoto und allen Grundinformationen
+                    PlayerHeroHeader(player: player)
                     
-                    // Status und Team Information
-                    PlayerInfoSection(player: player)
+                    // Punktzahl-Performance
+                    PlayerPointsSection(player: player)
                     
-                    // Statistiken
-                    PlayerStatsSection(player: player)
-                    
-                    // Marktwert Information
+                    // Marktwert und Finanzen
                     PlayerMarketValueSection(player: player)
+                    
+                    // Marktwertentwicklung der letzten 3 Tage
+                    PlayerMarketTrendSection(player: player)
                 }
                 .padding()
             }
-            .navigationTitle("Spielerdetails")
+            .background(
+                LinearGradient(
+                    gradient: Gradient(colors: [
+                        positionColor(player.position).opacity(0.1),
+                        Color(.systemBackground)
+                    ]),
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Schließen") {
-                        dismiss()
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.secondary)
+                            .font(.title2)
                     }
                 }
             }
@@ -35,215 +48,209 @@ struct PlayerDetailView: View {
     }
 }
 
-// MARK: - Header Section
-struct PlayerHeaderSection: View {
+// MARK: - Hero Header (erweitert mit allen Grunddaten)
+struct PlayerHeroHeader: View {
     let player: TeamPlayer
     
     var body: some View {
-        VStack(spacing: 16) {
-            // Profilbild (Placeholder)
-            AsyncImage(url: URL(string: player.profileBigUrl)) { image in
-                image
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } placeholder: {
-                Image(systemName: "person.circle.fill")
-                    .font(.system(size: 80))
-                    .foregroundColor(.gray)
-            }
-            .frame(width: 100, height: 100)
-            .clipShape(Circle())
-            .overlay(
-                Circle()
-                    .stroke(Color.gray.opacity(0.3), lineWidth: 2)
-            )
-            
-            // Name und Position
-            VStack(spacing: 8) {
-                Text(player.fullName)
-                    .font(.title)
-                    .fontWeight(.bold)
-                    .multilineTextAlignment(.center)
-                
-                HStack(spacing: 12) {
-                    // Position Badge
-                    Text(player.positionName)
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(positionColor(player.position))
-                        .cornerRadius(12)
-                    
-                    // Trikotnummer
-                    Text("#\(player.number)")
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.secondary)
+        VStack(spacing: 20) {
+            // Großes Profilbild mit Position Badge
+            ZStack(alignment: .bottomTrailing) {
+                AsyncImage(url: URL(string: player.profileBigUrl)) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } placeholder: {
+                    ZStack {
+                        Circle()
+                            .fill(positionColor(player.position).opacity(0.3))
+                        
+                        Image(systemName: "person.fill")
+                            .font(.system(size: 50))
+                            .foregroundColor(positionColor(player.position))
+                    }
                 }
+                .frame(width: 120, height: 120)
+                .clipShape(Circle())
+                .overlay(
+                    Circle()
+                        .stroke(positionColor(player.position), lineWidth: 3)
+                )
+                
+                // Position Badge
+                Text(positionAbbreviation(player.position))
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                    .frame(width: 30, height: 30)
+                    .background(positionColor(player.position))
+                    .clipShape(Circle())
+                    .overlay(
+                        Circle()
+                            .stroke(Color.white, lineWidth: 2)
+                    )
+                    .offset(x: 5, y: 5)
             }
+            
+            // Name und grundlegende Informationen
+            VStack(spacing: 12) {
+                // Vor- und Nachname
+                VStack(spacing: 4) {
+                    Text(player.firstName)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    Text(player.lastName)
+                        .font(.title)
+                        .fontWeight(.bold)
+                }
+                
+                // Team, Position und Nummer
+                HStack(spacing: 8) {
+                    Text(player.fullTeamName)
+                        .font(.subheadline)
+                        .foregroundColor(.blue)
+                        .fontWeight(.medium)
+                    
+                    Text("•")
+                        .foregroundColor(.secondary)
+                    
+                    Text(player.positionName)
+                        .font(.subheadline)
+                        .foregroundColor(positionColor(player.position))
+                        .fontWeight(.semibold)
+                    
+                    Text("•")
+                        .foregroundColor(.secondary)
+                    
+                    Text("#\(player.number)")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .fontWeight(.medium)
+                }
+                
+                // Fit-Status Badge (für alle Status-Zustände)
+                HStack(spacing: 6) {
+                    Image(systemName: getStatusIcon(player.status))
+                        .foregroundColor(getStatusColor(player.status))
+                    Text("\(getPlayerStatusText(player.status))")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(getStatusColor(player.status))
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(getStatusColor(player.status).opacity(0.15))
+                .cornerRadius(16)
+            }
+        }
+        .padding()
+        .background(Color(.systemBackground))
+        .cornerRadius(16)
+        .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
+    }
+    
+    // Helper-Funktionen für Status
+    private func getStatusIcon(_ status: Int) -> String {
+        switch status {
+        case 0: return "checkmark.circle.fill"
+        case 1: return "cross.circle.fill"
+        case 2: return "pills.fill"
+        case 3: return "exclamationmark.triangle.fill"
+        case 4: return "dumbbell.fill"
+        case 8: return "rectangle.fill"  // Rote Karte Symbol
+        default: return "questionmark.circle.fill"
         }
     }
     
-    private func positionColor(_ position: Int) -> Color {
-        switch position {
-        case 1: return .yellow
-        case 2: return .green
-        case 3: return .blue
-        case 4: return .red
+    private func getStatusColor(_ status: Int) -> Color {
+        switch status {
+        case 0: return .green
+        case 1: return .red
+        case 2: return .orange
+        case 3: return .red
+        case 4: return .blue
+        case 8: return .red  // Rote Farbe für Sperre
         default: return .gray
         }
     }
 }
 
-// MARK: - Info Section
-struct PlayerInfoSection: View {
-    let player: TeamPlayer
-    
-    var body: some View {
-        VStack(spacing: 16) {
-            // Status und Team
-            HStack {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Team")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Text(player.fullTeamName)
-                        .font(.headline)
-                        .fontWeight(.medium)
-                }
-                
-                Spacer()
-                
-                // Status Icons
-                VStack(alignment: .trailing, spacing: 8) {
-                    Text("Status")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    
-                    HStack(spacing: 8) {
-                        if player.status == 1 {
-                            Label("Verletzt", systemImage: "cross.circle.fill")
-                                .foregroundColor(.red)
-                                .font(.caption)
-                        } else if player.status == 2 {
-                            Label("Angeschlagen", systemImage: "pills.fill")
-                                .foregroundColor(.orange)
-                                .font(.caption)
-                        } else {
-                            Label("Fit", systemImage: "checkmark.circle.fill")
-                                .foregroundColor(.green)
-                                .font(.caption)
-                        }
-                    }
-                }
-            }
-            .padding()
-            .background(Color(.systemGray6))
-            .cornerRadius(12)
-        }
-    }
-}
-
-// MARK: - Stats Section
-struct PlayerStatsSection: View {
+// MARK: - Punktzahl-Sektion
+struct PlayerPointsSection: View {
     let player: TeamPlayer
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Statistiken")
-                .font(.title2)
+            Text("Punktzahl-Performance")
+                .font(.headline)
                 .fontWeight(.bold)
             
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 16) {
-                StatDetailCard(
-                    title: "Durchschnittspunkte",
-                    value: String(format: "%.0f", player.averagePoints),
-                    icon: "star.fill",
-                    color: .orange
-                )
-                StatDetailCard(
-                    title: "Gesamtpunkte",
-                    value: "\(player.totalPoints)",
-                    icon: "sum",
-                    color: .blue
-                )
-                StatDetailCard(
-                    title: "Position",
-                    value: player.positionName,
-                    icon: "location.fill",
-                    color: .purple
-                )
-                StatDetailCard(
-                    title: "Trikotnummer",
-                    value: "#\(player.number)",
-                    icon: "number",
-                    color: .indigo
-                )
+            HStack(spacing: 16) {
+                // Durchschnittspunkte
+                VStack(spacing: 12) {
+                    Image(systemName: "star.fill")
+                        .font(.title)
+                        .foregroundColor(.orange)
+                    
+                    VStack(spacing: 4) {
+                        Text("\(player.averagePoints, specifier: "%.0f")")
+                            .font(.title)
+                            .fontWeight(.bold)
+                            .foregroundColor(.orange)
+                        
+                        Text("Ø Punkte")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .textCase(.uppercase)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(Color.orange.opacity(0.1))
+                .cornerRadius(12)
                 
-                // Neue StatDetailCard für Gewinn/Verlust seit Kauf (prlo)
-                StatDetailCard(
-                    title: "Gewinn/Verlust",
-                    value: formatProfitLoss(player.prlo),
-                    icon: player.prlo >= 0 ? "arrow.up.circle.fill" : "arrow.down.circle.fill",
-                    color: player.prlo >= 0 ? .green : (player.prlo < 0 ? .red : .gray)
-                )
-                
-                // Neue StatDetailCard für Marktwertänderung seit letztem Update (tfhmvt)
-                StatDetailCard(
-                    title: "Letzte Änderung",
-                    value: formatMarketChange(player.tfhmvt),
-                    icon: player.tfhmvt >= 0 ? "arrow.up.circle" : "arrow.down.circle",
-                    color: player.tfhmvt >= 0 ? .green : (player.tfhmvt < 0 ? .red : .gray)
-                )
+                // Gesamtpunkte
+                VStack(spacing: 12) {
+                    Image(systemName: "sum")
+                        .font(.title)
+                        .foregroundColor(.blue)
+                    
+                    VStack(spacing: 4) {
+                        Text("\(player.totalPoints)")
+                            .font(.title)
+                            .fontWeight(.bold)
+                            .foregroundColor(.blue)
+                        
+                        Text("Gesamtpunkte")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .textCase(.uppercase)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(Color.blue.opacity(0.1))
+                .cornerRadius(12)
             }
         }
         .padding()
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
-    }
-    
-    // Hilfsmethode für Formatierung von Gewinn/Verlust
-    private func formatProfitLoss(_ value: Int) -> String {
-        let prefix = value >= 0 ? "+" : ""
-        if abs(value) >= 1000000 {
-            return "\(prefix)€\(String(format: "%.1f", Double(value) / 1000000))M"
-        } else if abs(value) >= 1000 {
-            return "\(prefix)€\(String(format: "%.0f", Double(value) / 1000))k"
-        } else if value == 0 {
-            return "±€0"
-        } else {
-            return "\(prefix)€\(value)"
-        }
-    }
-    
-    // Hilfsmethode für Formatierung von Marktwertänderungen
-    private func formatMarketChange(_ value: Int) -> String {
-        let prefix = value >= 0 ? "+" : ""
-        if abs(value) >= 1000000 {
-            return "\(prefix)€\(String(format: "%.1f", Double(value) / 1000000))M"
-        } else if abs(value) >= 1000 {
-            return "\(prefix)€\(String(format: "%.0f", Double(value) / 1000))k"
-        } else if value == 0 {
-            return "±€0"
-        } else {
-            return "\(prefix)€\(value)"
-        }
+        .background(Color(.systemBackground))
+        .cornerRadius(16)
+        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
     }
 }
 
-// MARK: - Market Value Section
+// MARK: - Marktwert-Sektion (ohne 24h Trend)
 struct PlayerMarketValueSection: View {
     let player: TeamPlayer
     @EnvironmentObject var kickbaseManager: KickbaseManager
-    @State private var marketValueChange: MarketValueChange?
-    @State private var isLoadingHistory = false
+    @State private var actualProfit: Int? = nil
+    @State private var isLoadingProfit = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Marktwert")
-                .font(.title2)
+            Text("Marktwert & Finanzen")
+                .font(.headline)
                 .fontWeight(.bold)
             
             VStack(spacing: 12) {
@@ -251,707 +258,398 @@ struct PlayerMarketValueSection: View {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Aktueller Marktwert")
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundColor(.secondary)
-                        Text("€\(formatValue(player.marketValue))")
-                            .font(.title)
+                        
+                        Text(formatCurrency(player.marketValue))
+                            .font(.title2)
                             .fontWeight(.bold)
+                            .foregroundColor(.green)
                     }
                     
                     Spacer()
-                    
-                    // Lade-Indikator für Marktwert-Historie
-                    if isLoadingHistory {
-                        VStack(alignment: .trailing, spacing: 4) {
-                            Text("Lade...")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            ProgressView()
-                                .scaleEffect(0.8)
-                        }
-                    }
                 }
                 
-                Divider()
-                
-                // Marktwertänderung der letzten Tage (ersetzt das Trend-Feld)
-                if let change = marketValueChange {
-                    VStack(spacing: 8) {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Änderung seit letztem Update")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                HStack(spacing: 4) {
-                                    Image(systemName: change.isPositive ? "arrow.up" : change.isNegative ? "arrow.down" : "minus")
-                                        .foregroundColor(change.isPositive ? .green : change.isNegative ? .red : .gray)
-                                    Text("€\(formatValue(abs(change.absoluteChange)))")
-                                        .foregroundColor(change.isPositive ? .green : change.isNegative ? .red : .gray)
-                                        .fontWeight(.medium)
-                                }
-                            }
-                            
-                            Spacer()
-                            
-                            VStack(alignment: .trailing, spacing: 4) {
-                                Text("Prozentual")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                HStack(spacing: 4) {
-                                    Text(String(format: "%+.1f%%", change.percentageChange))
-                                        .foregroundColor(change.isPositive ? .green : change.isNegative ? .red : .gray)
-                                        .fontWeight(.medium)
-                                }
-                            }
-                        }
-                        
-                        // Zusätzliche Informationen
-                        if change.daysSinceLastUpdate > 0 {
+                // Gewinn/Verlust und letzte Änderung (nur wenn Spieler im Besitz)
+                if player.userOwnsPlayer {
+                    Divider()
+                    
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
                             HStack {
-                                Text("Vor \(change.daysSinceLastUpdate) Tag\(change.daysSinceLastUpdate == 1 ? "" : "en")")
-                                    .font(.caption2)
+                                Text("Gewinn/Verlust")
+                                    .font(.subheadline)
                                     .foregroundColor(.secondary)
-                                Spacer()
-                                Text("€\(formatValue(change.previousValue)) → €\(formatValue(change.currentValue))")
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        
-                        // Neu: Tägliche Änderungen der letzten drei Tage
-                        if !change.dailyChanges.isEmpty {
-                            Divider()
-                                .padding(.vertical, 4)
-                            
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Verlauf der letzten Tage")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                    .fontWeight(.semibold)
                                 
-                                ForEach(Array(change.dailyChanges.enumerated()), id: \.offset) { index, dailyChange in
-                                    HStack(spacing: 8) {
-                                        // Tag-Label
-                                        VStack(alignment: .leading, spacing: 2) {
-                                            Text(getDayLabel(for: dailyChange.daysAgo))
-                                                .font(.caption2)
-                                                .foregroundColor(.secondary)
-                                            Text(dailyChange.date)
-                                                .font(.caption2)
-                                                .foregroundColor(.secondary)
-                                        }
-                                        .frame(width: 60, alignment: .leading)
-                                        
-                                        // Marktwert
-                                        VStack(alignment: .leading, spacing: 2) {
-                                            Text("€\(formatValue(dailyChange.value))")
-                                                .font(.caption)
-                                                .fontWeight(.medium)
-                                        }
-                                        .frame(width: 70, alignment: .leading)
-                                        
-                                        Spacer()
-                                        
-                                        // Änderung
-                                        HStack(spacing: 4) {
-                                            if dailyChange.change != 0 {
-                                                Image(systemName: dailyChange.isPositive ? "arrow.up.circle.fill" : "arrow.down.circle.fill")
-                                                    .foregroundColor(dailyChange.isPositive ? .green : .red)
-                                                    .font(.caption)
-                                                
-                                                VStack(alignment: .trailing, spacing: 1) {
-                                                    Text("€\(formatValue(abs(dailyChange.change)))")
-                                                        .font(.caption)
-                                                        .fontWeight(.medium)
-                                                        .foregroundColor(dailyChange.isPositive ? .green : .red)
-                                                    
-                                                    Text(String(format: "%+.1f%%", dailyChange.percentageChange))
-                                                        .font(.caption2)
-                                                        .foregroundColor(dailyChange.isPositive ? .green : .red)
-                                                }
-                                            } else {
-                                                HStack(spacing: 4) {
-                                                    Image(systemName: "minus.circle")
-                                                        .foregroundColor(.gray)
-                                                        .font(.caption)
-                                                    Text("keine Änderung")
-                                                        .font(.caption2)
-                                                        .foregroundColor(.gray)
-                                                }
-                                            }
-                                        }
-                                    }
-                                    .padding(.vertical, 2)
-                                    
-                                    if index < change.dailyChanges.count - 1 {
-                                        Divider()
-                                            .padding(.leading, 70)
-                                    }
+                                if isLoadingProfit {
+                                    ProgressView()
+                                        .scaleEffect(0.6)
                                 }
                             }
+                            
+                            let profitValue = actualProfit ?? player.prlo
+                            Text(formatCurrency(profitValue))
+                                .font(.headline)
+                                .fontWeight(.bold)
+                                .foregroundColor(profitValue >= 0 ? .green : .red)
                         }
-                    }
-                } else if !isLoadingHistory {
-                    // Fallback auf tfhmvt falls Marktwert-Historie nicht verfügbar
-                    if player.tfhmvt != 0 {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
+                        
+                        Spacer()
+                        
+                        if player.tfhmvt != 0 {
+                            VStack(alignment: .trailing, spacing: 4) {
                                 Text("Letzte Änderung")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
+                                
                                 HStack(spacing: 4) {
                                     Image(systemName: player.tfhmvt >= 0 ? "arrow.up" : "arrow.down")
                                         .foregroundColor(player.tfhmvt >= 0 ? .green : .red)
-                                    Text("€\(formatValue(abs(player.tfhmvt)))")
-                                        .foregroundColor(player.tfhmvt >= 0 ? .green : .red)
+                                    
+                                    Text(formatCurrency(abs(player.tfhmvt)))
+                                        .font(.subheadline)
                                         .fontWeight(.medium)
+                                        .foregroundColor(player.tfhmvt >= 0 ? .green : .red)
                                 }
                             }
-                            Spacer()
                         }
                     }
                 }
             }
         }
         .padding()
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
-        .onAppear {
-            loadMarketValueHistory()
-        }
-    }
-    
-    private func loadMarketValueHistory() {
-        guard !isLoadingHistory,
-              let league = kickbaseManager.selectedLeague else { return }
-        
-        isLoadingHistory = true
-        
-        Task {
-            let change = await kickbaseManager.loadPlayerMarketValueHistory(
-                playerId: player.id,
-                leagueId: league.id
-            )
-            
-            await MainActor.run {
-                self.marketValueChange = change
-                self.isLoadingHistory = false
+        .background(Color(.systemBackground))
+        .cornerRadius(16)
+        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+        .task {
+            if player.userOwnsPlayer && actualProfit == nil {
+                await loadActualProfit()
             }
         }
     }
     
-    private func formatValue(_ value: Int) -> String {
-        if value >= 1000000 {
-            return String(format: "%.1fM", Double(value) / 1000000)
-        } else if value >= 1000 {
-            return String(format: "%.0fk", Double(value) / 1000)
+    @MainActor
+    private func loadActualProfit() async {
+        guard let selectedLeague = kickbaseManager.selectedLeague else { return }
+        
+        isLoadingProfit = true
+        print("💰 Loading actual profit for player: \(player.fullName) (ID: \(player.id))")
+        
+        // Zugriff auf den playerService über KickbaseManager
+        if let profit = await kickbaseManager.loadPlayerMarketValueOnDemand(
+            playerId: player.id,
+            leagueId: selectedLeague.id
+        ) {
+            actualProfit = profit
+            print("✅ Successfully loaded actual profit: €\(profit)")
         } else {
-            return "\(value)"
+            print("⚠️ Could not load actual profit, using fallback value")
         }
-    }
-    
-    private func getDayLabel(for daysAgo: Int) -> String {
-        switch daysAgo {
-        case 0: return "Heute"
-        case 1: return "Gestern"
-        case 2: return "Vorgestern"
-        default: return "Vor \(daysAgo + 1) Tagen"
-        }
+        
+        isLoadingProfit = false
     }
 }
 
-// MARK: - Stat Detail Card
-struct StatDetailCard: View {
+// MARK: - Marktwert-Trend der letzten 3 Tage mit echten DailyMarketValueChange Daten
+struct PlayerMarketTrendSection: View {
+    let player: TeamPlayer
+    @EnvironmentObject var kickbaseManager: KickbaseManager
+    @State private var marketValueHistory: MarketValueChange?
+    @State private var isLoadingHistory = false
+    @State private var hasLoaded = false
+    
+    var marketTrendData: [(day: String, value: Int, change: Int, changePercent: Double)] {
+        guard let history = marketValueHistory else {
+            // Zeige nur aktuellen Marktwert ohne historische Daten
+            return [
+                (day: "Heute", value: player.marketValue, change: player.tfhmvt, changePercent: 0.0),
+                (day: "Gestern", value: 0, change: 0, changePercent: 0.0),
+                (day: "Vorgestern", value: 0, change: 0, changePercent: 0.0)
+            ]
+        }
+        
+        // Verwende die letzten 3 Tage aus der echten Historie
+        let sortedDailyChanges = history.dailyChanges.sorted { $0.daysAgo < $1.daysAgo }
+        let last3Days = Array(sortedDailyChanges.prefix(3))
+        
+        return last3Days.enumerated().map { index, dailyChange in
+            let dayName: String
+            switch dailyChange.daysAgo {
+            case 0: dayName = "Heute"
+            case 1: dayName = "Gestern"
+            case 2: dayName = "Vorgestern"
+            default: dayName = "\(dailyChange.daysAgo) Tage"
+            }
+            
+            return (
+                day: dayName,
+                value: dailyChange.value,
+                change: dailyChange.change,
+                changePercent: dailyChange.percentageChange
+            )
+        }
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("Marktwertentwicklung")
+                    .font(.headline)
+                    .fontWeight(.bold)
+                
+                Spacer()
+                
+                if isLoadingHistory {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                } else {
+                    Text("(3 Tage)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            
+            VStack(spacing: 8) {
+                // Header-Zeile
+                HStack {
+                    Text("Tag")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.secondary)
+                        .frame(width: 70, alignment: .leading)
+                    
+                    Spacer()
+                    
+                    Text("Marktwert")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.secondary)
+                        .frame(width: 80, alignment: .center)
+                    
+                    Spacer()
+                    
+                    Text("Änderung")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.secondary)
+                        .frame(width: 70, alignment: .center)
+                    
+                    Spacer()
+                    
+                    Text("%")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.secondary)
+                        .frame(width: 50, alignment: .trailing)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(Color(.systemGray6))
+                .cornerRadius(8)
+                
+                // Daten-Zeilen
+                ForEach(Array(marketTrendData.enumerated()), id: \.offset) { index, data in
+                    HStack {
+                        // Tag
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(data.day)
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundColor(index == 0 ? .primary : .secondary)
+                            
+                            if index == 0 {
+                                Text("aktuell")
+                                    .font(.caption2)
+                                    .foregroundColor(.blue)
+                            }
+                        }
+                        .frame(width: 70, alignment: .leading)
+                        
+                        Spacer()
+                        
+                        // Marktwert
+                        Text(data.value > 0 ? formatCurrencyShort(data.value) : "-")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .frame(width: 80, alignment: .center)
+                            .foregroundColor(data.value > 0 ? .primary : .secondary)
+                        
+                        Spacer()
+                        
+                        // Veränderung absolut
+                        HStack(spacing: 2) {
+                            if data.change != 0 {
+                                Image(systemName: data.change >= 0 ? "arrow.up" : "arrow.down")
+                                    .font(.caption2)
+                                    .foregroundColor(data.change >= 0 ? .green : .red)
+                            }
+                            
+                            Text(data.change == 0 ? "±0" : formatCurrencyShort(abs(data.change)))
+                                .font(.caption)
+                                .fontWeight(.medium)
+                                .foregroundColor(data.change >= 0 ? .green : (data.change < 0 ? .red : .secondary))
+                        }
+                        .frame(width: 70, alignment: .center)
+                        
+                        Spacer()
+                        
+                        // Veränderung prozentual
+                        Text(abs(data.changePercent) < 0.1 ? "±0%" : String(format: data.changePercent >= 0 ? "+%.1f%%" : "%.1f%%", data.changePercent))
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .foregroundColor(abs(data.changePercent) < 0.1 ? .secondary : (data.changePercent >= 0 ? .green : .red))
+                            .frame(width: 50, alignment: .trailing)
+                    }
+                    .padding(.vertical, 6)
+                    .padding(.horizontal, 12)
+                    .background(index == 0 ? Color.blue.opacity(0.1) : Color.clear)
+                    .cornerRadius(6)
+                    .opacity(data.value > 0 ? 1.0 : 0.5)
+                }
+            }
+            
+            if marketValueHistory == nil && !isLoadingHistory && hasLoaded {
+                Text("Keine Marktwerthistorie verfügbar")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(.top, 8)
+            }
+        }
+        .padding()
+        .background(Color(.systemBackground))
+        .cornerRadius(16)
+        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+        .task {
+            guard !hasLoaded else { return }
+            await loadMarketValueHistory()
+        }
+    }
+    
+    @MainActor
+    private func loadMarketValueHistory() async {
+        guard !player.id.isEmpty,
+              let selectedLeague = kickbaseManager.selectedLeague else {
+            print("⚠️ Cannot load market value history: missing player ID or league")
+            hasLoaded = true
+            return
+        }
+        
+        isLoadingHistory = true
+        print("📈 Loading market value history for player: \(player.fullName) (ID: \(player.id))")
+        
+        do {
+            // Zugriff auf den playerService über KickbaseManager
+            let history = await kickbaseManager.loadPlayerMarketValueHistory(
+                playerId: player.id,
+                leagueId: selectedLeague.id
+            )
+            
+            if let history = history {
+                print("✅ Successfully loaded market value history with \(history.dailyChanges.count) daily changes")
+                marketValueHistory = history
+            } else {
+                print("⚠️ No market value history returned from API")
+            }
+        } catch {
+            print("❌ Failed to load market value history: \(error)")
+        }
+        
+        isLoadingHistory = false
+        hasLoaded = true
+    }
+}
+
+// MARK: - Helper Views
+struct PlayerInfoCard: View {
     let title: String
     let value: String
     let icon: String
     let color: Color
     
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 8) {
             Image(systemName: icon)
-                .font(.title2)
+                .font(.title3)
                 .foregroundColor(color)
             
             Text(value)
-                .font(.title2)
-                .fontWeight(.bold)
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .minimumScaleFactor(0.8)
             
             Text(title)
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
         }
-        .frame(height: 100)
+        .frame(height: 70)
         .frame(maxWidth: .infinity)
-        .background(Color(.systemBackground))
-        .cornerRadius(8)
+        .padding(.vertical, 8)
+        .background(color.opacity(0.1))
+        .cornerRadius(10)
     }
 }
 
-// MARK: - Market Player Detail View
-struct MarketPlayerDetailView: View {
-    let player: MarketPlayer
-    @Environment(\.dismiss) private var dismiss
-    
-    var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(spacing: 20) {
-                    // Header für Marktplayer
-                    MarketPlayerHeaderSection(player: player)
-                    
-                    // Info Section für Marktplayer
-                    MarketPlayerInfoSection(player: player)
-                    
-                    // Verkaufsinformationen - ZUERST anzeigen da es marktspezifisch ist
-                    MarketPlayerSaleSection(player: player)
-                    
-                    // Statistiken für Marktplayer
-                    MarketPlayerStatsSection(player: player)
-                    
-                    // Marktwert-Vergleich
-                    MarketPlayerValueComparisonSection(player: player)
-                }
-                .padding()
-            }
-            .navigationTitle("Marktplatz-Details")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Schließen") {
-                        dismiss()
-                    }
-                }
-            }
-        }
+// MARK: - Helper Functions
+private func formatCurrency(_ value: Int) -> String {
+    let formatter = NumberFormatter()
+    formatter.numberStyle = .currency
+    formatter.currencyCode = "EUR"
+    formatter.maximumFractionDigits = 0
+    return formatter.string(from: NSNumber(value: value)) ?? "\(value) €"
+}
+
+private func formatCurrencyShort(_ value: Int) -> String {
+    if value >= 1000000 {
+        return String(format: "%.1fM €", Double(value) / 1000000)
+    } else if value >= 1000 {
+        return String(format: "%.0fk €", Double(value) / 1000)
+    } else {
+        return "\(value) €"
     }
 }
 
-// MARK: - Market Player Header
-struct MarketPlayerHeaderSection: View {
-    let player: MarketPlayer
-    
-    var body: some View {
-        VStack(spacing: 16) {
-            // Profilbild (Placeholder)
-            AsyncImage(url: URL(string: player.profileBigUrl)) { image in
-                image
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } placeholder: {
-                Image(systemName: "person.circle.fill")
-                    .font(.system(size: 80))
-                    .foregroundColor(.gray)
-            }
-            .frame(width: 100, height: 100)
-            .clipShape(Circle())
-            .overlay(
-                Circle()
-                    .stroke(Color.gray.opacity(0.3), lineWidth: 2)
-            )
-            
-            // Name und Position
-            VStack(spacing: 8) {
-                Text(player.fullName)
-                    .font(.title)
-                    .fontWeight(.bold)
-                    .multilineTextAlignment(.center)
-                
-                HStack(spacing: 12) {
-                    // Position Badge
-                    Text(player.positionName)
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(positionColor(player.position))
-                        .cornerRadius(12)
-                    
-                    // Trikotnummer
-                    Text("#\(player.number)")
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.secondary)
-                }
-            }
-        }
-    }
-    
-    private func positionColor(_ position: Int) -> Color {
-        switch position {
-        case 1: return .yellow
-        case 2: return .green
-        case 3: return .blue
-        case 4: return .red
-        default: return .gray
-        }
+private func getPlayerStatusText(_ status: Int) -> String {
+    switch status {
+    case 0:
+        return "Verfügbar"
+    case 1:
+        return "Verletzt"
+    case 2:
+        return "Angeschlagen"
+    case 3:
+        return "Gesperrt"
+    case 4:
+        return "Aufbautraining"
+    case 8:
+        return "Sperre"  // Neuer Status für Sperre
+    default:
+        return "Unbekannt"
     }
 }
 
-// MARK: - Market Player Info Section
-struct MarketPlayerInfoSection: View {
-    let player: MarketPlayer
-    
-    var body: some View {
-        VStack(spacing: 16) {
-            HStack {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Team")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Text(player.fullTeamName)
-                        .font(.headline)
-                        .fontWeight(.medium)
-                }
-                
-                Spacer()
-                
-                // Status Icons
-                VStack(alignment: .trailing, spacing: 8) {
-                    Text("Status")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    
-                    HStack(spacing: 8) {
-                        if player.status == 1 {
-                            Label("Verletzt", systemImage: "cross.circle.fill")
-                                .foregroundColor(.red)
-                                .font(.caption)
-                        } else if player.status == 2 {
-                            Label("Angeschlagen", systemImage: "pills.fill")
-                                .foregroundColor(.orange)
-                                .font(.caption)
-                        } else {
-                            Label("Fit", systemImage: "checkmark.circle.fill")
-                                .foregroundColor(.green)
-                                .font(.caption)
-                        }
-                    }
-                }
-            }
-        }
-        .padding()
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
-    }
-}
-
-// MARK: - Market Player Stats Section
-struct MarketPlayerStatsSection: View {
-    let player: MarketPlayer
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Statistiken")
-                .font(.title2)
-                .fontWeight(.bold)
-            
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 16) {
-                StatDetailCard(
-                    title: "Durchschnittspunkte",
-                    value: String(format: "%.0f", player.averagePoints),
-                    icon: "star.fill",
-                    color: .orange
-                )
-                StatDetailCard(
-                    title: "Gesamtpunkte",
-                    value: "\(player.totalPoints)",
-                    icon: "sum",
-                    color: .blue
-                )
-                StatDetailCard(
-                    title: "Position",
-                    value: player.positionName,
-                    icon: "location.fill",
-                    color: .purple
-                )
-                StatDetailCard(
-                    title: "Trikotnummer",
-                    value: "#\(player.number)",
-                    icon: "number",
-                    color: .indigo
-                )
-            }
-        }
-        .padding()
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
-    }
-}
-
-// MARK: - Market Player Sale Section
-struct MarketPlayerSaleSection: View {
-    let player: MarketPlayer
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Verkaufsinformationen")
-                .font(.title2)
-                .fontWeight(.bold)
-            
-            VStack(spacing: 12) {
-                // Verkaufspreis
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Verkaufspreis")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Text("€\(formatValue(player.price))")
-                            .font(.title)
-                            .fontWeight(.bold)
-                            .foregroundColor(.green)
-                    }
-                    
-                    Spacer()
-                    
-                    VStack(alignment: .trailing, spacing: 4) {
-                        Text("Angebote")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Text("\(player.offers)")
-                            .font(.headline)
-                            .fontWeight(.semibold)
-                    }
-                }
-                
-                Divider()
-                
-                // Verkäufer und Marktwert
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Verkäufer")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Text(player.seller.name)
-                            .font(.headline)
-                            .fontWeight(.medium)
-                    }
-                    
-                    Spacer()
-                    
-                    VStack(alignment: .trailing, spacing: 4) {
-                        Text("Marktwert")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Text("€\(formatValue(player.marketValue))")
-                            .font(.headline)
-                            .fontWeight(.semibold)
-                    }
-                }
-                
-                Divider()
-                
-                // Ablaufdatum
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Läuft ab")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Text(formatExpiry(player.expiry))
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                    }
-                    Spacer()
-                }
-            }
-        }
-        .padding()
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
-    }
-    
-    private func formatValue(_ value: Int) -> String {
-        if value >= 1000000 {
-            return String(format: "%.1fM", Double(value) / 1000000)
-        } else if value >= 1000 {
-            return String(format: "%.0fk", Double(value) / 1000)
-        } else {
-            return "\(value)"
-        }
-    }
-    
-    private func formatExpiry(_ expiry: String) -> String {
-        // Einfache Formatierung - kann je nach API-Format angepasst werden
-        return expiry.isEmpty ? "Unbekannt" : expiry
-    }
-}
-
-// MARK: - Market Player Value Comparison Section
-struct MarketPlayerValueComparisonSection: View {
-    let player: MarketPlayer
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Preis-Marktwert-Vergleich")
-                .font(.title2)
-                .fontWeight(.bold)
-            
-            VStack(spacing: 12) {
-                // Preisvergleich
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Verkaufspreis")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Text("€\(formatValue(player.price))")
-                            .font(.title2)
-                            .fontWeight(.bold)
-                            .foregroundColor(.green)
-                    }
-                    
-                    Spacer()
-                    
-                    VStack(alignment: .center, spacing: 4) {
-                        Text("vs.")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        
-                        let difference = player.price - player.marketValue
-                        let isGoodDeal = difference < 0
-                        
-                        HStack(spacing: 4) {
-                            Image(systemName: isGoodDeal ? "arrow.down.circle.fill" : "arrow.up.circle.fill")
-                                .foregroundColor(isGoodDeal ? .green : .red)
-                            Text("€\(formatValue(abs(difference)))")
-                                .font(.caption)
-                                .foregroundColor(isGoodDeal ? .green : .red)
-                                .fontWeight(.medium)
-                        }
-                    }
-                    
-                    Spacer()
-                    
-                    VStack(alignment: .trailing, spacing: 4) {
-                        Text("Marktwert")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Text("€\(formatValue(player.marketValue))")
-                            .font(.title2)
-                            .fontWeight(.bold)
-                            .foregroundColor(.blue)
-                    }
-                }
-                
-                // Bewertung
-                let priceDifferencePercent = Double(player.price - player.marketValue) / Double(player.marketValue) * 100
-                
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Bewertung")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        
-                        if priceDifferencePercent < -10 {
-                            Label("Sehr günstiger Deal!", systemImage: "star.fill")
-                                .foregroundColor(.green)
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                        } else if priceDifferencePercent < 0 {
-                            Label("Günstiger Preis", systemImage: "thumbs.up.fill")
-                                .foregroundColor(.green)
-                                .font(.subheadline)
-                        } else if priceDifferencePercent < 10 {
-                            Label("Fairer Preis", systemImage: "equal.circle.fill")
-                                .foregroundColor(.orange)
-                                .font(.subheadline)
-                        } else {
-                            Label("Teurer als Marktwert", systemImage: "exclamationmark.triangle.fill")
-                                .foregroundColor(.red)
-                                .font(.subheadline)
-                        }
-                    }
-                    Spacer()
-                }
-                
-                // Trend-Analyse
-                if player.marketValueTrend != 0 {
-                    Divider()
-                    
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Marktwert-Trend")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            
-                            HStack(spacing: 4) {
-                                Image(systemName: player.marketValueTrend >= 0 ? "chart.line.uptrend.xyaxis" : "chart.line.downtrend.xyaxis")
-                                    .foregroundColor(player.marketValueTrend >= 0 ? .green : .red)
-                                
-                                if player.marketValueTrend > 0 {
-                                    Text("Steigend (+€\(formatValue(player.marketValueTrend)))")
-                                        .foregroundColor(.green)
-                                        .fontWeight(.medium)
-                                } else {
-                                    Text("Fallend (€\(formatValue(abs(player.marketValueTrend))))")
-                                        .foregroundColor(.red)
-                                        .fontWeight(.medium)
-                                }
-                            }
-                        }
-                        Spacer()
-                    }
-                }
-            }
-        }
-        .padding()
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
-    }
-    
-    private func formatValue(_ value: Int) -> String {
-        if value >= 1000000 {
-            return String(format: "%.1fM", Double(value) / 1000000)
-        } else if value >= 1000 {
-            return String(format: "%.0fk", Double(value) / 1000)
-        } else {
-            return "\(value)"
-        }
-    }
-}
-
+// MARK: - Preview
 #Preview {
-    PlayerDetailView(player: TeamPlayer(
-        id: "preview-1",
+    PlayerDetailView(player: Player(
+        id: "1",
         firstName: "Max",
         lastName: "Mustermann",
         profileBigUrl: "",
-        teamName: "FC Demo",
+        teamName: "Beispiel FC",
         teamId: "1",
-        position: 4,
-        number: 9,
-        averagePoints: 5.2,
-        totalPoints: 78,
-        marketValue: 15000000,
-        marketValueTrend: 500000,
-        tfhmvt: 250000,
-        prlo: 1500000,  // Hinzugefügter prlo Parameter
+        position: 3,
+        number: 10,
+        averagePoints: 7.5,
+        totalPoints: 150,
+        marketValue: 5000000,
+        marketValueTrend: 250000,
+        tfhmvt: 100000,
+        prlo: 500000,
         stl: 0,
         status: 0,
         userOwnsPlayer: true
     ))
-}
-
-#Preview("Market Player Detail") {
-    MarketPlayerDetailView(player: MarketPlayer(
-        id: "preview-market-1",
-        firstName: "Robert",
-        lastName: "Lewandowski",
-        profileBigUrl: "",
-        teamName: "FC Barcelona",
-        teamId: "1",
-        position: 4,
-        number: 9,
-        averagePoints: 7.2,
-        totalPoints: 108,
-        marketValue: 25000000,
-        marketValueTrend: 1000000,
-        price: 23000000,
-        expiry: "2025-09-15T18:00:00Z",
-        offers: 3,
-        seller: MarketSeller(id: "seller1", name: "FC Bayern Fan"),
-        stl: 0,
-        status: 0
-    ))
+    .environmentObject(KickbaseManager())
 }
