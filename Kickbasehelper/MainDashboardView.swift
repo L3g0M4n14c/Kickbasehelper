@@ -78,7 +78,7 @@ struct MainDashboardView: View {
 struct TeamView: View {
     @EnvironmentObject var kickbaseManager: KickbaseManager
     @State private var sortBy: SortOption = .marketValue
-    @State private var searchText = ""
+    @State private var playersForSale: Set<String> = []
     
     enum SortOption: String, CaseIterable {
         case name = "Name"
@@ -88,22 +88,42 @@ struct TeamView: View {
         case position = "Position"
     }
     
+    // Berechnung des Gesamtwerts der zum Verkauf ausgewählten Spieler
+    private var totalSaleValue: Int {
+        return kickbaseManager.teamPlayers
+            .filter { playersForSale.contains($0.id) }
+            .reduce(0) { $0 + $1.marketValue }
+    }
+    
+    // Berechnung der Spieleranzahl nach Positionen (ohne zum Verkauf markierte)
+    private var playerCounts: (total: Int, goalkeepers: Int, defenders: Int, midfielders: Int, forwards: Int) {
+        let availablePlayers = kickbaseManager.teamPlayers.filter { !playersForSale.contains($0.id) }
+        
+        let goalkeepers = availablePlayers.filter { $0.position == 1 }.count
+        let defenders = availablePlayers.filter { $0.position == 2 }.count
+        let midfielders = availablePlayers.filter { $0.position == 3 }.count
+        let forwards = availablePlayers.filter { $0.position == 4 }.count
+        let total = availablePlayers.count
+        
+        return (total, goalkeepers, defenders, midfielders, forwards)
+    }
+    
     var body: some View {
         VStack(spacing: 0) {
-            // Budget und Teamwert Header
+            // Neue Budget-Anzeige mit Verkaufslogik
             if let stats = kickbaseManager.userStats {
-                TeamStatsHeader(stats: stats)
+                TeamBudgetHeaderMain(
+                    currentBudget: stats.budget,
+                    saleValue: totalSaleValue
+                )
             }
             
-            // Search and Sort Controls
-            VStack(spacing: 10) {
-                HStack {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundColor(.gray)
-                    TextField("Spieler suchen...", text: $searchText)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                }
+            // Player Count Overview and Sort Controls
+            VStack(spacing: 15) {
+                // Spieleranzahl-Übersicht
+                PlayerCountOverview(playerCounts: playerCounts)
                 
+                // Sort Controls
                 HStack {
                     Text("Sortieren:")
                         .font(.caption)
@@ -119,10 +139,20 @@ struct TeamView: View {
             }
             .padding(.horizontal)
             
-            // Spielerliste mit Punktzahlen
+            // Spielerliste mit Verkaufs-Toggles
             List {
                 ForEach(filteredAndSortedPlayers) { player in
-                    PlayerRowView(player: player)
+                    PlayerRowViewWithSale(
+                        player: player,
+                        isSelectedForSale: playersForSale.contains(player.id),
+                        onToggleSale: { isSelected in
+                            if isSelected {
+                                playersForSale.insert(player.id)
+                            } else {
+                                playersForSale.remove(player.id)
+                            }
+                        }
+                    )
                 }
             }
             .refreshable {
@@ -141,27 +171,16 @@ struct TeamView: View {
     }
     
     private var filteredAndSortedPlayers: [TeamPlayer] {
-        let filtered = searchText.isEmpty ? kickbaseManager.teamPlayers :
-            kickbaseManager.teamPlayers.filter { player in
-                player.firstName.localizedCaseInsensitiveContains(searchText) ||
-                player.lastName.localizedCaseInsensitiveContains(searchText) ||
-                player.fullTeamName.localizedCaseInsensitiveContains(searchText)
-            }
-        
-        return filtered.sorted(by: { player1, player2 in
+        // Entfernung der Suchfunktionalität - zeige alle Spieler
+        return kickbaseManager.teamPlayers.sorted(by: { player1, player2 in
             switch sortBy {
             case .name:
-                // Sortiere zuerst nach Nachname, dann nach Vorname
-                if player1.lastName == player2.lastName {
-                    return player1.firstName < player2.firstName
-                }
                 return player1.lastName < player2.lastName
             case .marketValue:
                 return player1.marketValue > player2.marketValue
             case .points:
                 return player1.totalPoints > player2.totalPoints
             case .trend:
-                // Verwende tfhmvt (letzte Marktwertänderung) statt marketValueTrend
                 return player1.tfhmvt > player2.tfhmvt
             case .position:
                 return player1.position < player2.position
@@ -271,6 +290,141 @@ struct PlayerRowView: View {
                         }
                     }
                 }
+            }
+            .padding(.vertical, 8)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .sheet(isPresented: $showingPlayerDetail) {
+            PlayerDetailView(player: player)
+        }
+    }
+    
+    private func formatValue(_ value: Int) -> String {
+        if value >= 1000000 {
+            return String(format: "%.1fM", Double(value) / 1000000)
+        } else if value >= 1000 {
+            return String(format: "%.0fk", Double(value) / 1000)
+        } else {
+            return "\(value)"
+        }
+    }
+}
+
+// MARK: - Player Row mit Verkaufs-Toggle
+struct PlayerRowViewWithSale: View {
+    let player: TeamPlayer
+    let isSelectedForSale: Bool
+    let onToggleSale: (Bool) -> Void
+    
+    @State private var showingPlayerDetail = false
+    
+    var body: some View {
+        Button(action: {
+            showingPlayerDetail = true
+        }) {
+            HStack(spacing: 12) {
+                // Position Badge
+                PositionBadge(position: player.position)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    // Name mit Status-Icons
+                    HStack(spacing: 4) {
+                        Text(player.fullName)
+                            .font(.headline)
+                            .fontWeight(.medium)
+                        
+                        // Status-Icons basierend auf st-Feld aus API-Daten anzeigen
+                        if player.status == 1 {
+                            // Verletzt - rotes Kreuz
+                            Image(systemName: "cross.circle.fill")
+                                .foregroundColor(.red)
+                                .font(.caption)
+                        } else if player.status == 2 {
+                            // Angeschlagen - Tabletten-Icon
+                            Image(systemName: "pills.fill")
+                                .foregroundColor(.orange)
+                                .font(.caption)
+                        } else if player.status == 4 {
+                            // Aufbautraining - Hantel-Icon
+                            Image(systemName: "dumbbell.fill")
+                                .foregroundColor(.blue)
+                                .font(.caption)
+                        } else if player.status == 8 {
+                            // Sperre - rote Karte
+                            Image(systemName: "rectangle.fill")
+                                .foregroundColor(.red)
+                                .font(.caption)
+                        }
+                    }
+                    
+                    // Team
+                    Text(player.fullTeamName)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+                
+                // PUNKTZAHLEN - Durchschnittspunktzahl groß, Gesamtpunktzahl klein
+                VStack(alignment: .trailing, spacing: 6) {
+                    // Durchschnittspunkte - groß und prominent
+                    HStack(spacing: 4) {
+                        Image(systemName: "star.fill")
+                            .font(.subheadline)
+                            .foregroundColor(.orange)
+                        Text(String(format: "%.0f", player.averagePoints))
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .foregroundColor(.primary)
+                            .onAppear {
+                                print("📊 Displaying average points: \(player.averagePoints)")
+                            }
+                    }
+                    
+                    // Gesamtpunkte - jetzt kleinere Anzeige
+                    HStack(spacing: 4) {
+                        Image(systemName: "sum")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                        Text("\(player.totalPoints) Gesamt")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .onAppear {
+                                print("📊 Displaying total points: \(player.totalPoints)")
+                            }
+                    }
+                }
+                
+                VStack(alignment: .trailing, spacing: 4) {
+                    // Marktwert
+                    Text("€\(formatValue(player.marketValue))")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                    
+                    // Trend - verwende tfhmvt (Marktwertänderung seit letztem Update)
+                    if player.tfhmvt != 0 {
+                        HStack(spacing: 2) {
+                            Image(systemName: player.tfhmvt >= 0 ? "arrow.up" : "arrow.down")
+                                .font(.caption2)
+                                .foregroundColor(player.tfhmvt >= 0 ? .green : .red)
+                            Text("€\(formatValue(abs(player.tfhmvt)))")
+                                .font(.caption)
+                                .foregroundColor(player.tfhmvt >= 0 ? .green : .red)
+                        }
+                    }
+                }
+                
+                // Verkaufs-Toggle
+                Toggle(isOn: Binding<Bool>(
+                    get: { isSelectedForSale },
+                    set: { newValue in
+                        onToggleSale(newValue)
+                    }
+                )) {
+                    Text("")
+                }
+                .toggleStyle(SwitchToggleStyle(tint: .blue))
+                .frame(width: 50, height: 30)
             }
             .padding(.vertical, 8)
         }
@@ -1663,6 +1817,69 @@ struct ReservePlayerRow: View {
     }
 }
 
+// MARK: - Team Budget Header für MainDashboardView
+struct TeamBudgetHeaderMain: View {
+    let currentBudget: Int
+    let saleValue: Int
+    
+    private var totalBudget: Int {
+        return currentBudget + saleValue
+    }
+    
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Aktuelles Budget")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Text("€\(formatValueWithSeparators(currentBudget))")
+                    .font(.headline)
+                    .fontWeight(.bold)
+                    .foregroundColor(currentBudget < 0 ? .red : .primary)
+            }
+            
+            Spacer()
+            
+            VStack(alignment: .trailing, spacing: 4) {
+                Text("Budget + Verkäufe")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Text("€\(formatValueWithSeparators(totalBudget))")
+                    .font(.headline)
+                    .fontWeight(.bold)
+                    .foregroundColor(totalBudget < 0 ? .red : (saleValue > 0 ? .green : .primary))
+            }
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+        .padding(.horizontal)
+    }
+    
+    private func formatValue(_ value: Int) -> String {
+        if value >= 1000000 {
+            return String(format: "%.1fM", Double(value) / 1000000)
+        } else if value >= 1000 {
+            return String(format: "%.0fk", Double(value) / 1000)
+        } else {
+            return "\(value)"
+        }
+    }
+    
+    private func formatValueWithSeparators(_ value: Int) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.groupingSeparator = "."
+        formatter.groupingSize = 3
+        
+        if let formattedString = formatter.string(from: NSNumber(value: value)) {
+            return formattedString
+        } else {
+            return "\(value)"
+        }
+    }
+}
+
 // MARK: - Helper functions for conversion and utilities
 
 // Konvertiert MarketPlayer zu TeamPlayer für die PlayerDetailView
@@ -1686,6 +1903,99 @@ private func convertMarketPlayerToTeamPlayer(_ marketPlayer: MarketPlayer) -> Te
         status: marketPlayer.status,
         userOwnsPlayer: false // MarketPlayer gehört nicht dem User
     )
+}
+
+// MARK: - Player Count Overview
+struct PlayerCountOverview: View {
+    let playerCounts: (total: Int, goalkeepers: Int, defenders: Int, midfielders: Int, forwards: Int)
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            // Gesamt
+            PlayerCountCard(
+                title: "Gesamt",
+                count: playerCounts.total,
+                minRequired: 11,
+                icon: "person.3.fill",
+                color: .blue
+            )
+            
+            // Torwart
+            PlayerCountCard(
+                title: "TW",
+                count: playerCounts.goalkeepers,
+                minRequired: 1,
+                icon: "sportscourt.fill",
+                color: .yellow
+            )
+            
+            // Verteidiger
+            PlayerCountCard(
+                title: "VT",
+                count: playerCounts.defenders,
+                minRequired: 3,
+                icon: "shield.fill",
+                color: .green
+            )
+            
+            // Mittelfeld
+            PlayerCountCard(
+                title: "MF",
+                count: playerCounts.midfielders,
+                minRequired: 2,
+                icon: "rectangle.3.group.fill",
+                color: .blue
+            )
+            
+            // Sturm
+            PlayerCountCard(
+                title: "ST",
+                count: playerCounts.forwards,
+                minRequired: 1,
+                icon: "target",
+                color: .red
+            )
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 8)
+        .background(Color(.systemGray6))
+        .cornerRadius(8)
+    }
+}
+
+// MARK: - Player Count Card
+struct PlayerCountCard: View {
+    let title: String
+    let count: Int
+    let minRequired: Int
+    let icon: String
+    let color: Color
+    
+    private var textColor: Color {
+        return count < minRequired ? .red : .green
+    }
+    
+    var body: some View {
+        VStack(spacing: 2) {
+            Image(systemName: icon)
+                .font(.caption)
+                .foregroundColor(color)
+            
+            Text("\(count)")
+                .font(.headline)
+                .fontWeight(.bold)
+                .foregroundColor(textColor)
+            
+            Text(title)
+                .font(.caption2)
+                .foregroundColor(.secondary)
+                .fontWeight(.medium)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 50)
+        .background(Color(.systemBackground))
+        .cornerRadius(6)
+    }
 }
 
 #Preview {

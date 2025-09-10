@@ -4,6 +4,7 @@ struct TeamTab: View {
     @EnvironmentObject var kickbaseManager: KickbaseManager
     @State private var sortBy: SortOption = .marketValue
     @State private var searchText = ""
+    @State private var playersForSale: Set<String> = []
     
     enum SortOption: String, CaseIterable {
         case name = "Name"
@@ -13,9 +14,25 @@ struct TeamTab: View {
         case position = "Position"
     }
     
+    // Berechnung des Gesamtwerts der zum Verkauf ausgewählten Spieler
+    private var totalSaleValue: Int {
+        return kickbaseManager.teamPlayers
+            .filter { playersForSale.contains($0.id) }
+            .reduce(0) { $0 + $1.marketValue }
+    }
+    
     var body: some View {
         NavigationView {
             VStack {
+                // Budget-Anzeige mit verkaufbaren Spielern
+                if let stats = kickbaseManager.userStats {
+                    TeamBudgetHeader(
+                        currentBudget: stats.budget,
+                        saleValue: totalSaleValue
+                    )
+                    .padding(.horizontal)
+                }
+                
                 // Search and Sort Controls
                 VStack(spacing: 10) {
                     HStack {
@@ -74,8 +91,18 @@ struct TeamTab: View {
                     // Players List
                     List {
                         ForEach(Array(filteredAndSortedPlayers.enumerated()), id: \.offset) { index, player in
-                            TeamPlayerRow(teamPlayer: player)
-                                .id("\(player.id)-\(index)") // Eindeutige ID durch Index
+                            TeamPlayerRowWithSale(
+                                teamPlayer: player,
+                                isSelectedForSale: playersForSale.contains(player.id),
+                                onToggleSale: { isSelected in
+                                    if isSelected {
+                                        playersForSale.insert(player.id)
+                                    } else {
+                                        playersForSale.remove(player.id)
+                                    }
+                                }
+                            )
+                            .id("\(player.id)-\(index)")
                         }
                     }
                     .refreshable {
@@ -216,6 +243,121 @@ struct TeamPlayerRow: View {
                         }
                     }
                 }
+            }
+            .padding(.vertical, 4)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .sheet(isPresented: $showingPlayerDetail) {
+            PlayerDetailView(player: teamPlayer)
+        }
+    }
+}
+
+struct TeamPlayerRowWithSale: View {
+    let teamPlayer: TeamPlayer
+    let isSelectedForSale: Bool
+    let onToggleSale: (Bool) -> Void
+    @State private var showingPlayerDetail = false
+    
+    var body: some View {
+        Button(action: {
+            print("🔄 TeamPlayerRow: Tapped on player \(teamPlayer.fullName)")
+            showingPlayerDetail = true
+        }) {
+            HStack(spacing: 12) {
+                // Position indicator
+                VStack {
+                    Text(positionAbbreviation(teamPlayer.position))
+                        .font(.caption2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(positionColor(teamPlayer.position))
+                        .cornerRadius(4)
+                    
+                    Text("\(teamPlayer.number)")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+                
+                // Player Info
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 4) {
+                        Text(teamPlayer.fullName)
+                            .font(.headline)
+                            .lineLimit(1)
+                        
+                        // Status-Icons basierend auf st-Feld aus API-Daten anzeigen
+                        if teamPlayer.status == 1 {
+                            // Verletzt - rotes Kreuz
+                            Image(systemName: "cross.circle.fill")
+                                .foregroundColor(.red)
+                                .font(.caption)
+                        } else if teamPlayer.status == 2 {
+                            // Angeschlagen - Tabletten-Icon
+                            Image(systemName: "pills.fill")
+                                .foregroundColor(.orange)
+                                .font(.caption)
+                        } else if teamPlayer.status == 4 {
+                            // Aufbautraining - Hantel-Icon
+                            Image(systemName: "dumbbell.fill")
+                                .foregroundColor(.blue)
+                                .font(.caption)
+                        }
+                    }
+                    
+                    Text(teamPlayer.fullTeamName)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                }
+                
+                Spacer()
+                
+                // Stats - Durchschnittspunktzahl als große Zahl, Gesamtpunktzahl als kleine Zahl
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("\(teamPlayer.averagePoints, specifier: "%.0f")")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.primary)
+                    
+                    Text("\(teamPlayer.totalPoints) Gesamt")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    HStack(spacing: 4) {
+                        Text("€\(teamPlayer.marketValue / 1000)k")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                        
+                        if teamPlayer.tfhmvt > 0 {
+                            Image(systemName: "arrow.up")
+                                .foregroundColor(.green)
+                                .font(.caption2)
+                        } else if teamPlayer.tfhmvt < 0 {
+                            Image(systemName: "arrow.down")
+                                .foregroundColor(.red)
+                                .font(.caption2)
+                        } else {
+                            Image(systemName: "minus")
+                                .foregroundColor(.gray)
+                                .font(.caption2)
+                        }
+                    }
+                }
+                
+                // Sale Toggle
+                Toggle(isOn: Binding(
+                    get: { isSelectedForSale },
+                    set: { newValue in
+                        onToggleSale(newValue)
+                    }
+                )) {
+                    Text("")
+                }
+                .toggleStyle(SwitchToggleStyle(tint: .blue))
+                .frame(width: 50)
             }
             .padding(.vertical, 4)
         }
@@ -714,5 +856,42 @@ func positionColor(_ position: Int) -> Color {
     case 3: return .blue
     case 4: return .red
     default: return .gray
+    }
+}
+
+struct TeamBudgetHeader: View {
+    let currentBudget: Int
+    let saleValue: Int
+    
+    private var totalBudget: Int {
+        return currentBudget + saleValue
+    }
+    
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Aktuelles Budget")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Text("€\(currentBudget / 1000)k")
+                    .font(.headline)
+                    .fontWeight(.bold)
+            }
+            
+            Spacer()
+            
+            VStack(alignment: .trailing, spacing: 4) {
+                Text("Budget + Verkäufe")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Text("€\(totalBudget / 1000)k")
+                    .font(.headline)
+                    .fontWeight(.bold)
+                    .foregroundColor(saleValue > 0 ? .green : .primary)
+            }
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
     }
 }
