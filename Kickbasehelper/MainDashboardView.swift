@@ -503,9 +503,6 @@ struct PlayerRowViewWithSale: View {
                                 .foregroundColor(.primary)
                                 .minimumScaleFactor(0.8)
                                 .lineLimit(1)
-                                .onAppear {
-                                    print("📊 Displaying average points: \(player.averagePoints)")
-                            }
                         }
                         .frame(minWidth: 60, alignment: .trailing)
                         
@@ -519,9 +516,6 @@ struct PlayerRowViewWithSale: View {
                                 .foregroundColor(.secondary)
                                 .minimumScaleFactor(0.8)
                                 .lineLimit(1)
-                                .onAppear {
-                                    print("📊 Displaying total points: \(player.totalPoints)")
-                            }
                         }
                         .frame(minWidth: 60, alignment: .trailing)
                     }
@@ -2538,6 +2532,15 @@ struct PlayerCountOverview: View {
     
     var body: some View {
         HStack {
+            // Gesamtanzahl
+            PlayerPositionCountView(
+                position: "Gesamt",
+                count: playerCounts.total,
+                color: playerCounts.total >= 11 ? .green : .red
+            )
+            
+            Spacer()
+            
             // Torhüter
             PlayerPositionCountView(
                 position: "TW",
