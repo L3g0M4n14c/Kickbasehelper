@@ -177,13 +177,14 @@ struct TeamPlayerRow: View {
                         .font(.caption2)
                         .foregroundColor(.secondary)
                 }
+                .frame(minWidth: 40)
                 
-                // Player Info
+                // Player Info - erweiterte Breite für Namen
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 4) {
                         Text(teamPlayer.fullName)
                             .font(.headline)
-                            .lineLimit(1)
+                            .lineLimit(2) // Erlaubt 2 Zeilen für längere Namen
                         
                         // Status-Icons basierend auf st-Feld aus API-Daten anzeigen
                         if teamPlayer.status == 1 {
@@ -209,8 +210,9 @@ struct TeamPlayerRow: View {
                         .foregroundColor(.secondary)
                         .lineLimit(1)
                 }
+                .frame(minWidth: 160, alignment: .leading) // Mindestbreite für Namensbereich
                 
-                Spacer()
+                Spacer(minLength: 8) // Reduzierter Mindestabstand
                 
                 // Stats - Durchschnittspunktzahl als große Zahl, Gesamtpunktzahl als kleine Zahl
                 VStack(alignment: .trailing, spacing: 2) {
@@ -219,7 +221,7 @@ struct TeamPlayerRow: View {
                         .fontWeight(.bold)
                         .foregroundColor(.primary)
                     
-                    Text("\(teamPlayer.totalPoints) Gesamt")
+                    Text("\(teamPlayer.totalPoints)")
                         .font(.caption)
                         .foregroundColor(.secondary)
                     
@@ -243,6 +245,7 @@ struct TeamPlayerRow: View {
                         }
                     }
                 }
+                .frame(minWidth: 80, alignment: .trailing) // Feste Breite für Stats
             }
             .padding(.vertical, 4)
         }
@@ -280,13 +283,14 @@ struct TeamPlayerRowWithSale: View {
                         .font(.caption2)
                         .foregroundColor(.secondary)
                 }
+                .frame(minWidth: 40)
                 
-                // Player Info
+                // Player Info - erweiterte Breite für Namen
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 4) {
                         Text(teamPlayer.fullName)
                             .font(.headline)
-                            .lineLimit(1)
+                            .lineLimit(2) // Erlaubt 2 Zeilen für längere Namen
                         
                         // Status-Icons basierend auf st-Feld aus API-Daten anzeigen
                         if teamPlayer.status == 1 {
@@ -312,8 +316,9 @@ struct TeamPlayerRowWithSale: View {
                         .foregroundColor(.secondary)
                         .lineLimit(1)
                 }
+                .frame(minWidth: 160, alignment: .leading) // Mindestbreite für Namensbereich
                 
-                Spacer()
+                Spacer(minLength: 8) // Reduzierter Mindestabstand
                 
                 // Stats - Durchschnittspunktzahl als große Zahl, Gesamtpunktzahl als kleine Zahl
                 VStack(alignment: .trailing, spacing: 2) {
@@ -322,7 +327,7 @@ struct TeamPlayerRowWithSale: View {
                         .fontWeight(.bold)
                         .foregroundColor(.primary)
                     
-                    Text("\(teamPlayer.totalPoints) Gesamt")
+                    Text("\(teamPlayer.totalPoints)")
                         .font(.caption)
                         .foregroundColor(.secondary)
                     
@@ -346,17 +351,17 @@ struct TeamPlayerRowWithSale: View {
                         }
                     }
                 }
+                .frame(minWidth: 80, alignment: .trailing) // Feste Breite für Stats
                 
                 // Sale Toggle
                 Toggle(isOn: Binding(
                     get: { isSelectedForSale },
-                    set: { newValue in
-                        onToggleSale(newValue)
-                    }
+                    set: { onToggleSale($0) }
                 )) {
-                    Text("")
+                    // Empty label
                 }
-                .toggleStyle(SwitchToggleStyle(tint: .blue))
+                .toggleStyle(SwitchToggleStyle())
+                .scaleEffect(0.8)
                 .frame(width: 50)
             }
             .padding(.vertical, 4)
@@ -612,21 +617,24 @@ struct MarketPlayerRow: View {
         }) {
             HStack(spacing: 12) {
                 // Position indicator
-                Text(marketPlayer.positionName)
-                    .font(.caption2)
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(positionColor(marketPlayer.position))
-                    .cornerRadius(4)
+                VStack {
+                    Text(marketPlayer.positionName)
+                        .font(.caption2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(positionColor(marketPlayer.position))
+                        .cornerRadius(4)
+                }
+                .frame(minWidth: 40)
                 
-                // Player Info
+                // Player Info - erweiterte Breite für Namen
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 4) {
                         Text(marketPlayer.fullName)
                             .font(.headline)
-                            .lineLimit(1)
+                            .lineLimit(2) // Erlaubt 2 Zeilen für längere Namen
                         
                         // Status-Icons basierend auf status-Feld aus API-Daten anzeigen
                         if marketPlayer.status == 1 {
@@ -659,8 +667,9 @@ struct MarketPlayerRow: View {
                             .foregroundColor(.secondary)
                     }
                 }
+                .frame(minWidth: 180, alignment: .leading) // Mindestbreite für Namensbereich (etwas größer wegen Verkäufer-Info)
                 
-                Spacer()
+                Spacer(minLength: 8) // Reduzierter Mindestabstand
                 
                 // Price and Market Value
                 VStack(alignment: .trailing, spacing: 2) {
@@ -685,6 +694,7 @@ struct MarketPlayerRow: View {
                         }
                     }
                 }
+                .frame(minWidth: 80, alignment: .trailing) // Feste Breite für Preis/Marktwert
             }
             .padding(.vertical, 4)
         }

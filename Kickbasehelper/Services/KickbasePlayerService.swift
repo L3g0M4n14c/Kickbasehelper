@@ -48,7 +48,7 @@ class KickbasePlayerService: ObservableObject {
         
         do {
             let (_, json) = try await apiClient.tryMultipleEndpoints(endpoints: endpoints)
-            let marketPlayers = parseMarketPlayersFromResponse(json)
+            let marketPlayers = await parseMarketPlayersFromResponse(json, league: league)
             print("✅ Successfully loaded \(marketPlayers.count) market players from API")
             return marketPlayers
         } catch APIError.authenticationFailed {
@@ -256,10 +256,7 @@ class KickbasePlayerService: ObservableObject {
         if let details = playerDetails, let detailTeamName = details.tn, !detailTeamName.isEmpty {
             teamName = detailTeamName
         } else {
-            teamName = playerData["teamName"] as? String ??
-                      playerData["tn"] as? String ??
-                      playerData["club"] as? String ??
-                      playerData["team"] as? String ?? "Unknown Team"
+            teamName = playerData["tn"] as? String ?? "Unknown Team"
         }
         
         // Trikotnummer mit Priorität auf Detail-Endpoint
@@ -323,7 +320,7 @@ class KickbasePlayerService: ObservableObject {
         )
     }
     
-    private func parseMarketPlayersFromResponse(_ json: [String: Any]) -> [MarketPlayer] {
+    private func parseMarketPlayersFromResponse(_ json: [String: Any], league: League) async -> [MarketPlayer] {
         print("🔍 === MARKET PLAYER PARSING DEBUG ===")
         print("📋 Market JSON keys: \(Array(json.keys))")
         
@@ -400,68 +397,10 @@ class KickbasePlayerService: ObservableObject {
         for (index, playerData) in playersArray.enumerated() {
             print("🔄 Parsing market player \(index + 1): \(Array(playerData.keys))")
             
-            // Detaillierte Feldanalyse für jeden Spieler
-            for (fieldKey, fieldValue) in playerData {
-                if fieldValue is String || fieldValue is NSNumber {
-                    print("   \(fieldKey): \(fieldValue)")
-                } else if let nestedDict = fieldValue as? [String: Any] {
-                    print("   \(fieldKey): Dict with keys \(Array(nestedDict.keys))")
-                }
-            }
-            
-            // Seller-Informationen (falls vorhanden)
-            let seller = MarketSeller(
-                id: (playerData["seller"] as? [String: Any])?["id"] as? String ?? "",
-                name: (playerData["seller"] as? [String: Any])?["name"] as? String ?? "Unknown"
-            )
-            
-            // Owner-Informationen (falls vorhanden)
-            let owner = extractOwnerFromPlayerData(playerData)
-            
-            // Flexibles Parsing mit Unterstützung für abgekürzte Feldnamen
-            let player = MarketPlayer(
-                id: playerData["id"] as? String ??
-                    playerData["i"] as? String ?? "",
-                firstName: playerData["firstName"] as? String ??
-                          playerData["fn"] as? String ?? "",
-                lastName: playerData["lastName"] as? String ??
-                         playerData["n"] as? String ?? "",
-                profileBigUrl: playerData["profileBigUrl"] as? String ??
-                              playerData["pim"] as? String ?? "",
-                teamName: playerData["teamName"] as? String ??
-                         playerData["tn"] as? String ?? "",
-                teamId: playerData["teamId"] as? String ??
-                       playerData["tid"] as? String ?? "",
-                position: playerData["position"] as? Int ??
-                         playerData["pos"] as? Int ?? 0,
-                number: playerData["number"] as? Int ??
-                       playerData["jerseyNumber"] as? Int ?? 0,
-                averagePoints: playerData["averagePoints"] as? Double ??
-                              playerData["ap"] as? Double ?? 0.0,
-                totalPoints: playerData["totalPoints"] as? Int ??
-                            playerData["p"] as? Int ?? 0,
-                marketValue: playerData["marketValue"] as? Int ??
-                            playerData["mv"] as? Int ?? 0,
-                marketValueTrend: playerData["marketValueTrend"] as? Int ??
-                                 playerData["mvt"] as? Int ?? 0,
-                price: playerData["price"] as? Int ??
-                      playerData["prc"] as? Int ?? 0,
-                expiry: playerData["expiry"] as? String ??
-                       playerData["dt"] as? String ?? "",
-                offers: playerData["offers"] as? Int ??
-                       playerData["ofc"] as? Int ?? 0,
-                seller: seller,
-                stl: playerData["stl"] as? Int ??
-                    playerData["st"] as? Int ?? 0,
-                status: playerData["status"] as? Int ??
-                       playerData["st"] as? Int ?? 0,
-                prlo: playerData["prlo"] as? Int,
-                owner: owner,
-                exs: playerData["exs"] as? Int ?? 0
-            )
+            let player = await parseMarketPlayerWithDetails(from: playerData, league: league)
             parsedPlayers.append(player)
             
-            print("✅ Parsed market player: \(player.firstName) \(player.lastName) (€\(player.price/1000)k)")
+            print("✅ Parsed market player: \(player.firstName) \(player.lastName) (€\(player.price/1000)k from \(player.seller.name))")
         }
         
         print("✅ Successfully parsed \(parsedPlayers.count) market players")
@@ -482,7 +421,9 @@ class KickbasePlayerService: ObservableObject {
                             let keys = firstItem.keys
                             let hasMarketKeys = keys.contains("price") || keys.contains("seller") ||
                                               keys.contains("expiry") || keys.contains("offers") ||
-                                              keys.contains("firstName") || keys.contains("lastName")
+                                              keys.contains("firstName") || keys.contains("lastName") ||
+                                              keys.contains("prc") || keys.contains("u") ||
+                                              keys.contains("n") || keys.contains("fn") || keys.contains("ln")
                             
                             if hasMarketKeys {
                                 print("✅ Found market players array at: \(topKey).\(nestedKey) with \(array.count) items")
@@ -496,7 +437,9 @@ class KickbasePlayerService: ObservableObject {
                     let keys = firstItem.keys
                     let hasMarketKeys = keys.contains("price") || keys.contains("seller") ||
                                       keys.contains("expiry") || keys.contains("offers") ||
-                                      keys.contains("firstName") || keys.contains("lastName")
+                                      keys.contains("firstName") || keys.contains("lastName") ||
+                                      keys.contains("prc") || keys.contains("u") ||
+                                      keys.contains("n") || keys.contains("fn") || keys.contains("ln")
                     
                     if hasMarketKeys {
                         print("✅ Found market players array at top level: \(topKey) with \(array.count) items")
@@ -508,6 +451,123 @@ class KickbasePlayerService: ObservableObject {
         
         print("❌ No market player arrays found in nested structure")
         return []
+    }
+    
+    private func parseMarketPlayerWithDetails(from playerData: [String: Any], league: League) async -> MarketPlayer {
+        let apiId = playerData["id"] as? String ?? playerData["i"] as? String ?? ""
+        
+        // Lade Player-Details vom Detail-Endpoint falls ID verfügbar
+        var playerDetails: PlayerDetailResponse?
+        if !apiId.isEmpty {
+            playerDetails = await loadPlayerDetails(playerId: apiId, leagueId: league.id)
+        }
+        
+        // Namen-Extraktion mit Detail-Endpoint Fallback
+        let marketName = playerData["n"] as? String ?? playerData["name"] as? String ?? ""
+        let firstName: String
+        let lastName: String
+        
+        if let details = playerDetails {
+            firstName = details.fn ?? ""
+            lastName = details.ln ?? marketName
+            print("   ✅ Using names from detail endpoint - fn: '\(firstName)', ln: '\(lastName)'")
+        } else {
+            // Fallback: Versuche firstName/lastName aus Marktdaten zu extrahieren
+            firstName = playerData["firstName"] as? String ?? playerData["fn"] as? String ?? ""
+            lastName = playerData["lastName"] as? String ?? playerData["ln"] as? String ?? marketName
+            print("   ⚠️ Using market data only - firstName: '\(firstName)', lastName: '\(lastName)'")
+        }
+        
+        // Team-Name aus Detail-Endpoint oder Fallback
+        let teamName: String
+        if let details = playerDetails, let detailTeamName = details.tn, !detailTeamName.isEmpty {
+            teamName = detailTeamName
+        } else {
+            teamName = playerData["teamName"] as? String ??
+                      playerData["tn"] as? String ?? "Unknown Team"
+        }
+        
+        // Seller-Informationen extrahieren
+        let seller = MarketSeller(
+            id: (playerData["seller"] as? [String: Any])?["id"] as? String ??
+                (playerData["u"] as? [String: Any])?["i"] as? String ?? "",
+            name: (playerData["seller"] as? [String: Any])?["name"] as? String ??
+                  (playerData["u"] as? [String: Any])?["n"] as? String ?? "Unknown"
+        )
+        
+        // Owner-Informationen (falls vorhanden)
+        let owner = extractOwnerFromPlayerData(playerData)
+        
+        // Andere Felder mit Priorität auf Detail-Endpoint
+        let position = playerDetails?.position ??
+                      playerData["position"] as? Int ??
+                      playerData["pos"] as? Int ??
+                      playerData["p"] as? Int ?? 0
+        
+        let number = playerDetails?.number ??
+                    playerData["number"] as? Int ??
+                    playerData["jerseyNumber"] as? Int ?? 0
+        
+        let marketValue = playerDetails?.marketValue ??
+                         playerData["marketValue"] as? Int ??
+                         playerData["mv"] as? Int ?? 0
+        
+        let marketValueTrend = playerDetails?.marketValueTrend ??
+                              playerData["marketValueTrend"] as? Int ??
+                              playerData["mvt"] as? Int ?? 0
+        
+        let averagePoints = playerDetails?.averagePoints ??
+                           playerData["averagePoints"] as? Double ??
+                           playerData["ap"] as? Double ?? 0.0
+        
+        let totalPoints = playerDetails?.totalPoints ??
+                         playerData["totalPoints"] as? Int ??
+                         playerData["p"] as? Int ?? 0
+        
+        // Namen-Fallback falls beide leer sind
+        let finalFirstName = firstName.isEmpty && lastName.isEmpty ? "Unbekannter" :
+                            firstName.isEmpty ? lastName : firstName
+        let finalLastName = firstName.isEmpty && lastName.isEmpty ? "Spieler" :
+                           firstName.isEmpty ? "" : lastName
+        
+        let uniqueId = apiId.isEmpty ?
+            "\(finalFirstName)-\(finalLastName)-\(seller.id)-\(UUID().uuidString.prefix(8))" :
+            apiId
+        
+        return MarketPlayer(
+            id: uniqueId,
+            firstName: finalFirstName,
+            lastName: finalLastName,
+            profileBigUrl: playerDetails?.profileBigUrl ??
+                          playerData["profileBigUrl"] as? String ??
+                          playerData["pim"] as? String ?? "",
+            teamName: teamName,
+            teamId: playerDetails?.teamId ??
+                   playerData["teamId"] as? String ??
+                   playerData["tid"] as? String ?? "",
+            position: position,
+            number: number,
+            averagePoints: averagePoints,
+            totalPoints: totalPoints,
+            marketValue: marketValue,
+            marketValueTrend: marketValueTrend,
+            price: playerData["price"] as? Int ??
+                  playerData["prc"] as? Int ?? 0,
+            expiry: playerData["expiry"] as? String ??
+                   playerData["dt"] as? String ?? "",
+            offers: playerData["offers"] as? Int ??
+                   playerData["ofc"] as? Int ?? 0,
+            seller: seller,
+            stl: playerData["stl"] as? Int ??
+                playerData["st"] as? Int ?? 0,
+            status: playerDetails?.status ??
+                   playerData["status"] as? Int ??
+                   playerData["st"] as? Int ?? 0,
+            prlo: playerDetails?.prlo ??
+                 playerData["prlo"] as? Int,
+            owner: owner,
+            exs: playerData["exs"] as? Int ?? 0
+        )
     }
     
     // MARK: - Helper Functions
