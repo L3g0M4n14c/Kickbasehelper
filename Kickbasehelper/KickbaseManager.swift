@@ -19,6 +19,12 @@ class KickbaseManager: ObservableObject {
     private let playerService: KickbasePlayerService
     private let userStatsService: KickbaseUserStatsService
     
+    // MARK: - Public Service Access
+    
+    var authenticatedPlayerService: KickbasePlayerService {
+        return playerService
+    }
+    
     init() {
         self.apiClient = KickbaseAPIClient()
         self.dataParser = KickbaseDataParser()
@@ -163,6 +169,25 @@ class KickbaseManager: ObservableObject {
         } catch {
             print("❌ Error loading on-demand market value: \(error)")
             return nil
+        }
+    }
+    
+    // MARK: - Player Performance
+    
+    func loadPlayerPerformance(playerId: String, leagueId: String) async throws -> PlayerPerformanceResponse? {
+        print("📊 Loading player performance for player \(playerId) in league \(leagueId)")
+        
+        do {
+            let performance = try await playerService.loadPlayerPerformance(playerId: playerId, leagueId: leagueId)
+            if let performance = performance {
+                print("✅ Successfully loaded performance data with \(performance.it.count) seasons")
+            } else {
+                print("⚠️ No performance data returned from player service")
+            }
+            return performance
+        } catch {
+            print("❌ Failed to load player performance: \(error)")
+            throw error
         }
     }
 }

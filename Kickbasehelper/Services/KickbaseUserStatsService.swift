@@ -18,13 +18,6 @@ class KickbaseUserStatsService: ObservableObject {
         let endpoints = [
             "/v4/leagues/\(league.id)/me/budget",    // Spezifischer Budget-Endpoint
             "/v4/leagues/\(league.id)/me",           // Meine Daten in Liga (v4)
-            "/v4/leagues/\(league.id)",              // Liga-Details (enthält oft User-Info)
-            "/v4/leagues/\(league.id)/users/me",     // User-spezifische Daten (v4)
-            "/v4/user/profile",                      // User-Profil (v4)
-            "/v4/user/leagues/\(league.id)",         // User-Liga-Kombination (v4)
-            "/v4/user",                              // User-Endpoint (v4)
-            "/v4/leagues/\(league.id)/stats",        // Liga-Statistiken (v4)
-            "/leagues/\(league.id)/me/budget"        // Budget-Fallback ohne v4
         ]
         
         do {

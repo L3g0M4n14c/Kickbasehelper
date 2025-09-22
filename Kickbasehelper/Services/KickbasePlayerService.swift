@@ -100,6 +100,31 @@ class KickbasePlayerService: ObservableObject {
         return nil
     }
     
+    // MARK: - Player Performance Loading
+    
+    func loadPlayerPerformance(playerId: String, leagueId: String) async throws -> PlayerPerformanceResponse? {
+        print("📊 Loading player performance for ID: \(playerId)")
+        
+        let endpoint = "/v4/leagues/\(leagueId)/players/\(playerId)/performance"
+        
+        
+        do {
+            let (data, json) = try await apiClient.makeRequest(endpoint: endpoint)
+            
+            let decoder = JSONDecoder()
+            let performanceResponse = try decoder.decode(PlayerPerformanceResponse.self, from: data)
+            print("✅ Successfully loaded performance data for player \(playerId)")
+            return performanceResponse
+        } catch APIError.authenticationFailed {
+            throw APIError.authenticationFailed
+        } catch {
+            print("❌ Error loading player performance for \(playerId): \(error.localizedDescription)")
+            throw error
+        }
+        
+        return nil
+    }
+    
     // MARK: - Market Value History
     
     func loadPlayerMarketValueHistory(playerId: String, leagueId: String) async -> MarketValueChange? {

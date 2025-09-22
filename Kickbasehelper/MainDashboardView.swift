@@ -17,6 +17,7 @@ struct MainDashboardView: View {
             }
         }
         .environmentObject(kickbaseManager)
+        .macOSOptimized()
         .onAppear {
             // Automatisches Laden aller Daten beim ersten Start
             Task {
@@ -59,10 +60,15 @@ struct MainDashboardView: View {
                     Label("Aufstellung", systemImage: "person.crop.square.fill.and.at.rectangle")
                 }
                 .tag(3)
+                
+                NavigationLink(value: 4) {
+                    Label("Transfer-Tipps", systemImage: "person.crop.circle.badge.plus")
+                }
+                .tag(4)
             }
             .navigationTitle("Kickbase Helper")
             .navigationBarTitleDisplayMode(.large)
-            .toolbar {
+            .toolbar(content: {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Logout") {
                         authManager.logout()
@@ -75,7 +81,7 @@ struct MainDashboardView: View {
                             .scaleEffect(0.8)
                     }
                 }
-            }
+            })
         } detail: {
             // Detail View
             Group {
@@ -88,6 +94,8 @@ struct MainDashboardView: View {
                     SalesRecommendationView()
                 case 3:
                     LineupOptimizerView()
+                case 4:
+                    TransferRecommendationsView(kickbaseManager: kickbaseManager)
                 default:
                     TeamView()
                 }
@@ -132,6 +140,14 @@ struct MainDashboardView: View {
                         Text("Aufstellung")
                     }
                     .tag(3)
+                
+                // Transfer Recommendations Tab
+                TransferRecommendationsView(kickbaseManager: kickbaseManager)
+                    .tabItem {
+                        Image(systemName: "person.crop.circle.badge.plus")
+                        Text("Transfer-Tipps")
+                    }
+                    .tag(4)
             }
             .navigationTitle(kickbaseManager.selectedLeague?.name ?? "Kickbase Helper")
             .navigationBarTitleDisplayMode(.inline)
@@ -174,6 +190,8 @@ struct MainDashboardView: View {
             return "Verkaufen"
         case 3:
             return "Aufstellung"
+        case 4:
+            return "Transfer-Tipps"
         default:
             return "Team"
         }
@@ -302,6 +320,8 @@ struct PlayerRowView: View {
     let player: TeamPlayer
     @State private var showingPlayerDetail = false
     
+    @EnvironmentObject var kickbaseManager: KickbaseManager
+    
     var body: some View {
         Button(action: {
             print("🔄 PlayerRowView: Tapped on player \(player.fullName)")
@@ -415,7 +435,8 @@ struct PlayerRowView: View {
         }
         .buttonStyle(PlainButtonStyle())
         .sheet(isPresented: $showingPlayerDetail) {
-            PlayerDetailView(player: player)
+                PlayerDetailView(player: player)
+            
         }
     }
     
@@ -437,6 +458,7 @@ struct PlayerRowViewWithSale: View {
     let onToggleSale: (Bool) -> Void
     
     @State private var showingPlayerDetail = false
+    @EnvironmentObject var kickbaseManager: KickbaseManager
     
     var body: some View {
         HStack(spacing: 12) {
@@ -529,7 +551,7 @@ struct PlayerRowViewWithSale: View {
                             .lineLimit(1)
                             .frame(minWidth: 50, alignment: .trailing)
                         
-                        // Marktwert-Trend mit fester Breite
+                        // Trend - verwende tfhmvt (Marktwertänderung seit letztem Update)
                         if player.tfhmvt != 0 {
                             HStack(spacing: 2) {
                                 Image(systemName: player.tfhmvt >= 0 ? "arrow.up" : "arrow.down")
@@ -542,16 +564,14 @@ struct PlayerRowViewWithSale: View {
                                     .lineLimit(1)
                             }
                             .frame(minWidth: 50, alignment: .trailing)
-                        } else {
-                            Text("Trend: 0")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .frame(minWidth: 50, alignment: .trailing)
                         }
                     }
                 }
             }
             .buttonStyle(PlainButtonStyle())
+            .sheet(isPresented: $showingPlayerDetail) {
+                    PlayerDetailView(player: player)
+            }
             
             // Toggle für Verkauf (separater Bereich)
             Toggle(isOn: Binding<Bool>(
@@ -773,6 +793,7 @@ struct MarketView: View {
 struct MarketPlayerRowView: View {
     let player: MarketPlayer
     @State private var showingPlayerDetail = false
+    @EnvironmentObject var kickbaseManager: KickbaseManager
     
     var body: some View {
         Button(action: {
@@ -1104,7 +1125,7 @@ struct SalesRecommendationView: View {
         // 2. POSITIONSLIMITS PRÜFEN
         let positionAnalysis = analyzePositionRedundancy(player: player, allPlayers: allPlayers)
         if positionAnalysis.isRedundant {
-            reasons.append("Überzählig auf Position")
+            //reasons.append("Überzählig auf Position")
             shouldSell = true
             if priority == .low {
                 priority = positionAnalysis.isWeakestInPosition ? .medium : .low
@@ -1223,7 +1244,7 @@ struct SalesRecommendationView: View {
     
     private func calculateExpectedSaleValue(player: TeamPlayer) -> Int {
         // Konservative Schätzung: 95% des Marktwerts
-        return Int(Double(player.marketValue) * 0.95)
+        return Int(Double(player.marketValue) * 1)
     }
     
     private func calculateLineupImpact(player: TeamPlayer, allPlayers: [TeamPlayer]) -> SalesRecommendation.LineupImpact {
@@ -1535,6 +1556,7 @@ struct SalesRecommendationRow: View {
     let onToggle: (Bool) -> Void
     
     @State private var showingPlayerDetail = false
+    @EnvironmentObject var kickbaseManager: KickbaseManager
     
     var body: some View {
         HStack(spacing: 12) {
@@ -2121,56 +2143,83 @@ struct OptimalLineupFormationView: View {
 struct LineupPlayerCard: View {
     let player: TeamPlayer
     @State private var showingPlayerDetail = false
+    @EnvironmentObject var kickbaseManager: KickbaseManager
     
-    var body: some View {
-        Button(action: {
-            showingPlayerDetail = true
-        }) {
-            VStack(spacing: 4) {
-                // Player name - kompakter
-                VStack(spacing: 1) {
-                    Text(player.firstName)
-                        .font(.system(size: UIDevice.current.userInterfaceIdiom == .pad ? 12 : 9, weight: .medium))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
-                    Text(player.lastName)
-                        .font(.system(size: UIDevice.current.userInterfaceIdiom == .pad ? 14 : 11, weight: .bold))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
+    // Plattformspezifische Größen
+    private var cardSize: (width: CGFloat, height: CGFloat) {
+#if os(macOS)
+        return (width: 90, height: 110) // 30% größer auf macOS
+#else
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            return (width: 80, height: 100) // 15% größer auf iPad
+        } else {
+            return (width: 60, height: 80) // 20% größer auf iPhone
+        }
+#endif
+    }
+    
+    private var fontSizes: (firstName: CGFloat, lastName: CGFloat, avgPoints: CGFloat, totalPoints: CGFloat, status: CGFloat) {
+#if os(macOS)
+        return (firstName: 14, lastName: 16, avgPoints: 14, totalPoints: 11, status: 12) // Größere Schriften auf macOS
+#else
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            return (firstName: 13, lastName: 15, avgPoints: 13, totalPoints: 10, status: 11)
+        } else {
+            return (firstName: 11, lastName: 13, avgPoints: 12, totalPoints: 9, status: 10)
+        }
+#endif
+        }
+        
+        var body: some View {
+            Button(action: {
+                showingPlayerDetail = true
+            }) {
+                VStack(spacing: 5) { // Player name - größer und lesbarer
+                    VStack(spacing: 2) {
+                        Text(player.firstName)
+                            .font(.system(size: fontSizes.firstName, weight: .medium))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                        Text(player.lastName)
+                            .font(.system(size: fontSizes.lastName, weight: .bold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                    }
+                    .foregroundColor(.primary)
+                    
+                    // Points - größer und prominenter
+                    VStack(spacing: 1) {
+                        Text(String(format: "%.0f", player.averagePoints))
+                            .font(.system(size: fontSizes.avgPoints, weight: .bold))
+                            .foregroundColor(.orange)
+                        Text("\(player.totalPoints)")
+                            .font(.system(size: fontSizes.totalPoints))
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    // Status indicator - größer
+                    if player.status == 2 {
+                        Image(systemName: "pills.fill")
+                            .foregroundColor(.orange)
+                            .font(.system(size: fontSizes.status))
+                    }
                 }
-                .foregroundColor(.primary)
-                
-                // Points - kompakter
-                VStack(spacing: 0) {
-                    Text(String(format: "%.0f", player.averagePoints))
-                        .font(.system(size: UIDevice.current.userInterfaceIdiom == .pad ? 12 : 10, weight: .bold))
-                        .foregroundColor(.orange)
-                    Text("\(player.totalPoints)")
-                        .font(.system(size: UIDevice.current.userInterfaceIdiom == .pad ? 10 : 8))
-                        .foregroundColor(.secondary)
-                }
-                
-                // Status indicator - kleiner
-                if player.status == 2 {
-                    Image(systemName: "pills.fill")
-                        .foregroundColor(.orange)
-                        .font(.system(size: UIDevice.current.userInterfaceIdiom == .pad ? 10 : 8))
+                .frame(
+                    width: cardSize.width,
+                    height: cardSize.height
+                )
+                .background(Color(.systemBackground))
+                .cornerRadius(10) // Größerer Radius
+                .shadow(radius: 1.0) // Stärkerer Schatten
+            }
+            .buttonStyle(PlainButtonStyle())
+            .sheet(isPresented: $showingPlayerDetail) {
+                if let league = kickbaseManager.selectedLeague {
+                    PlayerDetailView(player: player)
                 }
             }
-            .frame(
-                width: UIDevice.current.userInterfaceIdiom == .pad ? 70 : 50,
-                height: UIDevice.current.userInterfaceIdiom == .pad ? 85 : 65
-            )
-            .background(Color(.systemBackground))
-            .cornerRadius(UIDevice.current.userInterfaceIdiom == .pad ? 8 : 6)
-            .shadow(radius: 0.5)
-        }
-        .buttonStyle(PlainButtonStyle())
-        .sheet(isPresented: $showingPlayerDetail) {
-            PlayerDetailView(player: player)
         }
     }
-}
 
 // MARK: - Reserve Players View
 struct ReservePlayersView: View {
@@ -2408,6 +2457,8 @@ struct ReservePlayerRow: View {
     let player: TeamPlayer
     let showPosition: Bool
     @State private var showingPlayerDetail = false
+    
+    @EnvironmentObject var kickbaseManager: KickbaseManager
     
     init(player: TeamPlayer, showPosition: Bool = true) {
         self.player = player
@@ -2846,4 +2897,126 @@ private func convertMarketPlayerToTeamPlayer(_ marketPlayer: MarketPlayer) -> Te
         status: marketPlayer.status,
         userOwnsPlayer: false // MarketPlayer gehört nicht dem User
     )
+}
+
+// MARK: - All Players Row für Sales View
+struct AllPlayersRow: View {
+    let player: TeamPlayer
+    let isSelected: Bool
+    let isRecommended: Bool
+    let onToggle: (Bool) -> Void
+    @EnvironmentObject var kickbaseManager: KickbaseManager
+    @State private var showingPlayerDetail = false
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            // Position Badge
+            PositionBadge(position: player.position)
+            
+            // Spieler-Info Bereich (klickbar für Details)
+            Button(action: {
+                showingPlayerDetail = true
+            }) {
+                HStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        // Name mit Status-Icons und Empfehlungsindikator
+                        HStack(spacing: 4) {
+                            Text(player.fullName)
+                                .font(.headline)
+                                .fontWeight(.medium)
+                            
+                            // Empfehlungsindikator
+                            if isRecommended {
+                                Image(systemName: "star.fill")
+                                    .foregroundColor(.orange)
+                                    .font(.caption)
+                            }
+                            
+                            // Status-Icons
+                            if player.status == 1 {
+                                Image(systemName: "cross.circle.fill")
+                                    .foregroundColor(.red)
+                                    .font(.caption)
+                            } else if player.status == 2 {
+                                Image(systemName: "pills.fill")
+                                    .foregroundColor(.orange)
+                                    .font(.caption)
+                            } else if player.status == 4 {
+                                Image(systemName: "dumbbell.fill")
+                                    .foregroundColor(.blue)
+                                    .font(.caption)
+                            } else if player.status == 8 {
+                                Image(systemName: "rectangle.fill")
+                                    .foregroundColor(.red)
+                                    .font(.caption)
+                            }
+                        }
+                        
+                        // Team
+                        Text(player.fullTeamName)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        // Verkaufsgrund falls empfohlen
+                        if isRecommended {
+                            Text("Verkaufsempfehlung")
+                                .font(.caption)
+                                .foregroundColor(.blue)
+                                .italic()
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                    // Stats
+                    VStack(alignment: .trailing, spacing: 4) {
+                        // Durchschnittspunkte
+                        HStack(spacing: 4) {
+                            Image(systemName: "star.fill")
+                                .font(.caption)
+                                .foregroundColor(.orange)
+                            Text(String(format: "%.0f", player.averagePoints))
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                        }
+                        
+                        // Marktwert
+                        Text("€\(formatValue(player.marketValue))")
+                            .font(.headline)
+                            .fontWeight(.bold)
+                            .foregroundColor(.green)
+                    }
+                }
+            }
+            .buttonStyle(PlainButtonStyle())
+            
+            // Toggle für Verkauf (separater Bereich)
+            Toggle(isOn: Binding<Bool>(
+                get: { isSelected },
+                set: { newValue in
+                    onToggle(newValue)
+                }
+            )) {
+                Text("")
+            }
+            .toggleStyle(SwitchToggleStyle(tint: .blue))
+            .frame(width: 50, height: 30)
+        }
+        .padding(.vertical, 8)
+        .background(isRecommended ? Color.orange.opacity(0.1) : Color.clear)
+        .cornerRadius(8)
+        .sheet(isPresented: $showingPlayerDetail) {
+            PlayerDetailView(player: player)
+        }
+    }
+    
+    private func formatValue(_ value: Int) -> String {
+        if value >= 1000000 {
+            return String(format: "%.1fM", Double(value) / 1000000)
+        } else if value >= 1000 {
+            return String(format: "%.0fk", Double(value) / 1000)
+        } else {
+            return "\(value)"
+        }
+    }
 }

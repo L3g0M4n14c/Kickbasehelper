@@ -31,6 +31,8 @@ struct ContentView: View {
                     .environmentObject(authManager)
             }
         }
+        .macOSScaled()
+        .macOSOptimized()
     }
 }
 

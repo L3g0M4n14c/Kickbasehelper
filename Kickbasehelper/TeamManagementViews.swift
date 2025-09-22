@@ -5,6 +5,7 @@ struct TeamTab: View {
     @State private var sortBy: SortOption = .marketValue
     @State private var searchText = ""
     @State private var playersForSale: Set<String> = []
+    @State private var selectedSaleValue: Int = 0
     
     enum SortOption: String, CaseIterable {
         case name = "Name"
@@ -14,11 +15,22 @@ struct TeamTab: View {
         case position = "Position"
     }
     
-    // Berechnung des Gesamtwerts der zum Verkauf ausgewählten Spieler
-    private var totalSaleValue: Int {
-        return kickbaseManager.teamPlayers
+    // Funktion zur Berechnung des Gesamtwerts der zum Verkauf ausgewählten Spieler
+    private func calculateTotalSaleValue() {
+        let selectedPlayers = kickbaseManager.teamPlayers
             .filter { playersForSale.contains($0.id) }
-            .reduce(0) { $0 + $1.marketValue }
+        
+        print("🔍 TeamTab: Calculating totalSaleValue")
+        print("   - Selected players count: \(selectedPlayers.count)")
+        print("   - PlayersForSale set: \(playersForSale)")
+        
+        let total = selectedPlayers.reduce(0) { sum, player in
+            print("   - Adding player: \(player.fullName) with marketValue: \(player.marketValue)")
+            return sum + player.marketValue
+        }
+        
+        print("   - Total sale value: \(total)")
+        selectedSaleValue = total
     }
     
     var body: some View {
@@ -28,7 +40,7 @@ struct TeamTab: View {
                 if let stats = kickbaseManager.userStats {
                     TeamBudgetHeader(
                         currentBudget: stats.budget,
-                        saleValue: totalSaleValue
+                        saleValue: selectedSaleValue
                     )
                     .padding(.horizontal)
                 }
@@ -95,11 +107,17 @@ struct TeamTab: View {
                                 teamPlayer: player,
                                 isSelectedForSale: playersForSale.contains(player.id),
                                 onToggleSale: { isSelected in
+                                    print("🔄 TeamTab: Toggle for player \(player.fullName) (ID: \(player.id)) - isSelected: \(isSelected)")
+                                    print("   - Player market value: \(player.marketValue)")
                                     if isSelected {
                                         playersForSale.insert(player.id)
+                                        print("   - Added to playersForSale. New set: \(playersForSale)")
                                     } else {
                                         playersForSale.remove(player.id)
+                                        print("   - Removed from playersForSale. New set: \(playersForSale)")
                                     }
+                                    // Explizit die Berechnung triggern
+                                    calculateTotalSaleValue()
                                 }
                             )
                             .id("\(player.id)-\(index)")
@@ -115,6 +133,7 @@ struct TeamTab: View {
             .navigationTitle("Mein Team (\(kickbaseManager.teamPlayers.count))")
             .onAppear {
                 print("🎯 TeamTab appeared - Players count: \(kickbaseManager.teamPlayers.count)")
+                calculateTotalSaleValue() // Initial berechnen
                 if kickbaseManager.teamPlayers.isEmpty {
                     print("🔄 TeamTab: No players found, triggering reload...")
                     Task {
@@ -155,6 +174,7 @@ struct TeamTab: View {
 struct TeamPlayerRow: View {
     let teamPlayer: TeamPlayer
     @State private var showingPlayerDetail = false
+    @EnvironmentObject var kickbaseManager: KickbaseManager
     
     var body: some View {
         Button(action: {
@@ -251,7 +271,9 @@ struct TeamPlayerRow: View {
         }
         .buttonStyle(PlainButtonStyle())
         .sheet(isPresented: $showingPlayerDetail) {
-            PlayerDetailView(player: teamPlayer)
+            if let league = kickbaseManager.selectedLeague {
+                            PlayerDetailView(player: teamPlayer)
+                        }
         }
     }
 }
@@ -261,6 +283,8 @@ struct TeamPlayerRowWithSale: View {
     let isSelectedForSale: Bool
     let onToggleSale: (Bool) -> Void
     @State private var showingPlayerDetail = false
+    
+    @EnvironmentObject var kickbaseManager: KickbaseManager
     
     var body: some View {
         Button(action: {
@@ -368,7 +392,9 @@ struct TeamPlayerRowWithSale: View {
         }
         .buttonStyle(PlainButtonStyle())
         .sheet(isPresented: $showingPlayerDetail) {
-            PlayerDetailView(player: teamPlayer)
+            if let league = kickbaseManager.selectedLeague {
+                            PlayerDetailView(player: teamPlayer)
+                        }
         }
     }
 }
@@ -878,26 +904,55 @@ struct TeamBudgetHeader: View {
     }
     
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Aktuelles Budget")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                Text("€\(currentBudget / 1000)k")
-                    .font(.headline)
-                    .fontWeight(.bold)
+        VStack(spacing: 12) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Aktuelles Budget")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Text("€\(currentBudget / 1000)k")
+                        .font(.headline)
+                        .fontWeight(.bold)
+                }
+                
+                Spacer()
+                
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text("Ausgewählt zum Verkauf")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Text("€\(saleValue / 1000)k")
+                        .font(.headline)
+                        .fontWeight(.bold)
+                        .foregroundColor(saleValue > 0 ? .blue : .secondary)
+                }
             }
             
-            Spacer()
-            
-            VStack(alignment: .trailing, spacing: 4) {
-                Text("Budget + Verkäufe")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                Text("€\(totalBudget / 1000)k")
-                    .font(.headline)
-                    .fontWeight(.bold)
-                    .foregroundColor(saleValue > 0 ? .green : .primary)
+            // Total Budget Row
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Gesamtbudget (mit Verkäufen)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Text("€\(totalBudget / 1000)k")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(saleValue > 0 ? .green : .primary)
+                }
+                
+                Spacer()
+                
+                if saleValue > 0 {
+                    VStack(alignment: .trailing, spacing: 4) {
+                        Text("Zusätzliches Budget")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Text("+€\(saleValue / 1000)k")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .foregroundColor(.green)
+                    }
+                }
             }
         }
         .padding()

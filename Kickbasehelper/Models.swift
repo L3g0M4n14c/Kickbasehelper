@@ -158,6 +158,16 @@ struct MarketPlayer: Codable, Identifiable, Equatable {
         }
     }
     
+    var positionColor: String {
+        switch position {
+        case 1: return "blue"      // Torwart
+        case 2: return "green"     // Abwehr
+        case 3: return "orange"    // Mittelfeld
+        case 4: return "red"       // Sturm
+        default: return "gray"
+        }
+    }
+    
     // Equatable conformance
     static func == (lhs: MarketPlayer, rhs: MarketPlayer) -> Bool {
         return lhs.id == rhs.id
@@ -195,6 +205,103 @@ struct MarketResponse: Codable {
 
 struct LeaguesResponse: Codable {
     let leagues: [League]
+}
+
+// MARK: - Performance Models
+struct PlayerPerformanceResponse: Codable {
+    let it: [SeasonPerformance]
+}
+
+struct SeasonPerformance: Codable, Identifiable {
+    let ti: String    // Saison (z.B. "2024/2025")
+    let n: String     // Liga Name (z.B. "Bundesliga")
+    let ph: [MatchPerformance]  // Performance History
+    
+    var id: String { ti }
+    var title: String { ti }
+    var leagueName: String { n }
+    var performances: [MatchPerformance] { ph }
+}
+
+struct MatchPerformance: Codable, Identifiable {
+    let day: Int              // Spieltag
+    let p: Int?               // Punkte (optional, nicht bei zukünftigen Spielen)
+    let mp: String?           // Spielminuten (z.B. "96'", optional)
+    let md: String            // Match Date (ISO String)
+    let t1: String            // Team 1 ID
+    let t2: String            // Team 2 ID
+    let t1g: Int?             // Team 1 Goals (optional)
+    let t2g: Int?             // Team 2 Goals (optional)
+    let pt: String            // Player Team ID
+    let k: [Int]?             // Kicker Bewertungen (optional)
+    let st: Int               // Status (0=nicht gespielt, 1=?, 3=eingewechselt, 4=nicht im Kader, 5=startelf)
+    let cur: Bool             // Current (aktueller Spieltag?)
+    let mdst: Int             // Match Day Status
+    let ap: Int               // Average Points (Durchschnittspunkte)
+    let tp: Int               // Total Points (Gesamtpunkte)
+    let asp: Int              // Average Season Points
+    let t1im: String          // Team 1 Image
+    let t2im: String          // Team 2 Image
+    
+    var id: String { "\(day)-\(md)" }
+    var matchDay: Int { day }
+    var points: Int { p ?? 0 }
+    var minutesPlayed: String { mp ?? "0'" }
+    var matchDate: String { md }
+    var team1Id: String { t1 }
+    var team2Id: String { t2 }
+    var team1Goals: Int { t1g ?? 0 }
+    var team2Goals: Int { t2g ?? 0 }
+    var playerTeamId: String { pt }
+    var kickerRatings: [Int] { k ?? [] }
+    var status: Int { st }
+    var isCurrent: Bool { cur }
+    var matchDayStatus: Int { mdst }
+    var averagePoints: Int { ap }
+    var totalPoints: Int { tp }
+    var averageSeasonPoints: Int { asp }
+    var team1Image: String { t1im }
+    var team2Image: String { t2im }
+    
+    // Computed properties
+    var hasPlayed: Bool { p != nil && st > 1 }
+    var wasStartingEleven: Bool { st == 5 }
+    var wasSubstitute: Bool { st == 3 }
+    var wasNotInSquad: Bool { st == 4 }
+    var didNotPlay: Bool { st <= 1 }
+    
+    var statusText: String {
+        switch st {
+        case 0: return "Nicht gespielt"
+        case 1: return "Verletzt/Gesperrt"
+        case 3: return "Eingewechselt"
+        case 4: return "Nicht im Kader"
+        case 5: return "Startelf"
+        default: return "Unbekannt"
+        }
+    }
+    
+    var parsedMatchDate: Date {
+        let formatter = ISO8601DateFormatter()
+        return formatter.date(from: md) ?? Date()
+    }
+    
+    var opponentTeamId: String {
+        return pt == t1 ? t2 : t1
+    }
+    
+    var opponentTeamName: String {
+        return TeamMapping.getTeamName(for: opponentTeamId) ?? "Unbekannt"
+    }
+    
+    var isHomeMatch: Bool {
+        return pt == t1
+    }
+    
+    var result: String {
+        guard let t1g = t1g, let t2g = t2g else { return "-:-" }
+        return "\(t1g):\(t2g)"
+    }
 }
 
 // MARK: - Stats Models
