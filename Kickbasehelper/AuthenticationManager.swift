@@ -20,7 +20,7 @@ class AuthenticationManager: ObservableObject {
         errorMessage = nil
         
         do {
-            let loginRequest = LoginRequest(em: email, pass: password)
+            let loginRequest = LoginRequest(email: email, password: password, loyalty: false, rep: [:])
             let url = URL(string: "\(baseURL)/v4/user/login")!
             
             var request = URLRequest(url: url)

@@ -18,6 +18,9 @@ struct PlayerDetailView: View {
                     // Marktwert und Finanzen
                     PlayerMarketValueSection(player: player)
                     
+                    // Spiele und Gegner (neu)
+                    PlayerMatchesSection(player: player)
+                    
                     // Marktwertentwicklung der letzten 3 Tage
                     PlayerMarketTrendSection(player: player)
                 }
@@ -350,6 +353,236 @@ struct PlayerMarketValueSection: View {
     }
 }
 
+// MARK: - Spiele und Gegner Sektion (neu)
+struct PlayerMatchesSection: View {
+    let player: TeamPlayer
+    @EnvironmentObject var kickbaseManager: KickbaseManager
+    @State private var recentMatches: [EnhancedMatchPerformance] = []
+    @State private var upcomingMatches: [EnhancedMatchPerformance] = []
+    @State private var isLoading = false
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Spiele & Gegner")
+                .font(.headline)
+                .fontWeight(.bold)
+            
+            if isLoading {
+                ProgressView("Lade Spiele...")
+                    .progressViewStyle(CircularProgressViewStyle())
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, 20)
+            } else {
+                VStack(spacing: 16) {
+                    // Vergangene Spiele
+                    if !recentMatches.isEmpty {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Vergangene Spiele")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.secondary)
+                            
+                            ForEach(recentMatches.suffix(5)) { match in
+                                MatchRow(match: match, isUpcoming: false)
+                            }
+                        }
+                        
+                        if !upcomingMatches.isEmpty {
+                            Divider()
+                        }
+                    }
+                    
+                    // Zukünftige Spiele
+                    if !upcomingMatches.isEmpty {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Kommende Spiele")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.secondary)
+                            
+                            ForEach(upcomingMatches.prefix(3)) { match in
+                                MatchRow(match: match, isUpcoming: true)
+                            }
+                        }
+                    }
+                    
+                    // Hinweis, falls keine Spiele gefunden wurden
+                    if recentMatches.isEmpty && upcomingMatches.isEmpty {
+                        Text("Keine Spiele verfügbar.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.vertical, 20)
+                    }
+                }
+            }
+        }
+        .padding()
+        .background(Color(.systemBackground))
+        .cornerRadius(16)
+        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+        .task {
+            await loadMatches()
+        }
+    }
+    
+    @MainActor
+    private func loadMatches() async {
+        guard let selectedLeague = kickbaseManager.selectedLeague else { return }
+        
+        isLoading = true
+        print("⚽️ Loading enhanced matches for player: \(player.fullName) (ID: \(player.id))")
+        
+        do {
+            // Lade vergangene Spiele mit Team-Info
+            let recent = try await kickbaseManager.loadPlayerRecentPerformanceWithTeamInfo(
+                playerId: player.id,
+                leagueId: selectedLeague.id
+            )
+            recentMatches = recent ?? []
+            
+            // Lade zukünftige Spiele mit Team-Info
+            let upcoming = try await kickbaseManager.loadPlayerUpcomingPerformanceWithTeamInfo(
+                playerId: player.id,
+                leagueId: selectedLeague.id
+            )
+            upcomingMatches = upcoming ?? []
+            
+            print("✅ Successfully loaded \(recentMatches.count) recent matches and \(upcomingMatches.count) upcoming matches")
+        } catch {
+            print("❌ Failed to load enhanced matches: \(error)")
+        }
+        
+        isLoading = false
+    }
+}
+
+// MARK: - Match Row Component
+struct MatchRow: View {
+    let match: EnhancedMatchPerformance
+    let isUpcoming: Bool
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            HStack {
+                // Spieltag
+                Text("ST \(match.matchDay)")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(match.isCurrent ? Color.orange : Color.blue)
+                    .cornerRadius(6)
+                
+                Spacer()
+                
+                // Datum
+                Text(formatMatchDate(match.parsedMatchDate))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            
+            HStack {
+                // Home vs Away mit Tabellenplatz
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 4) {
+                        Text(match.team1Name)
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(match.playerTeamId == match.team1Id ? .blue : .primary)
+                        
+                        if let placement = match.team1Placement {
+                            Text("(\(placement).)")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    
+                    Text("vs")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    HStack(spacing: 4) {
+                        Text(match.team2Name)
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(match.playerTeamId == match.team2Id ? .blue : .primary)
+                        
+                        if let placement = match.team2Placement {
+                            Text("(\(placement).)")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                
+                Spacer()
+                
+                // Ergebnis oder Status
+                VStack(alignment: .trailing, spacing: 4) {
+                    if isUpcoming {
+                        Text("-:-")
+                            .font(.headline)
+                            .fontWeight(.bold)
+                            .foregroundColor(.secondary)
+                    } else {
+                        Text(match.result)
+                            .font(.headline)
+                            .fontWeight(.bold)
+                            .foregroundColor(.primary)
+                    }
+                    
+                    // Spieler Status/Punkte
+                    if isUpcoming {
+                        Text("Geplant")
+                            .font(.caption2)
+                            .foregroundColor(.orange)
+                    } else {
+                        HStack(spacing: 4) {
+                            Text("\(match.points) Pkt")
+                                .font(.caption2)
+                                .fontWeight(.medium)
+                                .foregroundColor(match.points > 0 ? .green : .secondary)
+                            
+                            if match.wasStartingEleven {
+                                Image(systemName: "star.fill")
+                                    .font(.caption2)
+                                    .foregroundColor(.orange)
+                            } else if match.wasSubstitute {
+                                Image(systemName: "arrow.up.circle.fill")
+                                    .font(.caption2)
+                                    .foregroundColor(.blue)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
+        .background(match.isCurrent ? Color.orange.opacity(0.1) : Color.clear)
+        .cornerRadius(8)
+    }
+}
+
+// Helper Funktion für Datum-Formatierung
+private func formatMatchDate(_ date: Date) -> String {
+    let formatter = DateFormatter()
+    formatter.dateStyle = .short
+    formatter.timeStyle = .none
+    formatter.locale = Locale(identifier: "de_DE")
+    return formatter.string(from: date)
+}
+
+private let dateFormatter: DateFormatter = {
+    let formatter = DateFormatter()
+    formatter.dateStyle = .medium
+    formatter.timeStyle = .short
+    formatter.locale = Locale(identifier: "de_DE")
+    return formatter
+}()
+
 // MARK: - Marktwert-Trend der letzten 3 Tage mit echten DailyMarketValueChange Daten
 struct PlayerMarketTrendSection: View {
     let player: TeamPlayer
@@ -550,9 +783,7 @@ struct PlayerMarketTrendSection: View {
             } else {
                 print("⚠️ No market value history returned from API")
             }
-        } catch {
-            print("❌ Failed to load market value history: \(error)")
-        }
+        } 
         
         isLoadingHistory = false
         hasLoaded = true

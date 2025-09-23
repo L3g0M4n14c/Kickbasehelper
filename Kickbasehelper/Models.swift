@@ -4,8 +4,16 @@ import Foundation
 struct LoginRequest: Codable {
     let em: String      // email
     let pass: String    // password
-    let loy: Bool = false   // loyalty (keep logged in)
-    let rep: [String: String] = [:]  // empty rep object
+    let loy: Bool   // loyalty (keep logged in)
+    let rep: [String: String]  // empty rep object
+    
+    
+    init(email: String, password: String, loyalty: Bool = false, rep: [String: String] = [:]) {
+        self.em = email
+        self.pass = password
+        self.loy = loyalty
+        self.rep = rep
+    }
 }
 
 struct LoginResponse: Codable {
@@ -232,7 +240,7 @@ struct MatchPerformance: Codable, Identifiable {
     let t2: String            // Team 2 ID
     let t1g: Int?             // Team 1 Goals (optional)
     let t2g: Int?             // Team 2 Goals (optional)
-    let pt: String            // Player Team ID
+    let pt: String?            // Player Team ID
     let k: [Int]?             // Kicker Bewertungen (optional)
     let st: Int               // Status (0=nicht gespielt, 1=?, 3=eingewechselt, 4=nicht im Kader, 5=startelf)
     let cur: Bool             // Current (aktueller Spieltag?)
@@ -240,8 +248,8 @@ struct MatchPerformance: Codable, Identifiable {
     let ap: Int               // Average Points (Durchschnittspunkte)
     let tp: Int               // Total Points (Gesamtpunkte)
     let asp: Int              // Average Season Points
-    let t1im: String          // Team 1 Image
-    let t2im: String          // Team 2 Image
+    //let t1im: String          // Team 1 Image
+    //let t2im: String          // Team 2 Image
     
     var id: String { "\(day)-\(md)" }
     var matchDay: Int { day }
@@ -252,7 +260,7 @@ struct MatchPerformance: Codable, Identifiable {
     var team2Id: String { t2 }
     var team1Goals: Int { t1g ?? 0 }
     var team2Goals: Int { t2g ?? 0 }
-    var playerTeamId: String { pt }
+    var playerTeamId: String { pt ?? "" }
     var kickerRatings: [Int] { k ?? [] }
     var status: Int { st }
     var isCurrent: Bool { cur }
@@ -260,8 +268,8 @@ struct MatchPerformance: Codable, Identifiable {
     var averagePoints: Int { ap }
     var totalPoints: Int { tp }
     var averageSeasonPoints: Int { asp }
-    var team1Image: String { t1im }
-    var team2Image: String { t2im }
+    //var team1Image: String { t1im }
+    //var team2Image: String { t2im }
     
     // Computed properties
     var hasPlayed: Bool { p != nil && st > 1 }
@@ -301,6 +309,118 @@ struct MatchPerformance: Codable, Identifiable {
     var result: String {
         guard let t1g = t1g, let t2g = t2g else { return "-:-" }
         return "\(t1g):\(t2g)"
+    }
+}
+
+// MARK: - Team Profile Models
+struct TeamProfileResponse: Codable {
+    let tid: String     // Team ID
+    let tn: String      // Team Name
+    let pl: Int         // Placement (Platzierung)
+    let tv: Int         // Team Value
+    let tw: Int         // Team Wins
+    let td: Int         // Team Draws
+    let tl: Int         // Team Losses
+    //let it: [TeamPlayer]? // Team Players (optional)
+    let npt: Int        // Next Point Total
+    let avpcl: Bool     // Available Players Close
+}
+
+struct TeamInfo: Codable, Identifiable {
+    let id: String      // Team ID
+    let name: String    // Team Name
+    let placement: Int  // Platzierung
+    
+    init(from response: TeamProfileResponse) {
+        self.id = response.tid
+        self.name = response.tn
+        self.placement = response.pl
+    }
+}
+
+// MARK: - Enhanced Performance Models with Team Info
+struct EnhancedMatchPerformance: Identifiable {
+    let basePerformance: MatchPerformance
+    let team1Info: TeamInfo?
+    let team2Info: TeamInfo?
+    let playerTeamInfo: TeamInfo?
+    let opponentTeamInfo: TeamInfo?
+    
+    // Delegiere alle Eigenschaften an basePerformance
+    var id: String { basePerformance.id }
+    var matchDay: Int { basePerformance.matchDay }
+    var points: Int { basePerformance.points }
+    var minutesPlayed: String { basePerformance.minutesPlayed }
+    var matchDate: String { basePerformance.matchDate }
+    var team1Id: String { basePerformance.team1Id }
+    var team2Id: String { basePerformance.team2Id }
+    var team1Goals: Int { basePerformance.team1Goals }
+    var team2Goals: Int { basePerformance.team2Goals }
+    var playerTeamId: String { basePerformance.playerTeamId }
+    var kickerRatings: [Int] { basePerformance.kickerRatings }
+    var status: Int { basePerformance.status }
+    var isCurrent: Bool { basePerformance.isCurrent }
+    var matchDayStatus: Int { basePerformance.matchDayStatus }
+    var averagePoints: Int { basePerformance.averagePoints }
+    var totalPoints: Int { basePerformance.totalPoints }
+    var averageSeasonPoints: Int { basePerformance.averageSeasonPoints }
+    //var team1Image: String { basePerformance.team1Image }
+    //var team2Image: String { basePerformance.team2Image }
+    var hasPlayed: Bool { basePerformance.hasPlayed }
+    var wasStartingEleven: Bool { basePerformance.wasStartingEleven }
+    var wasSubstitute: Bool { basePerformance.wasSubstitute }
+    var wasNotInSquad: Bool { basePerformance.wasNotInSquad }
+    var didNotPlay: Bool { basePerformance.didNotPlay }
+    var statusText: String { basePerformance.statusText }
+    var parsedMatchDate: Date { basePerformance.parsedMatchDate }
+    var opponentTeamId: String { basePerformance.opponentTeamId }
+    var isHomeMatch: Bool { basePerformance.isHomeMatch }
+    var result: String { basePerformance.result }
+    
+    // Erweiterte computed properties mit Team-Informationen
+    var team1Name: String {
+        return team1Info?.name ?? TeamMapping.getTeamName(for: team1Id) ?? "Unbekannt"
+    }
+    
+    var team2Name: String {
+        return team2Info?.name ?? TeamMapping.getTeamName(for: team2Id) ?? "Unbekannt"
+    }
+    
+    var playerTeamName: String {
+        return playerTeamInfo?.name ?? TeamMapping.getTeamName(for: playerTeamId) ?? "Unbekannt"
+    }
+    
+    var opponentTeamName: String {
+        return opponentTeamInfo?.name ?? TeamMapping.getTeamName(for: opponentTeamId) ?? "Unbekannt"
+    }
+    
+    var team1Placement: Int? {
+        return team1Info?.placement
+    }
+    
+    var team2Placement: Int? {
+        return team2Info?.placement
+    }
+    
+    var playerTeamPlacement: Int? {
+        return playerTeamInfo?.placement
+    }
+    
+    var opponentTeamPlacement: Int? {
+        return opponentTeamInfo?.placement
+    }
+    
+    var matchDescription: String {
+        let homeTeam = team1Name
+        let awayTeam = team2Name
+        let homeGoals = team1Goals
+        let awayGoals = team2Goals
+        
+        if hasPlayed {
+            return "\(homeTeam) \(homeGoals):\(awayGoals) \(awayTeam)"
+        } else {
+            return "\(homeTeam) vs \(awayTeam)"
+        }
     }
 }
 

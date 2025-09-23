@@ -107,19 +107,36 @@ class KickbasePlayerService: ObservableObject {
         
         let endpoint = "/v4/leagues/\(leagueId)/players/\(playerId)/performance"
         
-        
         do {
-            let (data, json) = try await apiClient.makeRequest(endpoint: endpoint)
+            let (data, httpResponse) = try await apiClient.makeRequest(endpoint: endpoint)
             
-            let decoder = JSONDecoder()
-            let performanceResponse = try decoder.decode(PlayerPerformanceResponse.self, from: data)
-            print("✅ Successfully loaded performance data for player \(playerId)")
-            return performanceResponse
+            if httpResponse.statusCode == 200 {
+                // Debug: Log die rohe Response
+                if let jsonString = String(data: data, encoding: .utf8) {
+                    print("🔍 Raw performance response: \(jsonString.prefix(500))...")
+                }
+                
+                let decoder = JSONDecoder()
+                let performanceResponse = try decoder.decode(PlayerPerformanceResponse.self, from: data)
+                print("✅ Successfully loaded performance data for player \(playerId)")
+                return performanceResponse
+            } else {
+                print("⚠️ Performance request failed with status: \(httpResponse.statusCode)")
+                throw APIError.networkError("HTTP \(httpResponse.statusCode)")
+            }
+        } catch let DecodingError.keyNotFound(key, context) {
+            print("❌ Decoding error - missing key: \(key.stringValue)")
+            print("❌ Context: \(context)")
+        } catch let DecodingError.typeMismatch(type, context) {
+            print("❌ Decoding error - type mismatch for type: \(type)")
+            print("❌ Context: \(context)")
+        } catch let DecodingError.valueNotFound(type, context) {
+            print("❌ Decoding error - value not found for type: \(type)")
+            print("❌ Context: \(context)")
         } catch APIError.authenticationFailed {
             throw APIError.authenticationFailed
         } catch {
             print("❌ Error loading player performance for \(playerId): \(error.localizedDescription)")
-            throw error
         }
         
         return nil
@@ -168,6 +185,89 @@ class KickbasePlayerService: ObservableObject {
         return nil
     }
     
+    // MARK: - Team Profile Loading
+    
+    func loadTeamProfile(teamId: String, leagueId: String) async -> TeamInfo? {
+        print("🏆 Loading team profile for team \(teamId) in league \(leagueId)")
+        
+        let endpoint = "/v4/leagues/\(leagueId)/teams/\(teamId)/teamprofile"
+        
+        do {
+            let (data, httpResponse) = try await apiClient.makeRequest(endpoint: endpoint)
+            
+            if httpResponse.statusCode == 200 {
+                let decoder = JSONDecoder()
+                let teamProfileResponse = try decoder.decode(TeamProfileResponse.self, from: data)
+                let teamInfo = TeamInfo(from: teamProfileResponse)
+                print("✅ Successfully loaded team profile: \(teamInfo.name) (Platz \(teamInfo.placement))")
+                return teamInfo
+            } else {
+                print("⚠️ Team profile request failed with status: \(httpResponse.statusCode)")
+            }
+        } catch {
+            print("❌ Error loading team profile for \(teamId): \(error.localizedDescription)")
+        }
+        
+        return nil
+    }
+    
+    // MARK: - Enhanced Performance Loading with Team Info
+    
+    func loadPlayerPerformanceWithTeamInfo(playerId: String, leagueId: String) async throws -> [EnhancedMatchPerformance]? {
+        print("📊 Loading player performance with team info for player \(playerId)")
+        
+        // Lade zunächst die normale Performance
+        guard let performance = try await loadPlayerPerformance(playerId: playerId, leagueId: leagueId),
+              let currentSeason = performance.it.last else {
+            print("⚠️ No performance data available")
+            return nil
+        }
+        
+        // Sammle alle einzigartigen Team-IDs aus den Matches
+        var uniqueTeamIds = Set<String>()
+        for match in currentSeason.ph {
+            uniqueTeamIds.insert(match.t1)
+            uniqueTeamIds.insert(match.t2)
+        }
+        
+        print("🎯 Found \(uniqueTeamIds.count) unique teams in matches: \(Array(uniqueTeamIds))")
+        
+        // Lade Team-Informationen für alle Teams (außer dem Spieler-Team nur einmal)
+        var teamInfoCache: [String: TeamInfo] = [:]
+        
+        for teamId in uniqueTeamIds {
+            if let teamInfo = await loadTeamProfile(teamId: teamId, leagueId: leagueId) {
+                teamInfoCache[teamId] = teamInfo
+                print("✅ Cached team info for \(teamId): \(teamInfo.name)")
+            } else {
+                print("⚠️ Could not load team info for \(teamId)")
+            }
+        }
+        
+        // Erstelle erweiterte Match-Performance Objekte
+        var enhancedMatches: [EnhancedMatchPerformance] = []
+        
+        for match in currentSeason.ph {
+            let team1Info = teamInfoCache[match.t1]
+            let team2Info = teamInfoCache[match.t2]
+            let playerTeamInfo = teamInfoCache[match.pt ?? ""]
+            let opponentTeamInfo = teamInfoCache[match.opponentTeamId]
+            
+            let enhancedMatch = EnhancedMatchPerformance(
+                basePerformance: match,
+                team1Info: team1Info,
+                team2Info: team2Info,
+                playerTeamInfo: playerTeamInfo,
+                opponentTeamInfo: opponentTeamInfo
+            )
+            
+            enhancedMatches.append(enhancedMatch)
+        }
+        
+        print("✅ Created \(enhancedMatches.count) enhanced matches with team info")
+        return enhancedMatches
+    }
+
     // MARK: - Parsing Methods
     
     private func parseTeamPlayersFromResponse(_ json: [String: Any], league: League) async -> [TeamPlayer] {
