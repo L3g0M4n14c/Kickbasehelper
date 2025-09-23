@@ -91,9 +91,11 @@ struct LoginView: View {
     
     private var logoSection: some View {
         VStack(spacing: 10) {
-            Image(systemName: "soccer.ball")
-                .font(.system(size: horizontalSizeClass == .regular ? 80 : 60))
-                .foregroundColor(.green)
+            Image("AppIconImage")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: horizontalSizeClass == .regular ? 160 : 120,
+                       height: horizontalSizeClass == .regular ? 160 : 120)
             
             Text("Kickbase Helper")
                 .font(horizontalSizeClass == .regular ? .largeTitle : .title)
