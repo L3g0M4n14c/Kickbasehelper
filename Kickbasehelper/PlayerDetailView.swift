@@ -435,22 +435,20 @@ struct PlayerMatchesSection: View {
         
         do {
             // Lade vergangene Spiele mit Team-Info
-            let recent = try await kickbaseManager.loadPlayerRecentPerformanceWithTeamInfo(
+            let recent = await kickbaseManager.loadPlayerRecentPerformanceWithTeamInfo(
                 playerId: player.id,
                 leagueId: selectedLeague.id
             )
             recentMatches = recent ?? []
             
             // Lade zukünftige Spiele mit Team-Info
-            let upcoming = try await kickbaseManager.loadPlayerUpcomingPerformanceWithTeamInfo(
+            let upcoming = await kickbaseManager.loadPlayerUpcomingPerformanceWithTeamInfo(
                 playerId: player.id,
                 leagueId: selectedLeague.id
             )
             upcomingMatches = upcoming ?? []
             
             print("✅ Successfully loaded \(recentMatches.count) recent matches and \(upcomingMatches.count) upcoming matches")
-        } catch {
-            print("❌ Failed to load enhanced matches: \(error)")
         }
         
         isLoading = false
@@ -461,6 +459,34 @@ struct PlayerMatchesSection: View {
 struct MatchRow: View {
     let match: EnhancedMatchPerformance
     let isUpcoming: Bool
+    
+    // Hilfsfunktion zur Bestimmung der Ergebnisfarbe
+    private func getResultColor() -> Color {
+        guard !isUpcoming else { return .secondary }
+        
+        // Parse das Ergebnis (Format: "2:1" oder ähnlich)
+        let components = match.result.split(separator: ":")
+        guard components.count == 2,
+              let team1Goals = Int(components[0].trimmingCharacters(in: .whitespaces)),
+              let team2Goals = Int(components[1].trimmingCharacters(in: .whitespaces)) else {
+            return .primary // Fallback wenn Ergebnis nicht parsbar ist
+        }
+        
+        // Bestimme ob der Spieler in Team 1 oder Team 2 ist
+        let isPlayerInTeam1 = match.playerTeamId == match.team1Id
+        
+        // Bestimme das Ergebnis aus Sicht des Spielerteams
+        let playerTeamGoals = isPlayerInTeam1 ? team1Goals : team2Goals
+        let opponentGoals = isPlayerInTeam1 ? team2Goals : team1Goals
+        
+        if playerTeamGoals > opponentGoals {
+            return .green // Sieg
+        } else if playerTeamGoals < opponentGoals {
+            return .red // Niederlage
+        } else {
+            return .primary // Unentschieden (weiß/default)
+        }
+    }
     
     var body: some View {
         VStack(spacing: 8) {
@@ -530,7 +556,7 @@ struct MatchRow: View {
                         Text(match.result)
                             .font(.headline)
                             .fontWeight(.bold)
-                            .foregroundColor(.primary)
+                            .foregroundColor(getResultColor())
                     }
                     
                     // Spieler Status/Punkte
@@ -783,7 +809,7 @@ struct PlayerMarketTrendSection: View {
             } else {
                 print("⚠️ No market value history returned from API")
             }
-        } 
+        }
         
         isLoadingHistory = false
         hasLoaded = true
