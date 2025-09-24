@@ -295,7 +295,12 @@ struct MatchPerformance: Codable, Identifiable {
     }
     
     var opponentTeamId: String {
-        return pt == t1 ? t2 : t1
+        // Fallback: Wenn pt (playerTeamId) leer ist, verwende eine andere Logik
+        guard !playerTeamId.isEmpty else {
+            // Wenn keine Player Team ID verfügbar ist, nimm einfach team2 als Gegner
+            return t2
+        }
+        return playerTeamId == t1 ? t2 : t1
     }
     
     var opponentTeamName: String {
@@ -303,12 +308,25 @@ struct MatchPerformance: Codable, Identifiable {
     }
     
     var isHomeMatch: Bool {
-        return pt == t1
+        // Fallback: Wenn pt (playerTeamId) leer ist, nehme an dass es ein Auswärtsspiel ist
+        guard !playerTeamId.isEmpty else {
+            return false  // Standardmäßig Auswärtsspiel wenn unbekannt
+        }
+        return playerTeamId == t1
     }
     
     var result: String {
         guard let t1g = t1g, let t2g = t2g else { return "-:-" }
         return "\(t1g):\(t2g)"
+    }
+    
+    // Neue Methoden, die den Spieler-Kontext verwenden
+    func getOpponentTeamId(playerTeamId: String) -> String {
+        return playerTeamId == t1 ? t2 : t1
+    }
+    
+    func getIsHomeMatch(playerTeamId: String) -> Bool {
+        return playerTeamId == t1
     }
 }
 

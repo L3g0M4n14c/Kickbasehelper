@@ -96,10 +96,10 @@ struct PlayerAnalysis: Codable {
 
 struct FixtureAnalysis: Identifiable, Codable {
     let id = UUID()
-    let opponent: String
-    let difficulty: Int // 1-5 scale
-    let homeAway: String
-    let expectedPoints: Double
+    let averageDifficulty: Double
+    let topTeamOpponents: Int
+    let difficultAwayGames: Int
+    let totalMatches: Int
 }
 
 struct SeasonProjection: Codable {

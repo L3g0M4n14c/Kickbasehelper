@@ -211,10 +211,10 @@ class KickbasePlayerService: ObservableObject {
         return nil
     }
     
-    // MARK: - Enhanced Performance Loading with Team Info
+    // MARK: - Enhanced Performance Loading with Team Info (Optimized)
     
     func loadPlayerPerformanceWithTeamInfo(playerId: String, leagueId: String) async throws -> [EnhancedMatchPerformance]? {
-        print("📊 Loading player performance with team info for player \(playerId)")
+        print("📊 Loading optimized player performance with team info for player \(playerId)")
         
         // Lade zunächst die normale Performance
         guard let performance = try await loadPlayerPerformance(playerId: playerId, leagueId: leagueId),
@@ -223,16 +223,28 @@ class KickbasePlayerService: ObservableObject {
             return nil
         }
         
-        // Sammle alle einzigartigen Team-IDs aus den Matches
+        // Finde den aktuellen Spieltag
+        let currentMatchDay = getCurrentMatchDayFromPerformance(currentSeason.ph)
+        print("🎯 Current match day identified as: \(currentMatchDay)")
+        
+        // Filtere nur die relevanten Spiele (letzte 5 + aktuelle + nächste 3)
+        let relevantMatches = currentSeason.ph.filter { match in
+            let matchDay = match.day
+            return matchDay >= (currentMatchDay - 4) && matchDay <= (currentMatchDay + 3)
+        }
+        
+        print("🎯 Filtered to \(relevantMatches.count) relevant matches (days \(currentMatchDay - 4) to \(currentMatchDay + 3))")
+        
+        // Sammle nur einzigartige Team-IDs aus den relevanten Matches
         var uniqueTeamIds = Set<String>()
-        for match in currentSeason.ph {
+        for match in relevantMatches {
             uniqueTeamIds.insert(match.t1)
             uniqueTeamIds.insert(match.t2)
         }
         
-        print("🎯 Found \(uniqueTeamIds.count) unique teams in matches: \(Array(uniqueTeamIds))")
+        print("🎯 Found \(uniqueTeamIds.count) unique teams in relevant matches: \(Array(uniqueTeamIds))")
         
-        // Lade Team-Informationen für alle Teams (außer dem Spieler-Team nur einmal)
+        // Lade Team-Informationen nur für diese Teams
         var teamInfoCache: [String: TeamInfo] = [:]
         
         for teamId in uniqueTeamIds {
@@ -244,10 +256,10 @@ class KickbasePlayerService: ObservableObject {
             }
         }
         
-        // Erstelle erweiterte Match-Performance Objekte
+        // Erstelle erweiterte Match-Performance Objekte nur für relevante Matches
         var enhancedMatches: [EnhancedMatchPerformance] = []
         
-        for match in currentSeason.ph {
+        for match in relevantMatches {
             let team1Info = teamInfoCache[match.t1]
             let team2Info = teamInfoCache[match.t2]
             let playerTeamInfo = teamInfoCache[match.pt ?? ""]
@@ -264,10 +276,38 @@ class KickbasePlayerService: ObservableObject {
             enhancedMatches.append(enhancedMatch)
         }
         
-        print("✅ Created \(enhancedMatches.count) enhanced matches with team info")
+        print("✅ Created \(enhancedMatches.count) enhanced matches with team info (optimized)")
         return enhancedMatches
     }
-
+    
+    // MARK: - Helper function to determine current match day
+    
+    private func getCurrentMatchDayFromPerformance(_ matches: [MatchPerformance], fallbackMatchDay: Int? = nil) -> Int {
+        // Strategie 1: Finde den aktuellen Spieltag über "cur" Flag
+        if let currentMatch = matches.first(where: { $0.cur == true }) {
+            print("🎯 Found current match via 'cur' flag: day \(currentMatch.day)")
+            return currentMatch.day
+        }
+        
+        // Strategie 2: Finde den letzten gespielten Spieltag
+        let playedMatches = matches.filter { $0.hasPlayed }
+        if let lastPlayedMatch = playedMatches.max(by: { $0.day < $1.day }) {
+            let currentDay = lastPlayedMatch.day + 1 // Nächster Spieltag nach dem letzten gespielten
+            print("🎯 Determined current match day from last played: \(currentDay)")
+            return currentDay
+        }
+        
+        // Strategie 3: Fallback - verwende übergebenen matchDay
+        if let fallback = fallbackMatchDay {
+            print("🎯 Using provided fallback match day: \(fallback)")
+            return fallback
+        }
+        
+        // Fallback: Verwende Spieltag 10 als Standardwert
+        print("⚠️ Using fallback current match day: 10")
+        return 10
+    }
+    
     // MARK: - Parsing Methods
     
     private func parseTeamPlayersFromResponse(_ json: [String: Any], league: League) async -> [TeamPlayer] {

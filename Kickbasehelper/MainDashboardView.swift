@@ -439,16 +439,6 @@ struct PlayerRowView: View {
             
         }
     }
-    
-    private func formatValue(_ value: Int) -> String {
-        if value >= 1000000 {
-            return String(format: "%.1fM", Double(value) / 1000000)
-        } else if value >= 1000 {
-            return String(format: "%.0fk", Double(value) / 1000)
-        } else {
-            return "\(value)"
-        }
-    }
 }
 
 // MARK: - Player Row mit Verkaufs-Toggle
@@ -590,16 +580,6 @@ struct PlayerRowViewWithSale: View {
             PlayerDetailView(player: player)
         }
     }
-    
-    private func formatValue(_ value: Int) -> String {
-        if value >= 1000000 {
-            return String(format: "%.1fM", Double(value) / 1000000)
-        } else if value >= 1000 {
-            return String(format: "%.0fk", Double(value) / 1000)
-        } else {
-            return "\(value)"
-        }
-    }
 }
 
 // MARK: - Position Badge
@@ -678,16 +658,6 @@ struct TeamStatsHeader: View {
         .background(Color(.systemGray6))
         .cornerRadius(12)
         .padding(.horizontal)
-    }
-    
-    private func formatValue(_ value: Int) -> String {
-        if value >= 1000000 {
-            return String(format: "%.1fM", Double(value) / 1000000)
-        } else if value >= 1000 {
-            return String(format: "%.0fk", Double(value) / 1000)
-        } else {
-            return "\(value)"
-        }
     }
 }
 
@@ -927,16 +897,6 @@ struct MarketPlayerRowView: View {
             PlayerDetailView(player: convertMarketPlayerToTeamPlayer(player))
         }
     }
-    
-    private func formatValue(_ value: Int) -> String {
-        if value >= 1000000 {
-            return String(format: "%.1fM", Double(value) / 1000000)
-        } else if value >= 1000 {
-            return String(format: "%.0fk", Double(value) / 1000)
-        } else {
-            return "\(value)"
-        }
-    }
 }
 
 // MARK: - Sales Recommendation View
@@ -977,7 +937,7 @@ struct SalesRecommendationView: View {
                     }.reduce(0, +)
                 )
                 
-                // Spieleranzahl-Übersicht nach Verkäufen
+                // Spieleranzahl-Übersicht
                 VStack(spacing: 16) {
                     Text("Verbleibende Spieler nach Verkauf")
                         .font(.title2)
@@ -1044,46 +1004,53 @@ struct SalesRecommendationView: View {
     }
     
     private func generateIntelligentRecommendations() {
-        let allPlayers = kickbaseManager.teamPlayers
-        let currentBudget = kickbaseManager.userStats?.budget ?? 0
-        
-        recommendedSales = []
-        
-        // Analysiere alle Spieler und erstelle Empfehlungen basierend auf echten Kriterien
-        for player in allPlayers {
-            if let recommendation = analyzePlayerForSale(
-                player: player,
-                allPlayers: allPlayers,
-                currentBudget: currentBudget,
-                optimizationGoal: selectedGoal
-            ) {
-                recommendedSales.append(recommendation)
-            }
-        }
-        
-        // Sortiere nach Priorität und Impact - beste Verkaufskandidaten zuerst
-        recommendedSales.sort { recommendation1, recommendation2 in
-            let priority1Value = getPriorityValue(recommendation1.priority)
-            let priority2Value = getPriorityValue(recommendation2.priority)
-            let impact1Value = getImpactValue(recommendation1.impact)
-            let impact2Value = getImpactValue(recommendation2.impact)
+        Task {
+            let allPlayers = kickbaseManager.teamPlayers
+            let currentBudget = kickbaseManager.userStats?.budget ?? 0
             
-            // Erstelle einen kombinierten Score: Hohe Priorität (niedrige Zahl) + Niedriger Impact (niedrige Zahl) = besserer Kandidat
-            let score1 = priority1Value + impact1Value
-            let score2 = priority2Value + impact2Value
+            var newRecommendations: [SalesRecommendation] = []
             
-            if score1 != score2 {
-                return score1 < score2 // Niedrigerer Score = besserer Verkaufskandidat
+            // Analysiere alle Spieler und erstelle Empfehlungen basierend auf echten Kriterien
+            for player in allPlayers {
+                if let recommendation = await analyzePlayerForSale(
+                    player: player,
+                    allPlayers: allPlayers,
+                    currentBudget: currentBudget,
+                    optimizationGoal: selectedGoal
+                ) {
+                    newRecommendations.append(recommendation)
+                }
             }
             
-            // Bei gleichem Score: Sekundäre Sortierung nach Optimierungsziel
-            switch selectedGoal {
-            case .balancePositive:
-                return recommendation1.player.marketValue > recommendation2.player.marketValue
-            case .maximizeProfit:
-                return recommendation1.expectedValue > recommendation2.expectedValue
-            case .keepBestPlayers:
-                return recommendation1.player.averagePoints < recommendation2.player.averagePoints
+            // Sortiere nach Priorität und Impact - beste Verkaufskandidaten zuerst
+            newRecommendations.sort { recommendation1, recommendation2 in
+                let priority1Value = getPriorityValue(recommendation1.priority)
+                let priority2Value = getPriorityValue(recommendation2.priority)
+                let impact1Value = getImpactValue(recommendation1.impact)
+                let impact2Value = getImpactValue(recommendation2.impact)
+                
+                // Erstelle einen kombinierten Score: Hohe Priorität (niedrige Zahl) + Niedriger Impact (niedrige Zahl) = besserer Kandidat
+                let score1 = priority1Value + impact1Value
+                let score2 = priority2Value + impact2Value
+                
+                if score1 != score2 {
+                    return score1 < score2 // Niedrigerer Score = besserer Verkaufskandidat
+                }
+                
+                // Bei gleichem Score: Sekundäre Sortierung nach Optimierungsziel
+                switch selectedGoal {
+                case .balancePositive:
+                    return recommendation1.player.marketValue > recommendation2.player.marketValue
+                case .maximizeProfit:
+                    return recommendation1.expectedValue > recommendation2.expectedValue
+                case .keepBestPlayers:
+                    return recommendation1.player.averagePoints < recommendation2.player.averagePoints
+                }
+            }
+            
+            // Update auf Main Thread
+            await MainActor.run {
+                self.recommendedSales = newRecommendations
             }
         }
     }
@@ -1093,7 +1060,7 @@ struct SalesRecommendationView: View {
         allPlayers: [TeamPlayer],
         currentBudget: Int,
         optimizationGoal: OptimizationGoal
-    ) -> SalesRecommendation? {
+    ) async -> SalesRecommendation? {
         
         var reasons: [String] = []
         var shouldSell = false
@@ -1122,17 +1089,42 @@ struct SalesRecommendationView: View {
             priority = .high
         }
         
-        // 2. POSITIONSLIMITS PRÜFEN
+        // 2. PERFORMANCE-ANALYSE & FIXTURE-ANALYSE parallel ausführen
+        await withTaskGroup(of: Void.self) { group in
+            // Performance-Analyse parallel starten
+            group.addTask {
+                await self.analyzePlayerPerformance(
+                    player: player,
+                    reasons: &reasons,
+                    shouldSell: &shouldSell,
+                    priority: &priority
+                )
+            }
+            
+            // Fixture-Analyse parallel starten
+            group.addTask {
+                await self.analyzeUpcomingFixtures(
+                    player: player,
+                    reasons: &reasons,
+                    shouldSell: &shouldSell,
+                    priority: &priority
+                )
+            }
+            
+            // Auf beide Tasks warten
+            await group.waitForAll()
+        }
+        
+        // 4. POSITIONSLIMITS PRÜFEN
         let positionAnalysis = analyzePositionRedundancy(player: player, allPlayers: allPlayers)
         if positionAnalysis.isRedundant {
-            //reasons.append("Überzählig auf Position")
             shouldSell = true
             if priority == .low {
                 priority = positionAnalysis.isWeakestInPosition ? .medium : .low
             }
         }
         
-        // 3. BUDGET-BASIERTE KRITERIEN (nur wenn Budget negativ)
+        // 5. BUDGET-BASIERTE KRITERIEN (nur wenn Budget negativ)
         if currentBudget < 0 {
             let budgetPressure = abs(currentBudget)
             
@@ -1146,7 +1138,7 @@ struct SalesRecommendationView: View {
             }
         }
         
-        // 4. OPTIMIERUNGSZIEL-SPEZIFISCHE KRITERIEN
+        // 6. OPTIMIERUNGSZIEL-SPEZIFISCHE KRITERIEN
         switch optimizationGoal {
         case .balancePositive:
             // Verkaufe Spieler mit schlechtem Preis-Leistungs-Verhältnis
@@ -1170,7 +1162,7 @@ struct SalesRecommendationView: View {
             }
         }
         
-        // 5. PERFORMANCE-KRITERIEN (nur bei geringer Priorität)
+        // 7. WEITERE PERFORMANCE-KRITERIEN (nur bei geringer Priorität)
         if priority == .low {
             let teamAveragePoints = allPlayers.map(\.averagePoints).reduce(0, +) / Double(allPlayers.count)
             
@@ -1188,9 +1180,6 @@ struct SalesRecommendationView: View {
         
         guard shouldSell else { return nil }
         
-        // Erwarteter Verkaufswert berechnen
-        let expectedValue = calculateExpectedSaleValue(player: player)
-        
         // Aufstellungsimpact berechnen
         let lineupImpact = calculateLineupImpact(player: player, allPlayers: allPlayers)
         
@@ -1198,106 +1187,241 @@ struct SalesRecommendationView: View {
             player: player,
             reason: reasons.joined(separator: " • "),
             priority: priority,
-            expectedValue: expectedValue,
+            expectedValue: player.marketValue,
             impact: lineupImpact
         )
     }
+
+    // MARK: - Performance Analysis Helper
+    private func analyzePlayerPerformance(
+        player: TeamPlayer,
+        reasons: inout [String],
+        shouldSell: inout Bool,
+        priority: inout SalesRecommendation.Priority
+    ) async {
+        guard let selectedLeague = kickbaseManager.selectedLeague else { return }
+        
+        // Lade die letzten 5 Spiele des Spielers
+        if let recentPerformances = await kickbaseManager.loadPlayerRecentPerformanceWithTeamInfo(
+            playerId: player.id,
+            leagueId: selectedLeague.id
+        ) {
+            
+            // Analysiere die letzten gespielten Spiele
+            let playedGames = recentPerformances.filter { $0.hasPlayed }
+            
+            if playedGames.count >= 3 {
+                let recentPoints = playedGames.map { $0.points }
+                let recentAverage = Double(recentPoints.reduce(0, +)) / Double(recentPoints.count)
+                
+                // Vergleiche mit der Saison-Durchschnittsleistung
+                if recentAverage < player.averagePoints * 0.6 {
+                    reasons.append("Schwache Form (letzte \(playedGames.count) Spiele: \(String(format: "%.1f", recentAverage)) Pkt.)")
+                    shouldSell = true
+                    if priority == .low {
+                        priority = .medium
+                    }
+                }
+                
+                // Prüfe auf konstant schlechte Leistung
+                let goodGames = recentPoints.filter { Double($0) >= player.averagePoints * 0.8 }.count
+                if goodGames == 0 && playedGames.count >= 3 {
+                    reasons.append("Keine guten Spiele in letzten \(playedGames.count) Partien")
+                    shouldSell = true
+                    if priority == .low {
+                        priority = .medium
+                    }
+                }
+            }
+            
+            // Analysiere Einsatzzeiten und Status
+            let startingElevenGames = playedGames.filter { $0.wasStartingEleven }.count
+            let substituteGames = playedGames.filter { $0.wasSubstitute }.count
+            let notInSquadGames = recentPerformances.filter { $0.wasNotInSquad }.count
+            
+            // Spieler verliert Stammplatz
+            if playedGames.count >= 3 && startingElevenGames == 0 && substituteGames > 0 {
+                reasons.append("Nur noch Einwechselspieler (keine Startelf)")
+                shouldSell = true
+            }
+            
+            // Spieler fällt aus dem Kader
+            if notInSquadGames >= 2 {
+                reasons.append("Häufig nicht im Kader (\(notInSquadGames) Spiele)")
+                shouldSell = true
+                if priority == .low {
+                    priority = .medium
+                }
+            }
+        }
+    }
     
-    private func analyzePositionRedundancy(player: TeamPlayer, allPlayers: [TeamPlayer]) -> (isRedundant: Bool, isWeakestInPosition: Bool) {
-        let samePositionPlayers = allPlayers.filter { $0.position == player.position && $0.status != 1 && $0.status != 4 && $0.status != 8 }
-        let minRequired = getMinRequiredForPosition(player.position)
-        
-        let isRedundant = samePositionPlayers.count > minRequired
-        
-        if !isRedundant {
-            return (false, false)
+    // MARK: - Upcoming Fixtures Analysis Helper
+    private func analyzeUpcomingFixtures(
+        player: TeamPlayer,
+        reasons: inout [String],
+        shouldSell: inout Bool,
+        priority: inout SalesRecommendation.Priority
+    ) async {
+        guard let selectedLeague = kickbaseManager.selectedLeague else {
+            print("⚠️ Fixture-Analyse: Keine Liga ausgewählt für \(player.fullName)")
+            return
         }
         
-        // Sortiere Spieler auf der Position nach Durchschnittspunkten
-        let sortedPlayers = samePositionPlayers.sorted { $0.averagePoints > $1.averagePoints }
-        let playerRank = sortedPlayers.firstIndex(where: { $0.id == player.id }) ?? 0
+        print("🔍 Fixture-Analyse startet für \(player.fullName) (Team: \(player.teamId))")
         
-        // Ist schwächster wenn er unter den Mindestspielern liegt
-        let isWeakestInPosition = playerRank >= minRequired
-        
-        return (true, isWeakestInPosition)
+        do {
+            // Lade alle Performance-Daten um zukünftige Spiele zu analysieren
+            if let allPerformances = try await kickbaseManager.loadPlayerPerformanceWithTeamInfo(
+                playerId: player.id,
+                leagueId: selectedLeague.id
+            ) {
+                print("📊 \(allPerformances.count) Performance-Einträge geladen für \(player.fullName)")
+    
+                let currentMatchDay = getCurrentMatchDay(allPerformances: allPerformances)
+                print("🗓️ Aktueller Spieltag: \(currentMatchDay)")
+                
+                // Finde zukünftige Spiele (noch nicht gespielt)
+                let upcomingMatches = allPerformances.filter { !$0.hasPlayed && $0.matchDay >= currentMatchDay }
+                    .sorted { $0.matchDay < $1.matchDay }
+                    .prefix(3) // Analysiere die nächsten 3 Spiele
+                
+                print("🎯 \(upcomingMatches.count) zukünftige Spiele gefunden für \(player.fullName)")
+                
+                if upcomingMatches.count >= 1 {
+                    // Debug: Zeige kommende Spiele - korrigierte Logik mit player.teamId
+                    for (index, match) in upcomingMatches.enumerated() {
+                        // Verwende die neuen Methoden mit der korrekten playerTeamId aus dem Player-Objekt
+                        let opponentTeamId = match.basePerformance.getOpponentTeamId(playerTeamId: player.teamId)
+                        let isAwayGame = !match.basePerformance.getIsHomeMatch(playerTeamId: player.teamId)
+                        print("   Spiel \(index + 1): Spieltag \(match.matchDay), Gegner: \(opponentTeamId), Auswärts: \(isAwayGame)")
+                    }
+                    
+                    let fixtureAnalysis = analyzeFixtureDifficulty(matches: Array(upcomingMatches), playerTeam: player.teamId)
+                    print("📈 Fixture-Analyse Ergebnis für \(player.fullName):")
+                    print("   - Durchschnittliche Schwierigkeit: \(String(format: "%.2f", fixtureAnalysis.averageDifficulty))")
+                    print("   - Top-Teams als Gegner: \(fixtureAnalysis.topTeamOpponents)")
+                    print("   - Schwere Auswärtsspiele: \(fixtureAnalysis.difficultAwayGames)")
+                    
+                    // Schwere Fixture-Liste
+                    if fixtureAnalysis.averageDifficulty >= 0.7 {
+                        let difficultyPercentage = Int(fixtureAnalysis.averageDifficulty * 100)
+                        let reason = "Schwere Gegner kommend (\(difficultyPercentage)% Schwierigkeit, \(upcomingMatches.count) Spiele)"
+                        reasons.append(reason)
+                        shouldSell = true
+                        print("✅ Verkaufsgrund hinzugefügt: \(reason)")
+                        
+                        // Besonders schwer -> höhere Priorität
+                        if fixtureAnalysis.averageDifficulty >= 0.8 && priority != .high {
+                            priority = .medium
+                            print("⬆️ Priorität auf MEDIUM erhöht wegen sehr schwerer Fixtures")
+                        }
+                    }
+                    
+                    // Viele Top-6-Teams als Gegner
+                    if fixtureAnalysis.topTeamOpponents >= 2 {
+                        let reason = "Viele Top-Teams als Gegner (\(fixtureAnalysis.topTeamOpponents) von \(upcomingMatches.count))"
+                        reasons.append(reason)
+                        shouldSell = true
+                        print("✅ Verkaufsgrund hinzugefügt: \(reason)")
+                        if priority == .low {
+                            priority = .medium
+                            print("⬆️ Priorität auf MEDIUM erhöht wegen vieler Top-Teams")
+                        }
+                    }
+                    
+                    // Auswärtsspiele-Schwere
+                    if fixtureAnalysis.difficultAwayGames >= 2 {
+                        let reason = "Schwere Auswärtsspiele (\(fixtureAnalysis.difficultAwayGames) Spiele)"
+                        reasons.append(reason)
+                        shouldSell = true
+                        print("✅ Verkaufsgrund hinzugefügt: \(reason)")
+                    }
+                    
+                    // Positive Indikatoren (gegen Verkauf)
+                    if fixtureAnalysis.averageDifficulty <= 0.3 {
+                        print("🟢 Sehr einfache kommende Spiele - Verkauf weniger empfehlenswert")
+                        // Sehr einfache kommende Spiele - weniger verkaufsbereit
+                        if priority == .low && reasons.count <= 2 {
+                            print("⬇️ Verkaufsempfehlung reduziert wegen einfacher Fixtures")
+                            // Entferne schwächere Verkaufsgründe wenn einfache Spiele kommen
+                            return
+                        }
+                    }
+                } else {
+                    print("⚠️ Keine zukünftigen Spiele gefunden für \(player.fullName)")
+                }
+            } else {
+                print("❌ Keine Performance-Daten geladen für \(player.fullName)")
+            }
+        } catch {
+            print("❌ Fehler beim Laden der Fixture-Daten für \(player.fullName): \(error)")
+        }
     }
     
-    private func isPlayerOverpriced(player: TeamPlayer, allPlayers: [TeamPlayer]) -> Bool {
-        let valuePerPoint = player.averagePoints > 0 ? Double(player.marketValue) / player.averagePoints : Double.infinity
-        let teamAverageValuePerPoint = allPlayers.compactMap { player in
-            player.averagePoints > 0 ? Double(player.marketValue) / player.averagePoints : nil
-        }.reduce(0, +) / Double(allPlayers.count)
+    // MARK: - Fixture Difficulty Analysis
+    private func analyzeFixtureDifficulty(matches: [EnhancedMatchPerformance], playerTeam: String) -> FixtureAnalysis {
+        var totalDifficulty: Double = 0
+        var topTeamOpponents = 0
+        var difficultAwayGames = 0
         
-        return valuePerPoint > teamAverageValuePerPoint * 1.4
-    }
-    
-    private func isPlayerWeakestInPosition(player: TeamPlayer, allPlayers: [TeamPlayer]) -> Bool {
-        let samePositionPlayers = allPlayers.filter { $0.position == player.position && $0.status != 1 && $0.status != 4 && $0.status != 8 }
-        let sortedPlayers = samePositionPlayers.sorted { $0.averagePoints > $1.averagePoints }
-        
-        guard let playerIndex = sortedPlayers.firstIndex(where: { $0.id == player.id }) else { return false }
-        
-        // Ist unter den schlechtesten 30% der Position
-        return Double(playerIndex) >= Double(sortedPlayers.count) * 0.7
-    }
-    
-    private func calculateExpectedSaleValue(player: TeamPlayer) -> Int {
-        // Konservative Schätzung: 95% des Marktwerts
-        return Int(Double(player.marketValue) * 1)
-    }
-    
-    private func calculateLineupImpact(player: TeamPlayer, allPlayers: [TeamPlayer]) -> SalesRecommendation.LineupImpact {
-        let availablePlayers = allPlayers.filter { $0.status != 1 && $0.status != 4 && $0.status != 8 }
-        let samePositionPlayers = availablePlayers.filter { $0.position == player.position }
-        let minRequired = getMinRequiredForPosition(player.position)
-        
-        // Wenn Spieler verletzt/gesperrt/Aufbautraining ist, minimaler Impact
-        if player.status == 1 || player.status == 4 || player.status == 8 {
-            return .minimal
+        for match in matches {
+            // Verwende die neuen Methoden mit der korrekten playerTeamId
+            let opponentTeamId = match.basePerformance.getOpponentTeamId(playerTeamId: playerTeam)
+            let isAwayGame = !match.basePerformance.getIsHomeMatch(playerTeamId: playerTeam)
+            
+            // Berechne Gegnerstärke basierend auf echter Platzierung aus den Team-Infos
+            let opponentStrength = getTeamStrengthFromMatch(match: match, opponentTeamId: opponentTeamId)
+            let difficultyScore = calculateMatchDifficulty(
+                opponentStrength: opponentStrength,
+                isAwayGame: isAwayGame
+            )
+            
+            totalDifficulty += difficultyScore
+            
+            // Top-6-Teams zählen (Stärke >= 0.7)
+            if opponentStrength >= 0.7 {
+                topTeamOpponents += 1
+            }
+            
+            // Schwere Auswärtsspiele
+            if isAwayGame && opponentStrength >= 0.6 {
+                difficultAwayGames += 1
+            }
         }
         
-        // Wenn Verkauf die Mindestanzahl unterschreiten würde
-        if samePositionPlayers.count <= minRequired {
-            return .significant
-        }
+        let averageDifficulty = matches.isEmpty ? 0.0 : totalDifficulty / Double(matches.count)
         
-        // Sortiere verfügbare Spieler nach Leistung
-        let sortedPlayers = samePositionPlayers.sorted { $0.averagePoints > $1.averagePoints }
-        guard let playerRank = sortedPlayers.firstIndex(where: { $0.id == player.id }) else { return .minimal }
+        return FixtureAnalysis(
+            averageDifficulty: averageDifficulty,
+            topTeamOpponents: topTeamOpponents,
+            difficultAwayGames: difficultAwayGames,
+            totalMatches: matches.count
+        )
+    }
+    
+    // MARK: - Team Strength from Match Data
+    private func getTeamStrengthFromMatch(match: EnhancedMatchPerformance, opponentTeamId: String) -> Double {
+        // Versuche Team-Info aus den geladenen Daten zu finden
+        let opponentTeamInfo: TeamInfo?
         
-        if playerRank < minRequired {
-            return .significant // Top-Spieler auf Position
-        } else if playerRank < samePositionPlayers.count / 2 {
-            return .moderate // Mittelfeldplatz
+        if match.team1Id == opponentTeamId {
+            opponentTeamInfo = match.team1Info
+        } else if match.team2Id == opponentTeamId {
+            opponentTeamInfo = match.team2Info
         } else {
-            return .minimal // Schwächerer Spieler
+            opponentTeamInfo = nil
         }
-    }
-    
-    private func getMinRequiredForPosition(_ position: Int) -> Int {
-        switch position {
-        case 1: return 1 // Torwart
-        case 2: return 3 // Verteidiger
-        case 3: return 2 // Mittelfeld
-        case 4: return 1 // Sturm
-        default: return 1
-        }
-    }
-    
-    private func getPriorityValue(_ priority: SalesRecommendation.Priority) -> Int {
-        switch priority {
-        case .high: return 0
-        case .medium: return 1
-        case .low: return 2
-        }
-    }
-    
-    private func getImpactValue(_ impact: SalesRecommendation.LineupImpact) -> Int {
-        switch impact {
-        case .minimal: return 0
-        case .moderate: return 1
-        case .significant: return 2
+        
+        // Falls Team-Info verfügbar ist, berechne Stärke basierend auf Platzierung
+        if let teamInfo = opponentTeamInfo {
+            let strength = calculateTeamStrengthFromPlacement(teamInfo.placement)
+            print("🎯 Team \(teamInfo.name) (Platz \(teamInfo.placement)) hat Stärke \(String(format: "%.2f", strength))")
+            return strength
+        } else {
+            // Fallback: mittlere Stärke wenn keine Team-Info verfügbar
+            print("⚠️ Keine Team-Info für Team \(opponentTeamId) verfügbar, verwende Fallback-Stärke 0.5")
+            return 0.5
         }
     }
 }
@@ -1438,16 +1562,6 @@ struct SalesRecommendationHeader: View {
                     .cornerRadius(8)
                 }
             }
-        }
-    }
-    
-    private func formatValue(_ value: Int) -> String {
-        if value >= 1000000 {
-            return String(format: "%.1fM", Double(value) / 1000000)
-        } else if value >= 1000 {
-            return String(format: "%.0fk", Double(value) / 1000)
-        } else {
-            return "\(value)"
         }
     }
     
@@ -1656,16 +1770,6 @@ struct SalesRecommendationRow: View {
         .padding(.vertical, 8)
         .sheet(isPresented: $showingPlayerDetail) {
             PlayerDetailView(player: recommendation.player)
-        }
-    }
-    
-    private func formatValue(_ value: Int) -> String {
-        if value >= 1000000 {
-            return String(format: "%.1fM", Double(value) / 1000000)
-        } else if value >= 1000 {
-            return String(format: "%.0fk", Double(value) / 1000)
-        } else {
-            return "\(value)"
         }
     }
     
@@ -2070,16 +2174,6 @@ struct OptimalLineupStatsView: View {
         .background(Color(.systemGray6))
         .cornerRadius(12)
     }
-    
-    private func formatValue(_ value: Int) -> String {
-        if value >= 1000000 {
-            return String(format: "%.1fM", Double(value) / 1000000)
-        } else if value >= 1000 {
-            return String(format: "%.0fk", Double(value) / 1000)
-        } else {
-            return "\(value)"
-        }
-    }
 }
 
 // MARK: - Optimal Lineup Formation View
@@ -2214,9 +2308,7 @@ struct LineupPlayerCard: View {
             }
             .buttonStyle(PlainButtonStyle())
             .sheet(isPresented: $showingPlayerDetail) {
-                if let league = kickbaseManager.selectedLeague {
-                    PlayerDetailView(player: player)
-                }
+                PlayerDetailView(player: player)
             }
         }
     }
@@ -2410,16 +2502,6 @@ struct ReserveBenchStatsView: View {
         .background(Color(.systemBackground))
         .cornerRadius(8)
     }
-    
-    private func formatValue(_ value: Int) -> String {
-        if value >= 1000000 {
-            return String(format: "%.1fM", Double(value) / 1000000)
-        } else if value >= 1000 {
-            return String(format: "%.0fk", Double(value) / 1000)
-        } else {
-            return "\(value)"
-        }
-    }
 }
 
 // MARK: - Bench Stat Card
@@ -2552,16 +2634,6 @@ struct ReservePlayerRow: View {
         default: return .gray
         }
     }
-    
-    private func formatValue(_ value: Int) -> String {
-        if value >= 1000000 {
-            return String(format: "%.1fM", Double(value) / 1000000)
-        } else if value >= 1000 {
-            return String(format: "%.0fk", Double(value) / 1000)
-        } else {
-            return "\(value)"
-        }
-    }
 }
 
 // MARK: - Player Count Overview
@@ -2692,16 +2764,6 @@ struct TeamBudgetHeaderMain: View {
         .background(Color(.systemGray6))
         .cornerRadius(12)
         .padding(.horizontal)
-    }
-    
-    private func formatValue(_ value: Int) -> String {
-        if value >= 1000000 {
-            return String(format: "%.1fM", Double(value) / 1000000)
-        } else if value >= 1000 {
-            return String(format: "%.0fk", Double(value) / 1000)
-        } else {
-            return "\(value)"
-        }
     }
     
     private func formatValueWithSeparators(_ value: Int) -> String {
@@ -3009,14 +3071,129 @@ struct AllPlayersRow: View {
             PlayerDetailView(player: player)
         }
     }
-    
-    private func formatValue(_ value: Int) -> String {
-        if value >= 1000000 {
-            return String(format: "%.1fM", Double(value) / 1000000)
-        } else if value >= 1000 {
-            return String(format: "%.0fk", Double(value) / 1000)
-        } else {
-            return "\(value)"
-        }
+}
+
+// MARK: - Helper Functions
+private func formatValue(_ value: Int) -> String {
+    if value >= 1000000 {
+        return String(format: "%.1fM", Double(value) / 1000000)
+    } else if value >= 1000 {
+        return String(format: "%.0fk", Double(value) / 1000)
+    } else {
+        return "\(value)"
     }
+}
+
+private func getPriorityValue(_ priority: SalesRecommendation.Priority) -> Int {
+    switch priority {
+    case .high: return 1
+    case .medium: return 2
+    case .low: return 3
+    }
+}
+
+private func getImpactValue(_ impact: SalesRecommendation.LineupImpact) -> Int {
+    switch impact {
+    case .minimal: return 1
+    case .moderate: return 2
+    case .significant: return 3
+    }
+}
+
+private func analyzePositionRedundancy(player: TeamPlayer, allPlayers: [TeamPlayer]) -> (isRedundant: Bool, isWeakestInPosition: Bool) {
+    let playersInSamePosition = allPlayers.filter { $0.position == player.position }
+    
+    // Mindestanzahl pro Position
+    let minRequired: Int
+    switch player.position {
+    case 1: minRequired = 1 // Torwart
+    case 2: minRequired = 3 // Verteidiger
+    case 3: minRequired = 2 // Mittelfeld
+    case 4: minRequired = 1 // Sturm
+    default: minRequired = 1
+    }
+    
+    let isRedundant = playersInSamePosition.count > minRequired
+    
+    // Prüfe ob der Spieler der schwächste auf seiner Position ist
+    let sortedByPerformance = playersInSamePosition.sorted { $0.averagePoints > $1.averagePoints }
+    let isWeakestInPosition = sortedByPerformance.last?.id == player.id
+    
+    return (isRedundant, isWeakestInPosition)
+}
+
+private func isPlayerOverpriced(player: TeamPlayer, allPlayers: [TeamPlayer]) -> Bool {
+    let teamAveragePoints = allPlayers.map(\.averagePoints).reduce(0, +) / Double(allPlayers.count)
+    let teamAverageValue = Double(allPlayers.map(\.marketValue).reduce(0, +)) / Double(allPlayers.count)
+    
+    // Spieler ist überbewertet wenn sein Wert/Punkte-Verhältnis deutlich schlechter ist als der Teamdurchschnitt
+    let playerValuePerPoint = Double(player.marketValue) / max(player.averagePoints, 1.0)
+    let teamValuePerPoint = teamAverageValue / max(teamAveragePoints, 1.0)
+    
+    return playerValuePerPoint > teamValuePerPoint * 1.3 // 30% schlechter als Durchschnitt
+}
+
+private func isPlayerWeakestInPosition(player: TeamPlayer, allPlayers: [TeamPlayer]) -> Bool {
+    let playersInSamePosition = allPlayers.filter { $0.position == player.position }
+    let sortedByPerformance = playersInSamePosition.sorted { $0.averagePoints > $1.averagePoints }
+    
+    return sortedByPerformance.last?.id == player.id
+}
+
+private func calculateLineupImpact(player: TeamPlayer, allPlayers: [TeamPlayer]) -> SalesRecommendation.LineupImpact {
+    let positionAnalysis = analyzePositionRedundancy(player: player, allPlayers: allPlayers)
+    
+    // Hoher Impact wenn Position nicht redundant ist
+    if !positionAnalysis.isRedundant {
+        return .significant
+    }
+    
+    // Mittlerer Impact wenn Spieler überdurchschnittlich ist
+    let teamAveragePoints = allPlayers.map(\.averagePoints).reduce(0, +) / Double(allPlayers.count)
+    if player.averagePoints > teamAveragePoints * 1.1 {
+        return .moderate
+    }
+    
+    // Minimaler Impact bei schwachen, redundanten Spielern
+    return .minimal
+}
+
+// MARK: - Team Strength Calculation (Dynamic based on actual placements)
+private func getTeamStrength(teamId: String) -> Double {
+    // Fallback: Verwende mittlere Stärke, da wir hier keinen Zugriff auf den Cache haben
+    return 0.5
+}
+
+// Verbesserte Version: Team-Stärke basierend auf Platzierung berechnen
+private func calculateTeamStrengthFromPlacement(_ placement: Int, totalTeams: Int = 18) -> Double {
+    // Konvertiere Platzierung in Stärke-Wert (1.0 = bestes Team, 0.0 = schlechtestes Team)
+    // Platz 1 = Stärke 1.0, Platz 18 = Stärke ~0.06
+    let normalizedPlacement = Double(placement - 1) / Double(totalTeams - 1)
+    let strength = 1.0 - normalizedPlacement
+    
+    // Minimum-Stärke von 0.1 für das schlechteste Team
+    return max(0.1, strength)
+}
+
+// MARK: - Match Difficulty Calculation
+private func calculateMatchDifficulty(opponentStrength: Double, isAwayGame: Bool) -> Double {
+    var difficulty = opponentStrength
+    
+    // Auswärtsspiele sind schwieriger
+    if isAwayGame {
+        difficulty *= 1.2 // 20% schwieriger
+    }
+    
+    // Begrenze auf maximale Schwierigkeit von 1.0
+    return min(1.0, difficulty)
+}
+
+// Anhand von isCurrent den aktuellen Spieltag laden.
+private func getCurrentMatchDay(allPerformances: [EnhancedMatchPerformance]) -> Int {
+
+    if let currentMatch = allPerformances.first(where: { $0.isCurrent }) {
+        return currentMatch.matchDay
+    }
+
+    return 1 // Fallback-Wert
 }
