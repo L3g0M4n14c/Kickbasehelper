@@ -16,29 +16,39 @@ class PlayerRecommendationService: ObservableObject {
         // Lade aktuelle Team-Spieler und Marktspieler
         let teamPlayers = try await getTeamPlayers(for: league)
         let marketPlayers = try await getMarketPlayers(for: league)
-        let currentUser = getCurrentUser()
+        let currentUser = league.currentUser
         
         // Analysiere das Team
         let teamAnalysis = analyzeTeam(teamPlayers: teamPlayers, user: currentUser, budget: budget)
         
-        // VERBESSERTE FILTERUNG: Nur wirklich gute Spieler (aber nicht zu streng)
+        // VERBESSERTE FILTERUNG: Spieler basierend auf verfügbaren Daten bewerten
         let qualityMarketPlayers = marketPlayers.filter { player in
-            // Mindestleistung: 4+ Punkte pro Spiel (reduziert von 5.0)
-            let pointsPerGame = Double(player.totalPoints) / max(Double(player.number), 1.0)
-            guard pointsPerGame >= 4.0 else { return false }
+            print("🔍 Checking player: \(player.firstName) \(player.lastName)")
+            print("   - Total Points: \(player.totalPoints)")
+            print("   - Average Points: \(player.averagePoints)")
+            print("   - Price: \(player.price)")
+            print("   - Status: \(player.status)")
             
-            // Mindestanzahl Spiele (mindestens 3 Spiele gespielt - reduziert von 5)
-            guard player.number >= 3 else { return false }
             
-            // Nicht verletzt oder gesperrt
-            guard player.status != 8 && player.status != 16 else { return false }
+            // Mindestleistung: 2+ Durchschnittspunkte pro Spiel
+            if player.averagePoints < 70.0 {
+                print("   ❌ Failed: Average points too low (\(String(format: "%.2f", player.averagePoints)) < 2.0)")
+                return false
+            }
             
-            // Im Budget
-            guard player.price <= budget else { return false }
+            // Nicht verletzt oder gesperrt (Status 8 = verletzt, Status 16 = gesperrt)
+            if player.status == 8 || player.status == 16 {
+                print("   ❌ Failed: Player injured or suspended (status: \(player.status))")
+                return false
+            }
             
-            // Mindestpunktzahl insgesamt (reduziert von 25 auf 15)
-            guard player.totalPoints >= 15 else { return false }
+            // Mindestpunktzahl insgesamt (reduziert auf 5)
+            if player.totalPoints < 140 {
+                print("   ❌ Failed: Total points too low (\(player.totalPoints) < 5)")
+                return false
+            }
             
+            print("   ✅ Player passed all filters")
             return true
         }
         
@@ -82,24 +92,9 @@ class PlayerRecommendationService: ObservableObject {
         return try await kickbaseManager.authenticatedPlayerService.loadMarketPlayers(for: league)
     }
     
-    private func getCurrentUser() -> User {
-        // Erstelle einen Standard-User basierend auf der tatsächlichen User-Struktur
-        return User(
-            id: "current_user",
-            name: "Current User",
-            teamName: "Mein Team",
-            email: "user@example.com",
-            budget: 50000000, // Standard-Budget in Cent
-            teamValue: 40000000,
-            points: 0,
-            placement: 1,
-            flags: 0
-        )
-    }
-    
     // MARK: - Analysis Functions
     
-    private func analyzeTeam(teamPlayers: [TeamPlayer], user: User, budget: Int) -> TeamAnalysis {
+    private func analyzeTeam(teamPlayers: [TeamPlayer], user: LeagueUser, budget: Int) -> TeamAnalysis {
         var positionCounts: [String: Int] = [:]
         var positionTotalPoints: [String: Double] = [:]
         
@@ -134,10 +129,10 @@ class PlayerRecommendationService: ObservableObject {
         
         // Mindestanzahl Spieler pro Position
         let minPlayersPerPosition: [String: Int] = [
-            "1": 2,    // Torwart
-            "2": 4,    // Verteidiger
+            "1": 1,    // Torwart
+            "2": 3,    // Verteidiger
             "3": 6,    // Mittelfeld
-            "4": 3     // Sturm
+            "4": 1     // Sturm
         ]
         
         // Überprüfe Anzahl pro Position
@@ -201,7 +196,7 @@ class PlayerRecommendationService: ObservableObject {
     }
     
     private func analyzePlayer(_ marketPlayer: MarketPlayer, teamAnalysis: TeamAnalysis) -> PlayerAnalysis {
-        let pointsPerGame = Double(marketPlayer.totalPoints) / max(Double(marketPlayer.number), 1.0)
+        let pointsPerGame = marketPlayer.averagePoints
         let valueForMoney = calculateValueForMoney(marketPlayer)
         let formTrend = calculateCurrentForm(marketPlayer)
         let injuryRisk = calculateInjuryRisk(marketPlayer)
@@ -219,7 +214,7 @@ class PlayerRecommendationService: ObservableObject {
     
     private func calculateCurrentForm(_ marketPlayer: MarketPlayer) -> PlayerAnalysis.FormTrend {
         let marketValueChange = marketPlayer.marketValueTrend
-        let pointsPerGame = Double(marketPlayer.totalPoints) / max(Double(marketPlayer.number), 1.0)
+        let pointsPerGame = marketPlayer.averagePoints
         
         if marketValueChange > 500000 && pointsPerGame > 8.0 {
             return .improving
@@ -244,7 +239,7 @@ class PlayerRecommendationService: ObservableObject {
     private func calculateSeasonProjection(_ marketPlayer: MarketPlayer) -> SeasonProjection {
         let currentPoints = marketPlayer.totalPoints
         let gamesPlayed = max(marketPlayer.number, 1)
-        let pointsPerGame = Double(currentPoints) / Double(gamesPlayed)
+        let pointsPerGame = marketPlayer.averagePoints
         let remainingGames = 34 - gamesPlayed
         
         let projectedTotal = currentPoints + Int(pointsPerGame * Double(max(remainingGames, 0)))
@@ -404,7 +399,7 @@ class PlayerRecommendationService: ObservableObject {
         var reasons: [RecommendationReason] = []
         
         // Performance Reasoning
-        if analysis.pointsPerGame > 8.0 {
+        if analysis.pointsPerGame > 100.0 {
             reasons.append(RecommendationReason(
                 type: .performance,
                 description: "Starke Leistung mit \(String(format: "%.1f", analysis.pointsPerGame)) Punkten pro Spiel",
@@ -413,7 +408,7 @@ class PlayerRecommendationService: ObservableObject {
         }
         
         // Value Reasoning
-        if analysis.valueForMoney > 8.0 {
+        if analysis.valueForMoney > 30.0 {
             reasons.append(RecommendationReason(
                 type: .value,
                 description: "Gutes Preis-Leistungs-Verhältnis",
