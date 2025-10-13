@@ -13,7 +13,7 @@ class KickbaseManager: ObservableObject {
     @Published var errorMessage: String?
     
     // Services
-    private let apiClient: KickbaseAPIClient
+    private let apiService: KickbaseAPIService
     private let dataParser: KickbaseDataParser
     private let leagueService: KickbaseLeagueService
     private let playerService: KickbasePlayerService
@@ -26,17 +26,17 @@ class KickbaseManager: ObservableObject {
     }
     
     init() {
-        self.apiClient = KickbaseAPIClient()
+        self.apiService = KickbaseAPIService()
         self.dataParser = KickbaseDataParser()
-        self.leagueService = KickbaseLeagueService(apiClient: apiClient, dataParser: dataParser)
-        self.playerService = KickbasePlayerService(apiClient: apiClient, dataParser: dataParser)
-        self.userStatsService = KickbaseUserStatsService(apiClient: apiClient, dataParser: dataParser)
+        self.leagueService = KickbaseLeagueService(apiService: apiService, dataParser: dataParser)
+        self.playerService = KickbasePlayerService(apiService: apiService, dataParser: dataParser)
+        self.userStatsService = KickbaseUserStatsService(apiService: apiService, dataParser: dataParser)
     }
     
     // MARK: - Authentication
     
     func setAuthToken(_ token: String) {
-        apiClient.setAuthToken(token)
+        apiService.setAuthToken(token)
         print("🔑 Auth token set for KickbaseManager")
     }
     

@@ -2,11 +2,11 @@ import Foundation
 
 @MainActor
 class KickbasePlayerService: ObservableObject {
-    private let apiClient: KickbaseAPIClient
+    private let apiService: KickbaseAPIService
     private let dataParser: KickbaseDataParser
     
-    init(apiClient: KickbaseAPIClient, dataParser: KickbaseDataParser) {
-        self.apiClient = apiClient
+    init(apiService: KickbaseAPIService, dataParser: KickbaseDataParser) {
+        self.apiService = apiService
         self.dataParser = dataParser
     }
     
@@ -15,22 +15,11 @@ class KickbasePlayerService: ObservableObject {
     func loadTeamPlayers(for league: League) async throws -> [TeamPlayer] {
         print("👥 Loading team players (squad) for league: \(league.name)")
         
-        let endpoints = [
-            "/v4/leagues/\(league.id)/squad",       // Hauptendpoint für Team/Squad
-            "/v4/leagues/\(league.id)/lineup",      // Alternative für Aufstellung
-            "/v4/leagues/\(league.id)/me/players",  // Meine Spieler
-            "/leagues/\(league.id)/squad",          // Fallback ohne v4
-            "/leagues/\(league.id)/lineup",         // Fallback Lineup ohne v4
-            "/v4/leagues/\(league.id)/lineups"      // Alternative mit Plural
-        ]
-        
         do {
-            let (_, json) = try await apiClient.tryMultipleEndpoints(endpoints: endpoints)
+            let json = try await apiService.getMySquad(leagueId: league.id)
             return await parseTeamPlayersFromResponse(json, league: league)
-        } catch APIError.authenticationFailed {
-            throw APIError.authenticationFailed
         } catch {
-            print("❌ All team players endpoints failed: \(error)")
+            print("❌ Failed to load team players: \(error.localizedDescription)")
             throw error
         }
     }
@@ -40,21 +29,13 @@ class KickbasePlayerService: ObservableObject {
     func loadMarketPlayers(for league: League) async throws -> [MarketPlayer] {
         print("💰 Loading market players for league: \(league.name)")
         
-        let endpoints = [
-            "/v4/leagues/\(league.id)/market",  // Offizieller Endpunkt laut Dokumentation
-            "/leagues/\(league.id)/market",     // Fallback ohne v4 Präfix
-            "/v4/leagues/\(league.id)/transfers" // Alternative
-        ]
-        
         do {
-            let (_, json) = try await apiClient.tryMultipleEndpoints(endpoints: endpoints)
+            let json = try await apiService.getMarketPlayers(leagueId: league.id)
             let marketPlayers = await parseMarketPlayersFromResponse(json, league: league)
             print("✅ Successfully loaded \(marketPlayers.count) market players from API")
             return marketPlayers
-        } catch APIError.authenticationFailed {
-            throw APIError.authenticationFailed
         } catch {
-            print("❌ All market players endpoints failed: \(error)")
+            print("❌ Failed to load market players: \(error.localizedDescription)")
             throw error
         }
     }
@@ -62,42 +43,34 @@ class KickbasePlayerService: ObservableObject {
     // MARK: - Player Detail Loading
     
     func loadPlayerDetails(playerId: String, leagueId: String) async -> PlayerDetailResponse? {
-        let endpoint = "/v4/leagues/\(leagueId)/players/\(playerId)"
-        
         do {
-            let (data, httpResponse) = try await apiClient.makeRequest(endpoint: endpoint)
+            let json = try await apiService.getPlayerDetails(leagueId: leagueId, playerId: playerId)
+            print("✅ Got player details for ID: \(playerId)")
             
-            if httpResponse.statusCode == 200 {
-                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                    print("✅ Got player details for ID: \(playerId)")
-                    
-                    return PlayerDetailResponse(
-                        fn: json["fn"] as? String,
-                        ln: json["ln"] as? String,
-                        tn: json["tn"] as? String,
-                        shn: json["shn"] as? Int,
-                        id: json["id"] as? String,
-                        position: json["position"] as? Int,
-                        number: json["number"] as? Int,
-                        averagePoints: json["averagePoints"] as? Double,
-                        totalPoints: json["totalPoints"] as? Int,
-                        marketValue: json["marketValue"] as? Int,
-                        marketValueTrend: json["marketValueTrend"] as? Int,
-                        profileBigUrl: json["profileBigUrl"] as? String,
-                        teamId: json["teamId"] as? String,
-                        tfhmvt: json["tfhmvt"] as? Int,
-                        prlo: json["prlo"] as? Int,
-                        stl: json["stl"] as? Int,
-                        status: json["st"] as? Int,
-                        userOwnsPlayer: json["userOwnsPlayer"] as? Bool
-                    )
-                }
-            }
+            return PlayerDetailResponse(
+                fn: json["fn"] as? String,
+                ln: json["ln"] as? String,
+                tn: json["tn"] as? String,
+                shn: json["shn"] as? Int,
+                id: json["id"] as? String,
+                position: json["position"] as? Int,
+                number: json["number"] as? Int,
+                averagePoints: json["averagePoints"] as? Double,
+                totalPoints: json["totalPoints"] as? Int,
+                marketValue: json["marketValue"] as? Int,
+                marketValueTrend: json["marketValueTrend"] as? Int,
+                profileBigUrl: json["profileBigUrl"] as? String,
+                teamId: json["teamId"] as? String,
+                tfhmvt: json["tfhmvt"] as? Int,
+                prlo: json["prlo"] as? Int,
+                stl: json["stl"] as? Int,
+                status: json["st"] as? Int,
+                userOwnsPlayer: json["userOwnsPlayer"] as? Bool
+            )
         } catch {
             print("❌ Error loading player details for \(playerId): \(error.localizedDescription)")
+            return nil
         }
-        
-        return nil
     }
     
     // MARK: - Player Performance Loading
@@ -105,84 +78,41 @@ class KickbasePlayerService: ObservableObject {
     func loadPlayerPerformance(playerId: String, leagueId: String) async throws -> PlayerPerformanceResponse? {
         print("📊 Loading player performance for ID: \(playerId)")
         
-        let endpoint = "/v4/leagues/\(leagueId)/players/\(playerId)/performance"
-        
         do {
-            let (data, httpResponse) = try await apiClient.makeRequest(endpoint: endpoint)
-            
-            if httpResponse.statusCode == 200 {
-                // Debug: Log die rohe Response
-                if let jsonString = String(data: data, encoding: .utf8) {
-                    print("🔍 Raw performance response: \(jsonString.prefix(500))...")
-                }
-                
-                let decoder = JSONDecoder()
-                let performanceResponse = try decoder.decode(PlayerPerformanceResponse.self, from: data)
-                print("✅ Successfully loaded performance data for player \(playerId)")
-                return performanceResponse
-            } else {
-                print("⚠️ Performance request failed with status: \(httpResponse.statusCode)")
-                throw APIError.networkError("HTTP \(httpResponse.statusCode)")
-            }
-        } catch let DecodingError.keyNotFound(key, context) {
-            print("❌ Decoding error - missing key: \(key.stringValue)")
-            print("❌ Context: \(context)")
-        } catch let DecodingError.typeMismatch(type, context) {
-            print("❌ Decoding error - type mismatch for type: \(type)")
-            print("❌ Context: \(context)")
-        } catch let DecodingError.valueNotFound(type, context) {
-            print("❌ Decoding error - value not found for type: \(type)")
-            print("❌ Context: \(context)")
-        } catch APIError.authenticationFailed {
-            throw APIError.authenticationFailed
+            let performanceResponse = try await apiService.getPlayerPerformance(leagueId: leagueId, playerId: playerId)
+            print("✅ Successfully loaded performance data for player \(playerId)")
+            return performanceResponse
         } catch {
             print("❌ Error loading player performance for \(playerId): \(error.localizedDescription)")
+            throw error
         }
-        
-        return nil
     }
     
     // MARK: - Market Value History
     
     func loadPlayerMarketValueHistory(playerId: String, leagueId: String) async -> MarketValueChange? {
-        let endpoint = "/v4/leagues/\(leagueId)/players/\(playerId)/marketvalue/365"
-        
         do {
-            let (data, httpResponse) = try await apiClient.makeRequest(endpoint: endpoint)
-            
-            if httpResponse.statusCode == 200 {
-                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                    print("✅ Got market value history for player ID: \(playerId)")
-                    return dataParser.parseMarketValueHistory(from: json)
-                }
-            }
+            let json = try await apiService.getPlayerMarketValue(leagueId: leagueId, playerId: playerId, timeframe: 365)
+            print("✅ Got market value history for player ID: \(playerId)")
+            return dataParser.parseMarketValueHistory(from: json)
         } catch {
             print("❌ Error loading market value history for \(playerId): \(error.localizedDescription)")
+            return nil
         }
-        
-        return nil
     }
     
     // MARK: - On-Demand Player Market Value Loading
     
     func loadPlayerMarketValueOnDemand(playerId: String, leagueId: String) async -> Int? {
-        let endpoint = "/v4/leagues/\(leagueId)/players/\(playerId)/marketvalue/365"
-        
         do {
-            let (data, httpResponse) = try await apiClient.makeRequest(endpoint: endpoint)
-            
-            if httpResponse.statusCode == 200 {
-                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                    let prloValue = json["prlo"] as? Int ?? 0
-                    print("💰 Found on-demand PRLO value: €\(prloValue/1000)k for player ID: \(playerId)")
-                    return prloValue
-                }
-            }
+            let json = try await apiService.getPlayerMarketValue(leagueId: leagueId, playerId: playerId, timeframe: 365)
+            let prloValue = json["prlo"] as? Int ?? 0
+            print("💰 Found on-demand PRLO value: €\(prloValue/1000)k for player ID: \(playerId)")
+            return prloValue
         } catch {
             print("❌ Error loading on-demand market value for \(playerId): \(error.localizedDescription)")
+            return nil
         }
-        
-        return nil
     }
     
     // MARK: - Team Profile Loading
@@ -190,25 +120,15 @@ class KickbasePlayerService: ObservableObject {
     func loadTeamProfile(teamId: String, leagueId: String) async -> TeamInfo? {
         print("🏆 Loading team profile for team \(teamId) in league \(leagueId)")
         
-        let endpoint = "/v4/leagues/\(leagueId)/teams/\(teamId)/teamprofile"
-        
         do {
-            let (data, httpResponse) = try await apiClient.makeRequest(endpoint: endpoint)
-            
-            if httpResponse.statusCode == 200 {
-                let decoder = JSONDecoder()
-                let teamProfileResponse = try decoder.decode(TeamProfileResponse.self, from: data)
-                let teamInfo = TeamInfo(from: teamProfileResponse)
-                print("✅ Successfully loaded team profile: \(teamInfo.name) (Platz \(teamInfo.placement))")
-                return teamInfo
-            } else {
-                print("⚠️ Team profile request failed with status: \(httpResponse.statusCode)")
-            }
+            let teamProfileResponse = try await apiService.getTeamProfile(leagueId: leagueId, teamId: teamId)
+            let teamInfo = TeamInfo(from: teamProfileResponse)
+            print("✅ Successfully loaded team profile: \(teamInfo.name) (Platz \(teamInfo.placement))")
+            return teamInfo
         } catch {
             print("❌ Error loading team profile for \(teamId): \(error.localizedDescription)")
+            return nil
         }
-        
-        return nil
     }
     
     // MARK: - Enhanced Performance Loading with Team Info (Optimized)

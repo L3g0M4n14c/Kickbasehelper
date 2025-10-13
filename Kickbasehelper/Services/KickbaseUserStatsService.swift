@@ -2,11 +2,11 @@ import Foundation
 
 @MainActor
 class KickbaseUserStatsService: ObservableObject {
-    private let apiClient: KickbaseAPIClient
+    private let apiService: KickbaseAPIService
     private let dataParser: KickbaseDataParser
     
-    init(apiClient: KickbaseAPIClient, dataParser: KickbaseDataParser) {
-        self.apiClient = apiClient
+    init(apiService: KickbaseAPIService, dataParser: KickbaseDataParser) {
+        self.apiService = apiService
         self.dataParser = dataParser
     }
     
@@ -15,19 +15,19 @@ class KickbaseUserStatsService: ObservableObject {
     func loadUserStats(for league: League) async throws -> UserStats {
         print("📊 Loading user stats for league: \(league.name)")
         
-        let endpoints = [
-            "/v4/leagues/\(league.id)/me/budget",    // Spezifischer Budget-Endpoint
-            "/v4/leagues/\(league.id)/me",           // Meine Daten in Liga (v4)
-        ]
-        
         do {
-            let (_, json) = try await apiClient.tryMultipleEndpoints(endpoints: endpoints)
+            // Versuche zuerst den Budget-Endpoint
+            let json = try await apiService.getMyBudget(leagueId: league.id)
             return dataParser.parseUserStatsFromResponse(json, fallbackUser: league.currentUser)
-        } catch APIError.authenticationFailed {
-            throw APIError.authenticationFailed
         } catch {
-            print("⚠️ All user stats endpoints failed, using fallback data")
-            return createFallbackUserStats(from: league.currentUser)
+            // Fallback auf Me-Endpoint
+            do {
+                let json = try await apiService.getLeagueMe(leagueId: league.id)
+                return dataParser.parseUserStatsFromResponse(json, fallbackUser: league.currentUser)
+            } catch {
+                print("⚠️ All user stats endpoints failed, using fallback data")
+                return createFallbackUserStats(from: league.currentUser)
+            }
         }
     }
     

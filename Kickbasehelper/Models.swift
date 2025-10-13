@@ -18,7 +18,18 @@ struct LoginRequest: Codable {
 
 struct LoginResponse: Codable {
     let tkn: String     // token
-    let user: User
+    let user: User?     // Optional, da es möglicherweise nicht in der Response ist
+    
+    // Alternative Felder, die möglicherweise in der Response sind
+    let leagues: [League]?
+    let userId: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case tkn
+        case user
+        case leagues
+        case userId
+    }
 }
 
 struct User: Codable, Identifiable {
@@ -31,6 +42,48 @@ struct User: Codable, Identifiable {
     let points: Int
     let placement: Int
     let flags: Int
+    
+    // Alternative gekürzte Feldnamen aus der API
+    enum CodingKeys: String, CodingKey {
+        case id = "i"
+        case name = "n"
+        case teamName = "tn"
+        case email = "em"
+        case budget = "b"
+        case teamValue = "tv"
+        case points = "p"
+        case placement = "pl"
+        case flags = "f"
+    }
+    
+    // Fallback-Initialisierung für fehlende Werte
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        // Versuche zuerst die verkürzten Namen, dann die langen
+        id = try container.decodeIfPresent(String.self, forKey: .id) ?? ""
+        name = try container.decodeIfPresent(String.self, forKey: .name) ?? ""
+        teamName = try container.decodeIfPresent(String.self, forKey: .teamName) ?? ""
+        email = try container.decodeIfPresent(String.self, forKey: .email) ?? ""
+        budget = try container.decodeIfPresent(Int.self, forKey: .budget) ?? 0
+        teamValue = try container.decodeIfPresent(Int.self, forKey: .teamValue) ?? 0
+        points = try container.decodeIfPresent(Int.self, forKey: .points) ?? 0
+        placement = try container.decodeIfPresent(Int.self, forKey: .placement) ?? 0
+        flags = try container.decodeIfPresent(Int.self, forKey: .flags) ?? 0
+    }
+    
+    // Standard-Initialisierung für manuelle Erstellung
+    init(id: String, name: String, teamName: String, email: String, budget: Int, teamValue: Int, points: Int, placement: Int, flags: Int) {
+        self.id = id
+        self.name = name
+        self.teamName = teamName
+        self.email = email
+        self.budget = budget
+        self.teamValue = teamValue
+        self.points = points
+        self.placement = placement
+        self.flags = flags
+    }
 }
 
 // MARK: - League Models
