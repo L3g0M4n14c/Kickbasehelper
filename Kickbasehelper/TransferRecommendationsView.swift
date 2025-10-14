@@ -6,6 +6,7 @@ struct TransferRecommendationsView: View {
     @State private var recommendations: [TransferRecommendation] = []
     @State private var teamAnalysis: TeamAnalysis?
     @State private var isLoading = false
+    @State private var loadingMessage = "Analysiere Team und lade Empfehlungen..."
     @State private var errorMessage: String?
     @State private var filters = RecommendationFilters()
     @State private var sortOption: SortOption = .recommendationScore
@@ -50,8 +51,14 @@ struct TransferRecommendationsView: View {
     private var sidebarContent: some View {
         VStack(spacing: 0) {
             if isLoading {
-                ProgressView("Analysiere Team und lade Empfehlungen...")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                VStack(spacing: 20) {
+                    ProgressView()
+                        .scaleEffect(1.5)
+                    Text(loadingMessage)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if recommendations.isEmpty {
                 emptyStateView
             } else {
@@ -62,16 +69,34 @@ struct TransferRecommendationsView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 HStack {
+                    Menu {
+                        Button(action: { 
+                            Task {
+                                await loadRecommendations()
+                            }
+                        }) {
+                            Label("Aktualisieren", systemImage: "arrow.clockwise")
+                        }
+                        .disabled(isLoading)
+                        
+                        Button(action: {
+                            if let leagueId = kickbaseManager.selectedLeague?.id {
+                                recommendationService.clearCacheForLeague(leagueId)
+                            }
+                            Task {
+                                await loadRecommendations()
+                            }
+                        }) {
+                            Label("Cache leeren & neu laden", systemImage: "trash")
+                        }
+                        .disabled(isLoading)
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                    }
+                    
                     Button(action: { showFilterSheet = true }) {
                         Image(systemName: "slider.horizontal.3")
                     }
-                    
-                    Button("Aktualisieren") {
-                        Task {
-                            await loadRecommendations()
-                        }
-                    }
-                    .disabled(isLoading)
                 }
             }
         }
@@ -86,8 +111,14 @@ struct TransferRecommendationsView: View {
     private var mainContent: some View {
         VStack(spacing: 0) {
             if isLoading {
-                ProgressView("Analysiere Team und lade Empfehlungen...")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                VStack(spacing: 20) {
+                    ProgressView()
+                        .scaleEffect(1.5)
+                    Text(loadingMessage)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if recommendations.isEmpty {
                 emptyStateView
             } else {
@@ -352,7 +383,6 @@ struct TransferRecommendationsView: View {
         print("   - Max Risk: \(filters.maxRisk)")
         print("   - Min Priority: \(filters.minPriority)")
         print("   - Form Trend: \(filters.formTrend?.rawValue ?? "nil")")
-        print("   - Max Injury Risk: \(filters.maxInjuryRisk?.rawValue ?? "nil")")
         print("   - Max Price: \(filters.maxPrice ?? 0)")
         print("   - Min Points: \(filters.minPoints ?? 0)")
         print("   - Min Confidence: \(filters.minConfidence ?? 0.0)")
@@ -363,7 +393,6 @@ struct TransferRecommendationsView: View {
             print("   - Risk Level: \(recommendation.riskLevel.rawValue)")
             print("   - Priority: \(recommendation.priority.rawValue)")
             print("   - Form Trend: \(recommendation.analysis.formTrend.rawValue)")
-            print("   - Injury Risk: \(recommendation.analysis.injuryRisk.rawValue)")
             
             // Position filter
             if !filters.positions.isEmpty {
@@ -391,12 +420,6 @@ struct TransferRecommendationsView: View {
             // Form trend filter
             if let formTrend = filters.formTrend, recommendation.analysis.formTrend != formTrend {
                 print("   ❌ Failed form trend filter")
-                return false
-            }
-            
-            // Injury risk filter - Korrigiert: Direkte Enum-Vergleiche
-            if let injuryRisk = filters.maxInjuryRisk, !isInjuryRiskAcceptable(recommendation.analysis.injuryRisk, maxRisk: injuryRisk) {
-                print("   ❌ Failed injury risk filter")
                 return false
             }
             
@@ -452,10 +475,6 @@ struct TransferRecommendationsView: View {
         return getPriorityOrder(priority) >= getPriorityOrder(minPriority)
     }
     
-    private func isInjuryRiskAcceptable(_ injuryRisk: PlayerAnalysis.InjuryRisk, maxRisk: PlayerAnalysis.InjuryRisk) -> Bool {
-        return getInjuryRiskOrder(injuryRisk) <= getInjuryRiskOrder(maxRisk)
-    }
-    
     private func getRiskLevelOrder(_ risk: TransferRecommendation.RiskLevel) -> Int {
         switch risk {
         case .low: return 1
@@ -469,14 +488,6 @@ struct TransferRecommendationsView: View {
         case .optional: return 1
         case .recommended: return 2
         case .essential: return 3
-        }
-    }
-    
-    private func getInjuryRiskOrder(_ risk: PlayerAnalysis.InjuryRisk) -> Int {
-        switch risk {
-        case .low: return 1
-        case .medium: return 2
-        case .high: return 3
         }
     }
     
@@ -505,12 +516,14 @@ struct TransferRecommendationsView: View {
         errorMessage = nil
         
         do {
+            loadingMessage = "Lade Spieldaten..."
             let budget = selectedLeague.currentUser.budget
             print("🎯 Loading recommendations with budget: \(budget)")
+            
+            loadingMessage = "Analysiere Spieler..."
             let results = try await recommendationService.generateRecommendations(for: selectedLeague, budget: budget)
             
-            // Load team analysis if available
-            // Note: This would need to be implemented in the service
+            loadingMessage = "Bereite Empfehlungen vor..."
             
             await MainActor.run {
                 self.recommendations = results
@@ -820,9 +833,9 @@ struct RecommendationPlayerDetailView: View {
                         StatDetailItem(title: "Preis-Leistung", value: String(format: "%.1f", recommendation.analysis.valueForMoney))
                     }
                     
-                    // Form & Health
+                    // Form
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Form & Gesundheit")
+                        Text("Form")
                             .font(.subheadline)
                             .fontWeight(.medium)
                         
@@ -835,19 +848,6 @@ struct RecommendationPlayerDetailView: View {
                             }
                             
                             Spacer()
-                            
-                            VStack(alignment: .trailing) {
-                                Text("Verletzungsrisiko")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                Text(recommendation.analysis.injuryRisk.rawValue)
-                                    .font(.caption)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 2)
-                                    .background(colorForInjuryRisk(recommendation.analysis.injuryRisk).opacity(0.2))
-                                    .foregroundColor(colorForInjuryRisk(recommendation.analysis.injuryRisk))
-                                    .cornerRadius(4)
-                            }
                         }
                     }
                     
@@ -1193,13 +1193,6 @@ struct FilterSheet: View {
                             Text(trend.rawValue).tag(PlayerAnalysis.FormTrend?.some(trend))
                         }
                     }
-                    
-                    Picker("Max. Verletzungsrisiko", selection: $filters.maxInjuryRisk) {
-                        Text("Alle").tag(PlayerAnalysis.InjuryRisk?.none)
-                        ForEach([PlayerAnalysis.InjuryRisk.low, .medium, .high], id: \.self) { risk in
-                            Text(risk.rawValue).tag(PlayerAnalysis.InjuryRisk?.some(risk))
-                        }
-                    }
                 }
                 
                 Section("Werte-Filter") {
@@ -1313,9 +1306,9 @@ struct PlayerDetailSheet: View {
                             StatDetailItem(title: "Preis-Leistung", value: String(format: "%.1f", recommendation.analysis.valueForMoney))
                         }
                         
-                        // Form & Health
+                        // Form
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Form & Gesundheit")
+                            Text("Form")
                                 .font(.subheadline)
                                 .fontWeight(.medium)
                             
@@ -1328,19 +1321,6 @@ struct PlayerDetailSheet: View {
                                 }
                                 
                                 Spacer()
-                                
-                                VStack(alignment: .trailing) {
-                                    Text("Verletzungsrisiko")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                    Text(recommendation.analysis.injuryRisk.rawValue)
-                                        .font(.caption)
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 2)
-                                        .background(colorForInjuryRisk(recommendation.analysis.injuryRisk).opacity(0.2))
-                                        .foregroundColor(colorForInjuryRisk(recommendation.analysis.injuryRisk))
-                                        .cornerRadius(4)
-                                }
                             }
                         }
                         
@@ -1485,7 +1465,6 @@ struct RecommendationFilters {
     var maxRisk: TransferRecommendation.RiskLevel = .high
     var minPriority: TransferRecommendation.Priority = .optional
     var formTrend: PlayerAnalysis.FormTrend?
-    var maxInjuryRisk: PlayerAnalysis.InjuryRisk?
     var minConfidence: Double?
 }
 

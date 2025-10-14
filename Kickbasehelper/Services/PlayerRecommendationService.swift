@@ -4,8 +4,26 @@ import Foundation
 class PlayerRecommendationService: ObservableObject {
     private let kickbaseManager: KickbaseManager
     
+    // Cache für Empfehlungen
+    private var cachedRecommendations: [String: CachedRecommendations] = [:]
+    private let cacheValidityDuration: TimeInterval = 300 // 5 Minuten Cache
+    
+    // Cache für Spieler-Statistiken (smdc, ismc, smc)
+    private var playerStatsCache: [String: PlayerMatchStats] = [:]
+    
+    // Aktueller Spieltag (wird bei generateRecommendations gesetzt)
+    private var currentMatchDay: Int = 10
+    
     init(kickbaseManager: KickbaseManager) {
         self.kickbaseManager = kickbaseManager
+    }
+    
+    // MARK: - Helper Structures
+    
+    private struct PlayerMatchStats {
+        let smdc: Int      // Aktueller Spieltag
+        let ismc: Int      // Spiele auf dem Platz (Startelf + Einwechslung)
+        let smc: Int       // Spiele in Startelf (Starting Match Count)
     }
     
     // MARK: - Main Recommendation Functions
@@ -13,73 +31,131 @@ class PlayerRecommendationService: ObservableObject {
     func generateRecommendations(for league: League, budget: Int) async throws -> [TransferRecommendation] {
         print("🎯 Generating transfer recommendations for league: \(league.name)")
         
-        // Lade aktuelle Team-Spieler und Marktspieler
-        let teamPlayers = try await getTeamPlayers(for: league)
-        let marketPlayers = try await getMarketPlayers(for: league)
+        // Prüfe Cache
+        if let cached = cachedRecommendations[league.id],
+           Date().timeIntervalSince(cached.timestamp) < cacheValidityDuration {
+            print("✅ Returning cached recommendations (\(cached.recommendations.count) players)")
+            return cached.recommendations
+        }
+        
+        // Lade aktuelle Team-Spieler und Marktspieler PARALLEL
+        async let teamPlayersTask = getTeamPlayers(for: league)
+        async let marketPlayersTask = getMarketPlayers(for: league)
+        
+        let (teamPlayers, marketPlayers) = try await (teamPlayersTask, marketPlayersTask)
+        
+        // Hole aktuellen Spieltag und Stats von einem beliebigen Spieler
+        let firstPlayerId = teamPlayers.first?.id ?? marketPlayers.first?.id
+        
+        if let playerId = firstPlayerId {
+            if let stats = await kickbaseManager.authenticatedPlayerService.getMatchDayStats(leagueId: league.id, playerId: playerId) {
+                currentMatchDay = stats.smdc
+                // Speichere Stats für diesen Spieler im Cache
+                playerStatsCache[playerId] = PlayerMatchStats(smdc: stats.smdc, ismc: stats.ismc, smc: stats.smc)
+                print("✅ Current matchday from API: \(currentMatchDay)")
+            } else {
+                currentMatchDay = 10 // Fallback
+                print("⚠️ Could not fetch matchday stats, using fallback: \(currentMatchDay)")
+            }
+        } else {
+            currentMatchDay = 10
+            print("⚠️ No players available to fetch matchday, using fallback: \(currentMatchDay)")
+        }
+        print("✅ Loaded \(teamPlayers.count) team players and \(marketPlayers.count) market players in parallel")
         let currentUser = league.currentUser
         
         // Analysiere das Team
         let teamAnalysis = analyzeTeam(teamPlayers: teamPlayers, user: currentUser, budget: budget)
         
-        // VERBESSERTE FILTERUNG: Spieler basierend auf verfügbaren Daten bewerten
+        // OPTIMIERTE FILTERUNG: Frühe Aussortierung ungeeigneter Spieler
         let qualityMarketPlayers = marketPlayers.filter { player in
-            print("🔍 Checking player: \(player.firstName) \(player.lastName)")
-            print("   - Total Points: \(player.totalPoints)")
-            print("   - Average Points: \(player.averagePoints)")
-            print("   - Price: \(player.price)")
-            print("   - Status: \(player.status)")
+            // Schnellste Checks zuerst (Status)
+            guard player.status != 8 && player.status != 16 else { return false }
             
+            // Dann Leistungschecks
+            guard player.averagePoints >= 70.0 else { return false }
+            guard player.totalPoints >= 140 else { return false }
             
-            // Mindestleistung: 2+ Durchschnittspunkte pro Spiel
-            if player.averagePoints < 70.0 {
-                print("   ❌ Failed: Average points too low (\(String(format: "%.2f", player.averagePoints)) < 2.0)")
-                return false
-            }
-            
-            // Nicht verletzt oder gesperrt (Status 8 = verletzt, Status 16 = gesperrt)
-            if player.status == 8 || player.status == 16 {
-                print("   ❌ Failed: Player injured or suspended (status: \(player.status))")
-                return false
-            }
-            
-            // Mindestpunktzahl insgesamt (reduziert auf 5)
-            if player.totalPoints < 140 {
-                print("   ❌ Failed: Total points too low (\(player.totalPoints) < 5)")
-                return false
-            }
-            
-            print("   ✅ Player passed all filters")
             return true
         }
         
-        print("📊 Filtered from \(marketPlayers.count) to \(qualityMarketPlayers.count) quality players")
+        print("📊 Pre-filtered from \(marketPlayers.count) to \(qualityMarketPlayers.count) quality players")
         
-        var recommendations: [TransferRecommendation] = []
-        var scoredPlayers: [(MarketPlayer, Double)] = []
+        // BATCH-PROCESSING: Verarbeite Spieler in Batches
+        let batchSize = 50
+        var allRecommendations: [TransferRecommendation] = []
         
-        for marketPlayer in qualityMarketPlayers {
-            let analysis = analyzePlayer(marketPlayer, teamAnalysis: teamAnalysis)
-            let recommendation = createRecommendation(marketPlayer: marketPlayer, analysis: analysis, teamAnalysis: teamAnalysis)
+        for batchStart in stride(from: 0, to: qualityMarketPlayers.count, by: batchSize) {
+            let batchEnd = min(batchStart + batchSize, qualityMarketPlayers.count)
+            let batch = Array(qualityMarketPlayers[batchStart..<batchEnd])
             
-            scoredPlayers.append((marketPlayer, recommendation.recommendationScore))
-            
-            // Temporär alle Spieler mit Score >= 2.0 aufnehmen (weiter reduziert)
-            if recommendation.recommendationScore >= 2.0 {
-                recommendations.append(recommendation)
+            // Verarbeite Batch parallel
+            let batchRecommendations = batch.compactMap { marketPlayer -> TransferRecommendation? in
+                let analysis = analyzePlayer(marketPlayer, teamAnalysis: teamAnalysis)
+                let recommendation = createRecommendation(marketPlayer: marketPlayer, analysis: analysis, teamAnalysis: teamAnalysis)
+                
+                // Nur Spieler mit gutem Score behalten
+                return recommendation.recommendationScore >= 2.0 ? recommendation : nil
             }
+            
+            allRecommendations.append(contentsOf: batchRecommendations)
+            print("📦 Processed batch \(batchStart/batchSize + 1): \(batchRecommendations.count) recommendations added")
         }
         
-        // Debug: Zeige die Top-Scorer
-        let topScorers = scoredPlayers.sorted { $0.1 > $1.1 }.prefix(5)
-        print("🏆 Top 5 scored players:")
-        for (player, score) in topScorers {
-            print("   \(player.firstName) \(player.lastName): Score \(String(format: "%.2f", score))")
+        print("✅ Generated \(allRecommendations.count) recommendations")
+        
+        // Sortiere nach Empfehlungswert und nimm Top 50 für Stats-Loading
+        let topRecommendations = allRecommendations.sorted { $0.recommendationScore > $1.recommendationScore }.prefix(50)
+        
+        // Lade Stats für Top-Spieler asynchron (parallel, max 10 gleichzeitig)
+        print("📊 Loading detailed stats for top \(topRecommendations.count) players...")
+        await loadStatsForPlayers(Array(topRecommendations), leagueId: league.id)
+        
+        // Jetzt neu berechnen mit echten Stats
+        var finalRecommendations: [TransferRecommendation] = []
+        for recommendation in topRecommendations {
+            var updatedRecommendation = recommendation
+            
+            // Wenn Stats verfügbar sind, neu berechnen
+            if let stats = playerStatsCache[recommendation.player.id] {
+                let updatedProjection = calculateSeasonProjectionWithStats(
+                    recommendation.player,
+                    stats: stats
+                )
+                
+                // Erstelle eine aktualisierte Analysis mit neuer Projection
+                let updatedAnalysis = PlayerAnalysis(
+                    pointsPerGame: recommendation.analysis.pointsPerGame,
+                    valueForMoney: recommendation.analysis.valueForMoney,
+                    formTrend: recommendation.analysis.formTrend,
+                    injuryRisk: recommendation.analysis.injuryRisk,
+                    upcomingFixtures: recommendation.analysis.upcomingFixtures,
+                    seasonProjection: updatedProjection
+                )
+                
+                updatedRecommendation = TransferRecommendation(
+                    player: recommendation.player,
+                    recommendationScore: recommendation.recommendationScore,
+                    reasons: recommendation.reasons,
+                    analysis: updatedAnalysis,
+                    riskLevel: recommendation.riskLevel,
+                    priority: recommendation.priority
+                )
+            }
+            
+            finalRecommendations.append(updatedRecommendation)
         }
         
-        print("✅ Generated \(recommendations.count) recommendations from \(scoredPlayers.count) scored players")
+        // Sortiere final nach Score und limitiere auf Top 20
+        finalRecommendations = Array(finalRecommendations.sorted { $0.recommendationScore > $1.recommendationScore }.prefix(20))
         
-        // Sortiere nach Empfehlungswert (höchste zuerst) und limitiere auf Top 20
-        return Array(recommendations.sorted { $0.recommendationScore > $1.recommendationScore }.prefix(20))
+        // Cache speichern
+        cachedRecommendations[league.id] = CachedRecommendations(
+            recommendations: finalRecommendations,
+            timestamp: Date()
+        )
+        
+        return finalRecommendations
     }
     
     // MARK: - Helper Functions
@@ -237,24 +313,121 @@ class PlayerRecommendationService: ObservableObject {
     }
     
     private func calculateSeasonProjection(_ marketPlayer: MarketPlayer) -> SeasonProjection {
+        // Fallback-Berechnung ohne Stats (wird später mit echten Stats überschrieben)
         let currentPoints = marketPlayer.totalPoints
-        let gamesPlayed = max(marketPlayer.number, 1)
         let pointsPerGame = marketPlayer.averagePoints
-        let remainingGames = 34 - gamesPlayed
         
-        let projectedTotal = currentPoints + Int(pointsPerGame * Double(max(remainingGames, 0)))
-        let projectedValueIncrease = marketPlayer.marketValueTrend * max(remainingGames, 0) / 10
+        // Schätze gespielte Spiele aus Punkten
+        let estimatedGamesPlayed = pointsPerGame > 0 ? Int(round(Double(currentPoints) / pointsPerGame)) : 0
+        let remainingGames = max(34 - estimatedGamesPlayed, 0)
+        
+        let projectedTotal = currentPoints + Int(pointsPerGame * Double(remainingGames))
+        let projectedValueIncrease = marketPlayer.marketValueTrend * remainingGames / 10
+        
+        // Niedrige Confidence, da keine echten Stats
+        let confidence = 0.5
         
         return SeasonProjection(
             projectedTotalPoints: projectedTotal,
             projectedValueIncrease: projectedValueIncrease,
-            confidence: min(Double(gamesPlayed) / 10.0, 1.0)
+            confidence: confidence
         )
     }
     
+    private func calculateSeasonProjectionWithStats(_ marketPlayer: MarketPlayer, stats: PlayerMatchStats) -> SeasonProjection {
+        let currentPoints = marketPlayer.totalPoints
+        let gamesPlayed = stats.ismc  // Spiele auf dem Platz (Startelf + Einwechslung)
+        let pointsPerGame = marketPlayer.averagePoints
+        let remainingGames = max(34 - gamesPlayed, 0)
+        
+        let projectedTotal = currentPoints + Int(pointsPerGame * Double(remainingGames))
+        let projectedValueIncrease = marketPlayer.marketValueTrend * remainingGames / 10
+        
+        // Debug: Zeige Stats
+        print("📊 Stats for \(marketPlayer.firstName) \(marketPlayer.lastName):")
+        print("   smdc=\(stats.smdc), ismc=\(stats.ismc), smc=\(stats.smc)")
+        
+        // Confidence basiert auf Spielbeteiligung
+        let confidence: Double
+        if stats.smdc > 0 && gamesPlayed > 0 {
+            let playedRatio = Double(gamesPlayed) / Double(stats.smdc)
+            // Bonus für Stammkräfte (smc ~ ismc)
+            let starterBonus = Double(stats.smc) / max(Double(stats.ismc), 1.0)
+            confidence = min(playedRatio * (0.7 + starterBonus * 0.3), 1.0)
+            
+            print("   playedRatio=\(String(format: "%.2f", playedRatio)), starterBonus=\(String(format: "%.2f", starterBonus))")
+            print("🎯 Confidence for \(marketPlayer.firstName) \(marketPlayer.lastName): \(gamesPlayed) played / \(stats.smdc) matchdays (started: \(stats.smc)) = \(String(format: "%.1f%%", confidence * 100))")
+        } else {
+            confidence = 0.0
+            print("⚠️ No stats available for \(marketPlayer.firstName) \(marketPlayer.lastName)")
+        }
+        
+        return SeasonProjection(
+            projectedTotalPoints: projectedTotal,
+            projectedValueIncrease: projectedValueIncrease,
+            confidence: confidence
+        )
+    }
+    
+    /// Lädt Stats für eine Liste von Spielern (parallel, max 10 gleichzeitig)
+    private func loadStatsForPlayers(_ recommendations: [TransferRecommendation], leagueId: String) async {
+        // Nur Spieler laden, die noch nicht im Cache sind
+        let playersToLoad = recommendations.filter { playerStatsCache[$0.player.id] == nil }
+        
+        guard !playersToLoad.isEmpty else {
+            print("✅ All player stats already cached")
+            return
+        }
+        
+        print("📥 Loading stats for \(playersToLoad.count) players...")
+        
+        // Verarbeite in Batches von 10 parallel
+        for batchStart in stride(from: 0, to: playersToLoad.count, by: 10) {
+            let batchEnd = min(batchStart + 10, playersToLoad.count)
+            let batch = Array(playersToLoad[batchStart..<batchEnd])
+            
+            // Lade Stats parallel
+            await withTaskGroup(of: (String, PlayerMatchStats?).self) { group in
+                for recommendation in batch {
+                    group.addTask {
+                        let stats = await self.kickbaseManager.authenticatedPlayerService.getMatchDayStats(
+                            leagueId: leagueId,
+                            playerId: recommendation.player.id
+                        )
+                        if let stats = stats {
+                            return (recommendation.player.id, PlayerMatchStats(smdc: stats.smdc, ismc: stats.ismc, smc: stats.smc))
+                        }
+                        return (recommendation.player.id, nil)
+                    }
+                }
+                
+                for await (playerId, stats) in group {
+                    if let stats = stats {
+                        self.playerStatsCache[playerId] = stats
+                    }
+                }
+            }
+        }
+        
+        print("✅ Loaded stats for \(playerStatsCache.count) players total")
+    }
+    
     private func calculateValueForMoney(_ marketPlayer: MarketPlayer) -> Double {
+        guard marketPlayer.price > 0 else { return 0.0 }
         let pointsPerMillion = Double(marketPlayer.totalPoints) / (Double(marketPlayer.price) / 1_000_000.0)
         return pointsPerMillion
+    }
+    
+    // MARK: - Cache Helper
+    
+    func clearCache() {
+        cachedRecommendations.removeAll()
+        print("🗑️ Recommendations cache cleared")
+    }
+    
+    func clearCacheForLeague(_ leagueId: String) {
+        cachedRecommendations.removeValue(forKey: leagueId)
+        print("🗑️ Cache cleared for league: \(leagueId)")
     }
     
     private func createRecommendation(marketPlayer: MarketPlayer, analysis: PlayerAnalysis, teamAnalysis: TeamAnalysis) -> TransferRecommendation {
@@ -314,17 +487,7 @@ class PlayerRecommendationService: ObservableObject {
             score -= 1.5  // Stark fallender Marktwert
         }
         
-        // 6. Verletzungsrisiko (verschärft)
-        switch analysis.injuryRisk {
-        case .low:
-            score += 1.5  // Erhöht von 1.0
-        case .medium:
-            score -= 0.5  // Verschlechtert
-        case .high:
-            score -= 3.0  // Verschlechtert von -2.0
-        }
-        
-        // 7. Team-Need Bonus (wichtiger gemacht)
+        // 6. Team-Need Bonus (wichtiger gemacht)
         if let playerPosition = mapIntToPosition(marketPlayer.position) {
             if teamAnalysis.weakPositions.contains(playerPosition) {
                 score += 4.0  // Erhöht von 3.0
@@ -335,7 +498,7 @@ class PlayerRecommendationService: ObservableObject {
             }
         }
         
-        // 8. Spiele-Konsistenz Bonus
+        // 7. Spiele-Konsistenz Bonus
         let gamesPlayed = Double(marketPlayer.number)
         if gamesPlayed >= 15 {
             score += 1.0  // Konsistent viele Spiele
@@ -345,7 +508,7 @@ class PlayerRecommendationService: ObservableObject {
             score -= 1.0  // Zu wenige Spiele
         }
         
-        // 9. Preis-Effizienz (neue Kategorie)
+        // 8. Preis-Effizienz
         let priceInMillions = Double(marketPlayer.price) / 1_000_000.0
         if priceInMillions <= 5.0 && analysis.pointsPerGame >= 7.0 {
             score += 2.0  // Günstiger Topstar
@@ -445,24 +608,14 @@ class PlayerRecommendationService: ObservableObject {
             }
         }
         
-        // Injury Risk Reasoning
-        switch analysis.injuryRisk {
-        case .high:
-            reasons.append(RecommendationReason(
-                type: .injury,
-                description: "⚠️ Verletzungsrisiko beachten",
-                impact: -5.0
-            ))
-        case .medium:
-            reasons.append(RecommendationReason(
-                type: .injury,
-                description: "Mittleres Verletzungsrisiko",
-                impact: -2.0
-            ))
-        case .low:
-            break
-        }
-        
         return reasons
     }
 }
+
+// MARK: - Cache Structure
+
+private struct CachedRecommendations {
+    let recommendations: [TransferRecommendation]
+    let timestamp: Date
+}
+

@@ -10,6 +10,40 @@ class KickbasePlayerService: ObservableObject {
         self.dataParser = dataParser
     }
     
+    // MARK: - Current Matchday
+    
+    /// Holt Spieltag-Informationen von einem Spieler
+    /// - Returns: Tuple mit (smdc: aktueller Spieltag, ismc: Spiele auf dem Platz, smc: Spiele in Startelf)
+    func getMatchDayStats(leagueId: String, playerId: String) async -> (smdc: Int, ismc: Int, smc: Int)? {
+        do {
+            let json = try await apiService.getPlayerDetails(leagueId: leagueId, playerId: playerId)
+            
+            guard let smdc = json["smdc"] as? Int else {
+                print("⚠️ smdc field not found in player details")
+                return nil
+            }
+            
+            let ismc = json["ismc"] as? Int ?? 0  // Spiele auf dem Platz (Startelf + Einwechslung)
+            let smc = json["smc"] as? Int ?? 0    // Spiele in Startelf (Starting Match Count)
+            
+            print("📊 Stats for player \(playerId): matchday=\(smdc), gamesPlayed=\(ismc), gamesStarted=\(smc)")
+            
+            return (smdc: smdc, ismc: ismc, smc: smc)
+        } catch {
+            print("❌ Error fetching match day stats: \(error.localizedDescription)")
+            return nil
+        }
+    }
+    
+    /// Holt den aktuellen Spieltag (smdc) von einem beliebigen Spieler
+    /// Einfache Version die nur den Spieltag zurückgibt
+    func getCurrentMatchDay(leagueId: String, playerId: String) async -> Int? {
+        if let stats = await getMatchDayStats(leagueId: leagueId, playerId: playerId) {
+            return stats.smdc
+        }
+        return nil
+    }
+    
     // MARK: - Team Players Loading
     
     func loadTeamPlayers(for league: League) async throws -> [TeamPlayer] {
