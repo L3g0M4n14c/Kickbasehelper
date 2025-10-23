@@ -6,7 +6,8 @@ struct TeamTab: View {
     @State private var searchText = ""
     @State private var playersForSale: Set<String> = []
     @State private var selectedSaleValue: Int = 0
-    
+    @State private var showRecommendations = false
+
     enum SortOption: String, CaseIterable {
         case name = "Name"
         case marketValue = "Marktwert"
@@ -14,118 +15,143 @@ struct TeamTab: View {
         case trend = "Trend"
         case position = "Position"
     }
-    
+
     // Funktion zur Berechnung des Gesamtwerts der zum Verkauf ausgewählten Spieler
     private func calculateTotalSaleValue() {
         let selectedPlayers = kickbaseManager.teamPlayers
             .filter { playersForSale.contains($0.id) }
-        
+
         print("🔍 TeamTab: Calculating totalSaleValue")
         print("   - Selected players count: \(selectedPlayers.count)")
         print("   - PlayersForSale set: \(playersForSale)")
-        
+
         let total = selectedPlayers.reduce(0) { sum, player in
             print("   - Adding player: \(player.fullName) with marketValue: \(player.marketValue)")
             return sum + player.marketValue
         }
-        
+
         print("   - Total sale value: \(total)")
         selectedSaleValue = total
     }
-    
+
     var body: some View {
         NavigationView {
-            VStack {
-                // Budget-Anzeige mit verkaufbaren Spielern
-                if let stats = kickbaseManager.userStats {
-                    TeamBudgetHeader(
-                        currentBudget: stats.budget,
-                        saleValue: selectedSaleValue
-                    )
-                    .padding(.horizontal)
+            VStack(spacing: 0) {
+                // Tab Toggle
+                Picker("View", selection: $showRecommendations) {
+                    Text("Mein Team").tag(false)
+                    Text("Verkaufs-Tipps").tag(true)
                 }
-                
-                // Search and Sort Controls
-                VStack(spacing: 10) {
-                    HStack {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundColor(.gray)
-                        TextField("Spieler suchen...", text: $searchText)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                    }
-                    
-                    HStack {
-                        Text("Sortieren:")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        
-                        Picker("Sortierung", selection: $sortBy) {
-                            ForEach(SortOption.allCases, id: \.self) { option in
-                                Text(option.rawValue).tag(option)
+                .pickerStyle(.segmented)
+                .padding()
+
+                if showRecommendations {
+                    // Verkaufs-Empfehlungen View
+                    SaleRecommendationsView(kickbaseManager: kickbaseManager)
+                } else {
+                    // Original Team View
+                    VStack {
+                        // Budget-Anzeige mit verkaufbaren Spielern
+                        if let stats = kickbaseManager.userStats {
+                            TeamBudgetHeader(
+                                currentBudget: stats.budget,
+                                saleValue: selectedSaleValue
+                            )
+                            .padding(.horizontal)
+                        }
+
+                        // Search and Sort Controls
+                        VStack(spacing: 10) {
+                            HStack {
+                                Image(systemName: "magnifyingglass")
+                                    .foregroundColor(.gray)
+                                TextField("Spieler suchen...", text: $searchText)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                            }
+
+                            HStack {
+                                Text("Sortieren:")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+
+                                Picker("Sortierung", selection: $sortBy) {
+                                    ForEach(SortOption.allCases, id: \.self) { option in
+                                        Text(option.rawValue).tag(option)
+                                    }
+                                }
+                                .pickerStyle(SegmentedPickerStyle())
                             }
                         }
-                        .pickerStyle(SegmentedPickerStyle())
-                    }
-                }
-                .padding(.horizontal)
-                
-                // Players List or Empty State
-                if kickbaseManager.teamPlayers.isEmpty {
-                    VStack(spacing: 20) {
-                        Spacer()
-                        
-                        Image(systemName: "person.3.fill")
-                            .font(.system(size: 60))
-                            .foregroundColor(.gray)
-                        
-                        Text("Keine Spieler geladen")
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                        
-                        Text("Ziehe nach unten um zu aktualisieren oder wähle eine Liga aus")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
-                        
-                        Button("Team neu laden") {
-                            Task {
+                        .padding(.horizontal)
+
+                        // Players List or Empty State
+                        if kickbaseManager.teamPlayers.isEmpty {
+                            VStack(spacing: 20) {
+                                Spacer()
+
+                                Image(systemName: "person.3.fill")
+                                    .font(.system(size: 60))
+                                    .foregroundColor(.gray)
+
+                                Text("Keine Spieler geladen")
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+
+                                Text(
+                                    "Ziehe nach unten um zu aktualisieren oder wähle eine Liga aus"
+                                )
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal)
+
+                                Button("Team neu laden") {
+                                    Task {
+                                        if let league = kickbaseManager.selectedLeague {
+                                            await kickbaseManager.loadTeamPlayers(for: league)
+                                        }
+                                    }
+                                }
+                                .buttonStyle(.borderedProminent)
+
+                                Spacer()
+                            }
+                        } else {
+                            // Players List
+                            List {
+                                ForEach(Array(filteredAndSortedPlayers.enumerated()), id: \.offset)
+                                { index, player in
+                                    TeamPlayerRowWithSale(
+                                        teamPlayer: player,
+                                        isSelectedForSale: playersForSale.contains(player.id),
+                                        onToggleSale: { isSelected in
+                                            print(
+                                                "🔄 TeamTab: Toggle for player \(player.fullName) (ID: \(player.id)) - isSelected: \(isSelected)"
+                                            )
+                                            print("   - Player market value: \(player.marketValue)")
+                                            if isSelected {
+                                                playersForSale.insert(player.id)
+                                                print(
+                                                    "   - Added to playersForSale. New set: \(playersForSale)"
+                                                )
+                                            } else {
+                                                playersForSale.remove(player.id)
+                                                print(
+                                                    "   - Removed from playersForSale. New set: \(playersForSale)"
+                                                )
+                                            }
+                                            // Explizit die Berechnung triggern
+                                            calculateTotalSaleValue()
+                                        }
+                                    )
+                                    .id("\(player.id)-\(index)")
+                                }
+                            }
+                            .refreshable {
                                 if let league = kickbaseManager.selectedLeague {
                                     await kickbaseManager.loadTeamPlayers(for: league)
                                 }
                             }
-                        }
-                        .buttonStyle(.borderedProminent)
-                        
-                        Spacer()
-                    }
-                } else {
-                    // Players List
-                    List {
-                        ForEach(Array(filteredAndSortedPlayers.enumerated()), id: \.offset) { index, player in
-                            TeamPlayerRowWithSale(
-                                teamPlayer: player,
-                                isSelectedForSale: playersForSale.contains(player.id),
-                                onToggleSale: { isSelected in
-                                    print("🔄 TeamTab: Toggle for player \(player.fullName) (ID: \(player.id)) - isSelected: \(isSelected)")
-                                    print("   - Player market value: \(player.marketValue)")
-                                    if isSelected {
-                                        playersForSale.insert(player.id)
-                                        print("   - Added to playersForSale. New set: \(playersForSale)")
-                                    } else {
-                                        playersForSale.remove(player.id)
-                                        print("   - Removed from playersForSale. New set: \(playersForSale)")
-                                    }
-                                    // Explizit die Berechnung triggern
-                                    calculateTotalSaleValue()
-                                }
-                            )
-                            .id("\(player.id)-\(index)")
-                        }
-                    }
-                    .refreshable {
-                        if let league = kickbaseManager.selectedLeague {
-                            await kickbaseManager.loadTeamPlayers(for: league)
                         }
                     }
                 }
@@ -133,7 +159,7 @@ struct TeamTab: View {
             .navigationTitle("Mein Team (\(kickbaseManager.teamPlayers.count))")
             .onAppear {
                 print("🎯 TeamTab appeared - Players count: \(kickbaseManager.teamPlayers.count)")
-                calculateTotalSaleValue() // Initial berechnen
+                calculateTotalSaleValue()  // Initial berechnen
                 if kickbaseManager.teamPlayers.isEmpty {
                     print("🔄 TeamTab: No players found, triggering reload...")
                     Task {
@@ -145,15 +171,17 @@ struct TeamTab: View {
             }
         }
     }
-    
+
     private var filteredAndSortedPlayers: [TeamPlayer] {
-        let filtered = searchText.isEmpty ? kickbaseManager.teamPlayers :
-            kickbaseManager.teamPlayers.filter { player in
-                player.firstName.localizedCaseInsensitiveContains(searchText) ||
-                player.lastName.localizedCaseInsensitiveContains(searchText) ||
-                player.fullTeamName.localizedCaseInsensitiveContains(searchText)
+        let filtered =
+            searchText.isEmpty
+            ? kickbaseManager.teamPlayers
+            : kickbaseManager.teamPlayers.filter { player in
+                player.firstName.localizedCaseInsensitiveContains(searchText)
+                    || player.lastName.localizedCaseInsensitiveContains(searchText)
+                    || player.fullTeamName.localizedCaseInsensitiveContains(searchText)
             }
-        
+
         return filtered.sorted(by: { player1, player2 in
             switch sortBy {
             case .name:
@@ -175,7 +203,7 @@ struct TeamPlayerRow: View {
     let teamPlayer: TeamPlayer
     @State private var showingPlayerDetail = false
     @EnvironmentObject var kickbaseManager: KickbaseManager
-    
+
     var body: some View {
         Button(action: {
             print("🔄 TeamPlayerRow: Tapped on player \(teamPlayer.fullName)")
@@ -192,20 +220,20 @@ struct TeamPlayerRow: View {
                         .padding(.vertical, 2)
                         .background(positionColor(teamPlayer.position))
                         .cornerRadius(4)
-                    
+
                     Text("\(teamPlayer.number)")
                         .font(.caption2)
                         .foregroundColor(.secondary)
                 }
                 .frame(minWidth: 40)
-                
+
                 // Player Info - erweiterte Breite für Namen
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 4) {
                         Text(teamPlayer.fullName)
                             .font(.headline)
-                            .lineLimit(2) // Erlaubt 2 Zeilen für längere Namen
-                        
+                            .lineLimit(2)  // Erlaubt 2 Zeilen für längere Namen
+
                         // Status-Icons basierend auf st-Feld aus API-Daten anzeigen
                         if teamPlayer.status == 1 {
                             // Verletzt - rotes Kreuz
@@ -224,32 +252,32 @@ struct TeamPlayerRow: View {
                                 .font(.caption)
                         }
                     }
-                    
+
                     Text(teamPlayer.fullTeamName)
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .lineLimit(1)
                 }
-                .frame(minWidth: 160, alignment: .leading) // Mindestbreite für Namensbereich
-                
-                Spacer(minLength: 8) // Reduzierter Mindestabstand
-                
+                .frame(minWidth: 160, alignment: .leading)  // Mindestbreite für Namensbereich
+
+                Spacer(minLength: 8)  // Reduzierter Mindestabstand
+
                 // Stats - Durchschnittspunktzahl als große Zahl, Gesamtpunktzahl als kleine Zahl
                 VStack(alignment: .trailing, spacing: 2) {
                     Text("\(teamPlayer.averagePoints, specifier: "%.0f")")
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundColor(.primary)
-                    
+
                     Text("\(teamPlayer.totalPoints)")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    
+
                     HStack(spacing: 4) {
-                        Text("€\(teamPlayer.marketValue / 1000)k")
+                        Text("€\(teamPlayer.marketValue / 1_000_000)M")
                             .font(.caption2)
                             .foregroundColor(.secondary)
-                        
+
                         if teamPlayer.tfhmvt > 0 {
                             Image(systemName: "arrow.up")
                                 .foregroundColor(.green)
@@ -265,15 +293,15 @@ struct TeamPlayerRow: View {
                         }
                     }
                 }
-                .frame(minWidth: 80, alignment: .trailing) // Feste Breite für Stats
+                .frame(minWidth: 80, alignment: .trailing)  // Feste Breite für Stats
             }
             .padding(.vertical, 4)
         }
         .buttonStyle(PlainButtonStyle())
         .sheet(isPresented: $showingPlayerDetail) {
             if let league = kickbaseManager.selectedLeague {
-                            PlayerDetailView(player: teamPlayer)
-                        }
+                PlayerDetailView(player: teamPlayer)
+            }
         }
     }
 }
@@ -283,9 +311,9 @@ struct TeamPlayerRowWithSale: View {
     let isSelectedForSale: Bool
     let onToggleSale: (Bool) -> Void
     @State private var showingPlayerDetail = false
-    
+
     @EnvironmentObject var kickbaseManager: KickbaseManager
-    
+
     var body: some View {
         Button(action: {
             print("🔄 TeamPlayerRow: Tapped on player \(teamPlayer.fullName)")
@@ -302,20 +330,20 @@ struct TeamPlayerRowWithSale: View {
                         .padding(.vertical, 2)
                         .background(positionColor(teamPlayer.position))
                         .cornerRadius(4)
-                    
+
                     Text("\(teamPlayer.number)")
                         .font(.caption2)
                         .foregroundColor(.secondary)
                 }
                 .frame(minWidth: 40)
-                
+
                 // Player Info - erweiterte Breite für Namen
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 4) {
                         Text(teamPlayer.fullName)
                             .font(.headline)
-                            .lineLimit(2) // Erlaubt 2 Zeilen für längere Namen
-                        
+                            .lineLimit(2)  // Erlaubt 2 Zeilen für längere Namen
+
                         // Status-Icons basierend auf st-Feld aus API-Daten anzeigen
                         if teamPlayer.status == 1 {
                             // Verletzt - rotes Kreuz
@@ -334,32 +362,32 @@ struct TeamPlayerRowWithSale: View {
                                 .font(.caption)
                         }
                     }
-                    
+
                     Text(teamPlayer.fullTeamName)
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .lineLimit(1)
                 }
-                .frame(minWidth: 160, alignment: .leading) // Mindestbreite für Namensbereich
-                
-                Spacer(minLength: 8) // Reduzierter Mindestabstand
-                
+                .frame(minWidth: 160, alignment: .leading)  // Mindestbreite für Namensbereich
+
+                Spacer(minLength: 8)  // Reduzierter Mindestabstand
+
                 // Stats - Durchschnittspunktzahl als große Zahl, Gesamtpunktzahl als kleine Zahl
                 VStack(alignment: .trailing, spacing: 2) {
                     Text("\(teamPlayer.averagePoints, specifier: "%.0f")")
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundColor(.primary)
-                    
+
                     Text("\(teamPlayer.totalPoints)")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    
+
                     HStack(spacing: 4) {
-                        Text("€\(teamPlayer.marketValue / 1000)k")
+                        Text("€\(teamPlayer.marketValue / 1_000_000)M")
                             .font(.caption2)
                             .foregroundColor(.secondary)
-                        
+
                         if teamPlayer.tfhmvt > 0 {
                             Image(systemName: "arrow.up")
                                 .foregroundColor(.green)
@@ -375,13 +403,15 @@ struct TeamPlayerRowWithSale: View {
                         }
                     }
                 }
-                .frame(minWidth: 80, alignment: .trailing) // Feste Breite für Stats
-                
+                .frame(minWidth: 80, alignment: .trailing)  // Feste Breite für Stats
+
                 // Sale Toggle
-                Toggle(isOn: Binding(
-                    get: { isSelectedForSale },
-                    set: { onToggleSale($0) }
-                )) {
+                Toggle(
+                    isOn: Binding(
+                        get: { isSelectedForSale },
+                        set: { onToggleSale($0) }
+                    )
+                ) {
                     // Empty label
                 }
                 .toggleStyle(SwitchToggleStyle())
@@ -393,8 +423,8 @@ struct TeamPlayerRowWithSale: View {
         .buttonStyle(PlainButtonStyle())
         .sheet(isPresented: $showingPlayerDetail) {
             if let league = kickbaseManager.selectedLeague {
-                            PlayerDetailView(player: teamPlayer)
-                        }
+                PlayerDetailView(player: teamPlayer)
+            }
         }
     }
 }
@@ -402,44 +432,44 @@ struct TeamPlayerRowWithSale: View {
 struct MarketTab: View {
     @EnvironmentObject var kickbaseManager: KickbaseManager
     @State private var searchText = ""
-    @State private var selectedPosition: Int = 0 // 0 = All, 1 = TW, 2 = ABW, 3 = MF, 4 = ST
+    @State private var selectedPosition: Int = 0  // 0 = All, 1 = TW, 2 = ABW, 3 = MF, 4 = ST
     @State private var isManuallyLoading = false
     @State private var forceRefreshId = UUID()
-    
+
     var body: some View {
         NavigationView {
             VStack {
                 // Debug Info (nur in Debug-Builds)
                 #if DEBUG
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Debug Info:")
-                        .font(.caption2)
-                        .foregroundColor(.orange)
-                    Text("Market Players Count: \(kickbaseManager.marketPlayers.count)")
-                        .font(.caption2)
-                        .foregroundColor(.orange)
-                    Text("Filtered Count: \(filteredMarketPlayers.count)")
-                        .font(.caption2)
-                        .foregroundColor(.orange)
-                    Text("Selected League: \(kickbaseManager.selectedLeague?.name ?? "None")")
-                        .font(.caption2)
-                        .foregroundColor(.orange)
-                    Text("Is Loading: \(kickbaseManager.isLoading)")
-                        .font(.caption2)
-                        .foregroundColor(.orange)
-                    Text("Manual Loading: \(isManuallyLoading)")
-                        .font(.caption2)
-                        .foregroundColor(.orange)
-                    if let error = kickbaseManager.errorMessage {
-                        Text("Error: \(error)")
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Debug Info:")
                             .font(.caption2)
-                            .foregroundColor(.red)
+                            .foregroundColor(.orange)
+                        Text("Market Players Count: \(kickbaseManager.marketPlayers.count)")
+                            .font(.caption2)
+                            .foregroundColor(.orange)
+                        Text("Filtered Count: \(filteredMarketPlayers.count)")
+                            .font(.caption2)
+                            .foregroundColor(.orange)
+                        Text("Selected League: \(kickbaseManager.selectedLeague?.name ?? "None")")
+                            .font(.caption2)
+                            .foregroundColor(.orange)
+                        Text("Is Loading: \(kickbaseManager.isLoading)")
+                            .font(.caption2)
+                            .foregroundColor(.orange)
+                        Text("Manual Loading: \(isManuallyLoading)")
+                            .font(.caption2)
+                            .foregroundColor(.orange)
+                        if let error = kickbaseManager.errorMessage {
+                            Text("Error: \(error)")
+                                .font(.caption2)
+                                .foregroundColor(.red)
+                        }
                     }
-                }
-                .padding(.horizontal)
-                .padding(.bottom, 8)
+                    .padding(.horizontal)
+                    .padding(.bottom, 8)
                 #endif
-                
+
                 // Filter Controls
                 VStack(spacing: 10) {
                     HStack {
@@ -448,7 +478,7 @@ struct MarketTab: View {
                         TextField("Spieler oder Verein suchen...", text: $searchText)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                     }
-                    
+
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 10) {
                             FilterButton(title: "Alle", isSelected: selectedPosition == 0) {
@@ -471,7 +501,7 @@ struct MarketTab: View {
                     }
                 }
                 .padding(.horizontal)
-                
+
                 // Market Players List or Empty State
                 if kickbaseManager.isLoading || isManuallyLoading {
                     VStack(spacing: 20) {
@@ -486,53 +516,53 @@ struct MarketTab: View {
                 } else if let error = kickbaseManager.errorMessage {
                     VStack(spacing: 20) {
                         Spacer()
-                        
+
                         Image(systemName: "exclamationmark.triangle.fill")
                             .font(.system(size: 60))
                             .foregroundColor(.red)
-                        
+
                         Text("Fehler beim Laden")
                             .font(.headline)
                             .foregroundColor(.primary)
-                        
+
                         Text(error)
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal)
-                        
+
                         Button("Erneut versuchen") {
                             manualReload()
                         }
                         .buttonStyle(.borderedProminent)
                         .disabled(kickbaseManager.selectedLeague == nil)
-                        
+
                         Spacer()
                     }
                 } else if kickbaseManager.marketPlayers.isEmpty {
                     VStack(spacing: 20) {
                         Spacer()
-                        
+
                         Image(systemName: "cart.fill")
                             .font(.system(size: 60))
                             .foregroundColor(.gray)
-                        
+
                         Text("Keine Transfermarkt-Spieler verfügbar")
                             .font(.headline)
                             .foregroundColor(.primary)
-                        
+
                         Text("Derzeit sind keine Spieler auf dem Transfermarkt")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal)
-                        
+
                         Button("Aktualisieren") {
                             manualReload()
                         }
                         .buttonStyle(.borderedProminent)
                         .disabled(kickbaseManager.selectedLeague == nil)
-                        
+
                         Spacer()
                     }
                 } else {
@@ -553,7 +583,7 @@ struct MarketTab: View {
                 print("   - Market players count: \(kickbaseManager.marketPlayers.count)")
                 print("   - Selected league: \(kickbaseManager.selectedLeague?.name ?? "None")")
                 print("   - Is loading: \(kickbaseManager.isLoading)")
-                
+
                 // Force initial load if needed
                 if kickbaseManager.marketPlayers.isEmpty && !kickbaseManager.isLoading {
                     print("🔄 MarketTab: No market players found, triggering reload...")
@@ -563,7 +593,9 @@ struct MarketTab: View {
                 }
             }
             .onChange(of: kickbaseManager.selectedLeague) { oldLeague, newLeague in
-                print("🔄 MarketTab: League changed from \(oldLeague?.name ?? "None") to \(newLeague?.name ?? "None")")
+                print(
+                    "🔄 MarketTab: League changed from \(oldLeague?.name ?? "None") to \(newLeague?.name ?? "None")"
+                )
                 if let newLeague = newLeague {
                     Task {
                         await performInitialLoad()
@@ -571,61 +603,69 @@ struct MarketTab: View {
                 }
             }
             .onChange(of: kickbaseManager.marketPlayers) { oldPlayers, newPlayers in
-                print("🔄 MarketTab: Market players changed from \(oldPlayers.count) to \(newPlayers.count)")
+                print(
+                    "🔄 MarketTab: Market players changed from \(oldPlayers.count) to \(newPlayers.count)"
+                )
                 forceRefreshId = UUID()
             }
         }
     }
-    
+
     private func performInitialLoad() async {
         guard let league = kickbaseManager.selectedLeague else {
             print("❌ MarketTab: No league selected for initial load")
             return
         }
-        
+
         print("🔄 MarketTab: Starting initial load for league \(league.name)")
         await kickbaseManager.loadMarketPlayers(for: league)
-        print("✅ MarketTab: Initial load completed. Market players count: \(kickbaseManager.marketPlayers.count)")
+        print(
+            "✅ MarketTab: Initial load completed. Market players count: \(kickbaseManager.marketPlayers.count)"
+        )
     }
-    
+
     private func performRefresh() async {
         guard let league = kickbaseManager.selectedLeague else {
             print("❌ MarketTab: No league selected for refresh")
             return
         }
-        
+
         print("🔄 MarketTab: Starting refresh for league \(league.name)")
         await kickbaseManager.loadMarketPlayers(for: league)
-        print("✅ MarketTab: Refresh completed. Market players count: \(kickbaseManager.marketPlayers.count)")
+        print(
+            "✅ MarketTab: Refresh completed. Market players count: \(kickbaseManager.marketPlayers.count)"
+        )
     }
-    
+
     private func manualReload() {
         guard let league = kickbaseManager.selectedLeague else {
             print("❌ MarketTab: No league selected for manual reload")
             return
         }
-        
+
         isManuallyLoading = true
         print("🔄 MarketTab: Starting manual reload for league \(league.name)")
-        
+
         Task {
             await kickbaseManager.loadMarketPlayers(for: league)
             await MainActor.run {
                 isManuallyLoading = false
-                print("✅ MarketTab: Manual reload completed. Market players count: \(kickbaseManager.marketPlayers.count)")
+                print(
+                    "✅ MarketTab: Manual reload completed. Market players count: \(kickbaseManager.marketPlayers.count)"
+                )
             }
         }
     }
-    
+
     private var filteredMarketPlayers: [MarketPlayer] {
         kickbaseManager.marketPlayers.filter { player in
-            let matchesSearch = searchText.isEmpty ||
-                player.firstName.localizedCaseInsensitiveContains(searchText) ||
-                player.lastName.localizedCaseInsensitiveContains(searchText) ||
-                player.fullTeamName.localizedCaseInsensitiveContains(searchText)
-            
+            let matchesSearch =
+                searchText.isEmpty || player.firstName.localizedCaseInsensitiveContains(searchText)
+                || player.lastName.localizedCaseInsensitiveContains(searchText)
+                || player.fullTeamName.localizedCaseInsensitiveContains(searchText)
+
             let matchesPosition = selectedPosition == 0 || player.position == selectedPosition
-            
+
             return matchesSearch && matchesPosition
         }
         .sorted { $0.price < $1.price }
@@ -635,7 +675,7 @@ struct MarketTab: View {
 struct MarketPlayerRow: View {
     let marketPlayer: MarketPlayer
     @State private var showingPlayerDetail = false
-    
+
     var body: some View {
         Button(action: {
             print("🔄 MarketPlayerRow: Tapped on player \(marketPlayer.fullName)")
@@ -654,14 +694,14 @@ struct MarketPlayerRow: View {
                         .cornerRadius(4)
                 }
                 .frame(minWidth: 40)
-                
+
                 // Player Info - erweiterte Breite für Namen
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 4) {
                         Text(marketPlayer.fullName)
                             .font(.headline)
-                            .lineLimit(2) // Erlaubt 2 Zeilen für längere Namen
-                        
+                            .lineLimit(2)  // Erlaubt 2 Zeilen für längere Namen
+
                         // Status-Icons basierend auf status-Feld aus API-Daten anzeigen
                         if marketPlayer.status == 1 {
                             // Verletzt - rotes Kreuz
@@ -680,35 +720,35 @@ struct MarketPlayerRow: View {
                                 .font(.caption)
                         }
                     }
-                    
+
                     HStack {
                         Text(marketPlayer.fullTeamName)
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        
+
                         Spacer()
-                        
+
                         Text("Von: \(marketPlayer.seller.name)")
                             .font(.caption2)
                             .foregroundColor(.secondary)
                     }
                 }
-                .frame(minWidth: 180, alignment: .leading) // Mindestbreite für Namensbereich (etwas größer wegen Verkäufer-Info)
-                
-                Spacer(minLength: 8) // Reduzierter Mindestabstand
-                
+                .frame(minWidth: 180, alignment: .leading)  // Mindestbreite für Namensbereich (etwas größer wegen Verkäufer-Info)
+
+                Spacer(minLength: 8)  // Reduzierter Mindestabstand
+
                 // Price and Market Value
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text("€\(marketPlayer.price / 1000)k")
+                    Text("€\(marketPlayer.price / 1_000_000)M")
                         .font(.subheadline)
                         .fontWeight(.semibold)
                         .foregroundColor(.green)
-                    
+
                     HStack(spacing: 2) {
-                        Text("MW: €\(marketPlayer.marketValue / 1000)k")
+                        Text("MW: €\(marketPlayer.marketValue / 1_000_000)M")
                             .font(.caption2)
                             .foregroundColor(.secondary)
-                        
+
                         if marketPlayer.marketValueTrend > 0 {
                             Image(systemName: "arrow.up")
                                 .foregroundColor(.green)
@@ -720,7 +760,7 @@ struct MarketPlayerRow: View {
                         }
                     }
                 }
-                .frame(minWidth: 80, alignment: .trailing) // Feste Breite für Preis/Marktwert
+                .frame(minWidth: 80, alignment: .trailing)  // Feste Breite für Preis/Marktwert
             }
             .padding(.vertical, 4)
         }
@@ -735,7 +775,7 @@ struct FilterButton: View {
     let title: String
     let isSelected: Bool
     let action: () -> Void
-    
+
     var body: some View {
         Button(action: action) {
             Text(title)
@@ -753,7 +793,7 @@ struct FilterButton: View {
 struct MarketPlayerDetailView: View {
     let player: MarketPlayer
     @Environment(\.dismiss) private var dismiss
-    
+
     var body: some View {
         NavigationView {
             ScrollView {
@@ -764,9 +804,9 @@ struct MarketPlayerDetailView: View {
                             Text(player.fullName)
                                 .font(.largeTitle)
                                 .fontWeight(.bold)
-                            
+
                             Spacer()
-                            
+
                             Text(positionAbbreviation(player.position))
                                 .font(.headline)
                                 .fontWeight(.bold)
@@ -776,11 +816,11 @@ struct MarketPlayerDetailView: View {
                                 .background(positionColor(player.position))
                                 .cornerRadius(8)
                         }
-                        
+
                         Text(player.fullTeamName)
                             .font(.title3)
                             .foregroundColor(.secondary)
-                        
+
                         if player.status == 1 {
                             HStack {
                                 Image(systemName: "cross.circle.fill")
@@ -807,36 +847,36 @@ struct MarketPlayerDetailView: View {
                             .font(.caption)
                         }
                     }
-                    
+
                     Divider()
-                    
+
                     // Market Info
                     VStack(alignment: .leading, spacing: 15) {
                         Text("Transferinformationen")
                             .font(.headline)
-                        
+
                         HStack {
                             VStack(alignment: .leading) {
                                 Text("Preis")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
-                                Text("€\(player.price / 1000)k")
+                                Text("€\(player.price / 1_000_000)M")
                                     .font(.title2)
                                     .fontWeight(.semibold)
                                     .foregroundColor(.green)
                             }
-                            
+
                             Spacer()
-                            
+
                             VStack(alignment: .trailing) {
                                 Text("Marktwert")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                                 HStack {
-                                    Text("€\(player.marketValue / 1000)k")
+                                    Text("€\(player.marketValue / 1_000_000)M")
                                         .font(.title2)
                                         .fontWeight(.semibold)
-                                    
+
                                     if player.marketValueTrend > 0 {
                                         Image(systemName: "arrow.up")
                                             .foregroundColor(.green)
@@ -847,7 +887,7 @@ struct MarketPlayerDetailView: View {
                                 }
                             }
                         }
-                        
+
                         VStack(alignment: .leading) {
                             Text("Verkäufer")
                                 .font(.caption)
@@ -856,7 +896,7 @@ struct MarketPlayerDetailView: View {
                                 .font(.body)
                         }
                     }
-                    
+
                     Spacer()
                 }
                 .padding()
@@ -874,35 +914,14 @@ struct MarketPlayerDetailView: View {
     }
 }
 
-// Helper Functions
-func positionAbbreviation(_ position: Int) -> String {
-    switch position {
-    case 1: return "TW"
-    case 2: return "ABW"
-    case 3: return "MF"
-    case 4: return "ST"
-    default: return "?"
-    }
-}
-
-func positionColor(_ position: Int) -> Color {
-    switch position {
-    case 1: return .yellow
-    case 2: return .green
-    case 3: return .blue
-    case 4: return .red
-    default: return .gray
-    }
-}
-
 struct TeamBudgetHeader: View {
     let currentBudget: Int
     let saleValue: Int
-    
+
     private var totalBudget: Int {
         return currentBudget + saleValue
     }
-    
+
     var body: some View {
         VStack(spacing: 12) {
             HStack {
@@ -910,44 +929,44 @@ struct TeamBudgetHeader: View {
                     Text("Aktuelles Budget")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    Text("€\(currentBudget / 1000)k")
+                    Text("€\(currentBudget / 1_000_000)M")
                         .font(.headline)
                         .fontWeight(.bold)
                 }
-                
+
                 Spacer()
-                
+
                 VStack(alignment: .trailing, spacing: 4) {
                     Text("Ausgewählt zum Verkauf")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    Text("€\(saleValue / 1000)k")
+                    Text("€\(saleValue / 1_000_000)M")
                         .font(.headline)
                         .fontWeight(.bold)
                         .foregroundColor(saleValue > 0 ? .blue : .secondary)
                 }
             }
-            
+
             // Total Budget Row
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Gesamtbudget (mit Verkäufen)")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    Text("€\(totalBudget / 1000)k")
+                    Text("€\(totalBudget / 1_000_000)M")
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundColor(saleValue > 0 ? .green : .primary)
                 }
-                
+
                 Spacer()
-                
+
                 if saleValue > 0 {
                     VStack(alignment: .trailing, spacing: 4) {
                         Text("Zusätzliches Budget")
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        Text("+€\(saleValue / 1000)k")
+                        Text("+€\(saleValue / 1_000_000)M")
                             .font(.title2)
                             .fontWeight(.bold)
                             .foregroundColor(.green)

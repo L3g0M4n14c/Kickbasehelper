@@ -5,7 +5,7 @@ struct MainDashboardView: View {
     @EnvironmentObject var authManager: AuthenticationManager
     @State private var selectedTab = 0
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
-    
+
     var body: some View {
         Group {
             if horizontalSizeClass == .regular {
@@ -23,7 +23,7 @@ struct MainDashboardView: View {
             Task {
                 // Warte auf Liga-Auswahl und lade dann alle Daten
                 await kickbaseManager.loadUserData()
-                
+
                 // Zusätzlich: Lade Team-Daten wenn Liga verfügbar
                 if let league = kickbaseManager.selectedLeague {
                     await kickbaseManager.loadTeamPlayers(for: league)
@@ -32,35 +32,37 @@ struct MainDashboardView: View {
             }
         }
     }
-    
+
     // iPad-spezifisches Layout mit Sidebar
     private var iPadLayout: some View {
         NavigationSplitView {
             // Sidebar
-            List(selection: Binding<Int?>(
-                get: { selectedTab },
-                set: { selectedTab = $0 ?? 0 }
-            )) {
+            List(
+                selection: Binding<Int?>(
+                    get: { selectedTab },
+                    set: { selectedTab = $0 ?? 0 }
+                )
+            ) {
                 NavigationLink(value: 0) {
                     Label("Team", systemImage: "person.3.fill")
                 }
                 .tag(0)
-                
+
                 NavigationLink(value: 1) {
                     Label("Markt", systemImage: "cart.fill")
                 }
                 .tag(1)
-                
+
                 NavigationLink(value: 2) {
                     Label("Verkaufen", systemImage: "dollarsign.circle.fill")
                 }
                 .tag(2)
-                
+
                 NavigationLink(value: 3) {
                     Label("Aufstellung", systemImage: "person.crop.square.fill.and.at.rectangle")
                 }
                 .tag(3)
-                
+
                 NavigationLink(value: 4) {
                     Label("Transfer-Tipps", systemImage: "person.crop.circle.badge.plus")
                 }
@@ -74,7 +76,7 @@ struct MainDashboardView: View {
                         authManager.logout()
                     }
                 }
-                
+
                 ToolbarItem(placement: .navigationBarLeading) {
                     if kickbaseManager.isLoading {
                         ProgressView()
@@ -104,7 +106,7 @@ struct MainDashboardView: View {
             .navigationBarTitleDisplayMode(.large)
         }
     }
-    
+
     // iPhone-spezifisches Layout mit Tabs
     private var iPhoneLayout: some View {
         NavigationView {
@@ -116,7 +118,7 @@ struct MainDashboardView: View {
                         Text("Team")
                     }
                     .tag(0)
-                
+
                 // Market Tab
                 MarketView()
                     .tabItem {
@@ -124,7 +126,7 @@ struct MainDashboardView: View {
                         Text("Markt")
                     }
                     .tag(1)
-                
+
                 // Sales Recommendation Tab (ersetzt Stats Tab)
                 SalesRecommendationView()
                     .tabItem {
@@ -132,7 +134,7 @@ struct MainDashboardView: View {
                         Text("Verkaufen")
                     }
                     .tag(2)
-                
+
                 // Lineup Optimizer Tab (ersetzt Gifts Tab)
                 LineupOptimizerView()
                     .tabItem {
@@ -140,7 +142,7 @@ struct MainDashboardView: View {
                         Text("Aufstellung")
                     }
                     .tag(3)
-                
+
                 // Transfer Recommendations Tab
                 TransferRecommendationsView(kickbaseManager: kickbaseManager)
                     .tabItem {
@@ -157,7 +159,7 @@ struct MainDashboardView: View {
                         authManager.logout()
                     }
                 }
-                
+
                 ToolbarItem(placement: .navigationBarLeading) {
                     if kickbaseManager.isLoading {
                         ProgressView()
@@ -172,14 +174,14 @@ struct MainDashboardView: View {
                 appearance.backgroundColor = UIColor.systemBackground
                 appearance.titleTextAttributes = [.foregroundColor: UIColor.label]
                 appearance.largeTitleTextAttributes = [.foregroundColor: UIColor.label]
-                
+
                 UINavigationBar.appearance().standardAppearance = appearance
                 UINavigationBar.appearance().scrollEdgeAppearance = appearance
                 UINavigationBar.appearance().compactAppearance = appearance
             }
         }
     }
-    
+
     private var navigationTitle: String {
         switch selectedTab {
         case 0:
@@ -203,7 +205,8 @@ struct TeamView: View {
     @EnvironmentObject var kickbaseManager: KickbaseManager
     @State private var sortBy: SortOption = .marketValue
     @State private var playersForSale: Set<String> = []
-    
+    @State private var showRecommendations = false
+
     enum SortOption: String, CaseIterable {
         case name = "Name"
         case marketValue = "Marktwert"
@@ -211,79 +214,99 @@ struct TeamView: View {
         case trend = "Trend"
         case position = "Position"
     }
-    
+
     // Berechnung des Gesamtwerts der zum Verkauf ausgewählten Spieler
     private var totalSaleValue: Int {
         return kickbaseManager.teamPlayers
             .filter { playersForSale.contains($0.id) }
             .reduce(0) { $0 + $1.marketValue }
     }
-    
+
     // Berechnung der Spieleranzahl nach Positionen (ohne zum Verkauf markierte)
-    private var playerCounts: (total: Int, goalkeepers: Int, defenders: Int, midfielders: Int, forwards: Int) {
-        let availablePlayers = kickbaseManager.teamPlayers.filter { !playersForSale.contains($0.id) }
-        
+    private var playerCounts:
+        (total: Int, goalkeepers: Int, defenders: Int, midfielders: Int, forwards: Int)
+    {
+        let availablePlayers = kickbaseManager.teamPlayers.filter {
+            !playersForSale.contains($0.id)
+        }
+
         let goalkeepers = availablePlayers.filter { $0.position == 1 }.count
         let defenders = availablePlayers.filter { $0.position == 2 }.count
         let midfielders = availablePlayers.filter { $0.position == 3 }.count
         let forwards = availablePlayers.filter { $0.position == 4 }.count
         let total = availablePlayers.count
-        
+
         return (total, goalkeepers, defenders, midfielders, forwards)
     }
-    
+
     var body: some View {
         VStack(spacing: 0) {
-            // Neue Budget-Anzeige mit Verkaufslogik - mit explizitem padding-bottom
-            if let stats = kickbaseManager.userStats {
-                TeamBudgetHeaderMain(
-                    currentBudget: stats.budget,
-                    saleValue: totalSaleValue
-                )
-                .padding(.bottom, 16)
+            // Tab Toggle
+            Picker("View", selection: $showRecommendations) {
+                Text("Mein Team").tag(false)
+                Text("Verkaufs-Tipps").tag(true)
             }
-            
-            // Player Count Overview and Sort Controls - mit separatem padding
-            VStack(spacing: 15) {
-                // Spieleranzahl-Übersicht
-                PlayerCountOverview(playerCounts: playerCounts)
-                
-                // Sort Controls
-                HStack {
-                    Text("Sortieren:")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    
-                    Picker("Sortierung", selection: $sortBy) {
-                        ForEach(SortOption.allCases, id: \.self) { option in
-                            Text(option.rawValue).tag(option)
+            .pickerStyle(.segmented)
+            .padding()
+
+            if showRecommendations {
+                // Verkaufs-Empfehlungen View
+                SaleRecommendationsView(kickbaseManager: kickbaseManager)
+            } else {
+                // Original Team View
+                VStack(spacing: 0) {
+                    // Neue Budget-Anzeige mit Verkaufslogik - mit explizitem padding-bottom
+                    if let stats = kickbaseManager.userStats {
+                        TeamBudgetHeaderMain(
+                            currentBudget: stats.budget,
+                            saleValue: totalSaleValue
+                        )
+                        .padding(.bottom, 16)
+                    }
+
+                    // Player Count Overview and Sort Controls - mit separatem padding
+                    VStack(spacing: 15) {
+                        // Spieleranzahl-Übersicht
+                        PlayerCountOverview(playerCounts: playerCounts)
+
+                        // Sort Controls
+                        HStack {
+                            Text("Sortieren:")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+
+                            Picker("Sortierung", selection: $sortBy) {
+                                ForEach(SortOption.allCases, id: \.self) { option in
+                                    Text(option.rawValue).tag(option)
+                                }
+                            }
+                            .pickerStyle(SegmentedPickerStyle())
                         }
                     }
-                    .pickerStyle(SegmentedPickerStyle())
-                }
-            }
-            .padding(.horizontal)
-            .padding(.bottom, 8)
-            
-            // Spielerliste mit Verkaufs-Toggles
-            List {
-                ForEach(filteredAndSortedPlayers) { player in
-                    PlayerRowViewWithSale(
-                        player: player,
-                        isSelectedForSale: playersForSale.contains(player.id),
-                        onToggleSale: { isSelected in
-                            if isSelected {
-                                playersForSale.insert(player.id)
-                            } else {
-                                playersForSale.remove(player.id)
-                            }
+                    .padding(.horizontal)
+                    .padding(.bottom, 8)
+
+                    // Spielerliste mit Verkaufs-Toggles
+                    List {
+                        ForEach(filteredAndSortedPlayers) { player in
+                            PlayerRowViewWithSale(
+                                player: player,
+                                isSelectedForSale: playersForSale.contains(player.id),
+                                onToggleSale: { isSelected in
+                                    if isSelected {
+                                        playersForSale.insert(player.id)
+                                    } else {
+                                        playersForSale.remove(player.id)
+                                    }
+                                }
+                            )
                         }
-                    )
-                }
-            }
-            .refreshable {
-                if let league = kickbaseManager.selectedLeague {
-                    await kickbaseManager.loadTeamPlayers(for: league)
+                    }
+                    .refreshable {
+                        if let league = kickbaseManager.selectedLeague {
+                            await kickbaseManager.loadTeamPlayers(for: league)
+                        }
+                    }
                 }
             }
         }
@@ -295,7 +318,7 @@ struct TeamView: View {
             }
         }
     }
-    
+
     private var filteredAndSortedPlayers: [TeamPlayer] {
         // Entfernung der Suchfunktionalität - zeige alle Spieler
         return kickbaseManager.teamPlayers.sorted(by: { player1, player2 in
@@ -319,9 +342,9 @@ struct TeamView: View {
 struct PlayerRowView: View {
     let player: TeamPlayer
     @State private var showingPlayerDetail = false
-    
+
     @EnvironmentObject var kickbaseManager: KickbaseManager
-    
+
     var body: some View {
         Button(action: {
             print("🔄 PlayerRowView: Tapped on player \(player.fullName)")
@@ -330,14 +353,14 @@ struct PlayerRowView: View {
             HStack(spacing: 12) {
                 // Position Badge
                 PositionBadge(position: player.position)
-                
+
                 VStack(alignment: .leading, spacing: 4) {
                     // Name mit Status-Icons
                     HStack(spacing: 4) {
                         Text(player.fullName)
                             .font(.subheadline)
                             .fontWeight(.medium)
-                        
+
                         // Status-Icons basierend auf st-Feld aus API-Daten anzeigen
                         if player.status == 1 {
                             // Verletzt - rotes Kreuz
@@ -361,15 +384,15 @@ struct PlayerRowView: View {
                                 .font(.caption)
                         }
                     }
-                    
+
                     // Team
                     Text(player.fullTeamName)
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                
+
                 Spacer()
-                
+
                 // PUNKTZAHLEN - Feste Breite um Umbrüche zu vermeiden
                 VStack(alignment: .trailing, spacing: 6) {
                     // Durchschnittspunkte - groß und prominent mit fester Breite
@@ -388,7 +411,7 @@ struct PlayerRowView: View {
                             }
                     }
                     .frame(minWidth: 60, alignment: .trailing)
-                    
+
                     // Gesamtpunkte - jetzt kleinere Anzeige mit fester Breite
                     HStack(spacing: 4) {
                         Image(systemName: "sum")
@@ -405,7 +428,7 @@ struct PlayerRowView: View {
                     }
                     .frame(minWidth: 60, alignment: .trailing)
                 }
-                
+
                 VStack(alignment: .trailing, spacing: 4) {
                     // Marktwert mit fester Breite
                     Text("€\(formatValue(player.marketValue))")
@@ -414,7 +437,7 @@ struct PlayerRowView: View {
                         .minimumScaleFactor(0.8)
                         .lineLimit(1)
                         .frame(minWidth: 50, alignment: .trailing)
-                    
+
                     // Trend - verwende tfhmvt (Marktwertänderung seit letztem Update)
                     if player.tfhmvt != 0 {
                         HStack(spacing: 2) {
@@ -435,8 +458,8 @@ struct PlayerRowView: View {
         }
         .buttonStyle(PlainButtonStyle())
         .sheet(isPresented: $showingPlayerDetail) {
-                PlayerDetailView(player: player)
-            
+            PlayerDetailView(player: player)
+
         }
     }
 }
@@ -446,15 +469,15 @@ struct PlayerRowViewWithSale: View {
     let player: TeamPlayer
     let isSelectedForSale: Bool
     let onToggleSale: (Bool) -> Void
-    
+
     @State private var showingPlayerDetail = false
     @EnvironmentObject var kickbaseManager: KickbaseManager
-    
+
     var body: some View {
         HStack(spacing: 12) {
             // Position Badge
             PositionBadge(position: player.position)
-            
+
             // Spieler-Info Bereich (klickbar für Details)
             Button(action: {
                 showingPlayerDetail = true
@@ -466,7 +489,7 @@ struct PlayerRowViewWithSale: View {
                             Text(player.fullName)
                                 .font(.subheadline)
                                 .fontWeight(.medium)
-                            
+
                             // Status-Icons basierend auf st-Feld aus API-Daten anzeigen
                             if player.status == 1 {
                                 // Verletzt - rotes Kreuz
@@ -490,7 +513,7 @@ struct PlayerRowViewWithSale: View {
                                     .font(.caption)
                             }
                         }
-                        
+
                         // Nur Vereinsname anzeigen
                         HStack(spacing: 4) {
                             Text(player.fullTeamName)
@@ -499,9 +522,9 @@ struct PlayerRowViewWithSale: View {
                                 .fontWeight(.medium)
                         }
                     }
-                    
+
                     Spacer()
-                    
+
                     // PUNKTZAHLEN - Feste Breite um Umbrüche zu vermeiden
                     VStack(alignment: .trailing, spacing: 6) {
                         // Durchschnittspunkte - groß und prominent mit fester Breite
@@ -517,7 +540,7 @@ struct PlayerRowViewWithSale: View {
                                 .lineLimit(1)
                         }
                         .frame(minWidth: 60, alignment: .trailing)
-                        
+
                         // Gesamtpunkte - jetzt kleinere Anzeige mit fester Breite
                         HStack(spacing: 4) {
                             Image(systemName: "sum")
@@ -531,7 +554,7 @@ struct PlayerRowViewWithSale: View {
                         }
                         .frame(minWidth: 60, alignment: .trailing)
                     }
-                    
+
                     VStack(alignment: .trailing, spacing: 4) {
                         // Marktwert mit fester Breite
                         Text("€\(formatValue(player.marketValue))")
@@ -540,7 +563,7 @@ struct PlayerRowViewWithSale: View {
                             .minimumScaleFactor(0.8)
                             .lineLimit(1)
                             .frame(minWidth: 50, alignment: .trailing)
-                        
+
                         // Trend - verwende tfhmvt (Marktwertänderung seit letztem Update)
                         if player.tfhmvt != 0 {
                             HStack(spacing: 2) {
@@ -560,16 +583,18 @@ struct PlayerRowViewWithSale: View {
             }
             .buttonStyle(PlainButtonStyle())
             .sheet(isPresented: $showingPlayerDetail) {
-                    PlayerDetailView(player: player)
+                PlayerDetailView(player: player)
             }
-            
+
             // Toggle für Verkauf (separater Bereich)
-            Toggle(isOn: Binding<Bool>(
-                get: { isSelectedForSale },
-                set: { newValue in
-                    onToggleSale(newValue)
-                }
-            )) {
+            Toggle(
+                isOn: Binding<Bool>(
+                    get: { isSelectedForSale },
+                    set: { newValue in
+                        onToggleSale(newValue)
+                    }
+                )
+            ) {
                 Text("")
             }
             .toggleStyle(SwitchToggleStyle(tint: .blue))
@@ -585,7 +610,7 @@ struct PlayerRowViewWithSale: View {
 // MARK: - Position Badge
 struct PositionBadge: View {
     let position: Int
-    
+
     private var positionInfo: (String, Color) {
         switch position {
         case 1: return ("TW", .yellow)
@@ -595,7 +620,7 @@ struct PositionBadge: View {
         default: return ("?", .gray)
         }
     }
-    
+
     var body: some View {
         Text(positionInfo.0)
             .font(.caption)
@@ -610,7 +635,7 @@ struct PositionBadge: View {
 // MARK: - Team Stats Header mit Gesamtpunkten
 struct TeamStatsHeader: View {
     let stats: UserStats
-    
+
     var body: some View {
         HStack(spacing: 20) {
             VStack(alignment: .leading, spacing: 4) {
@@ -621,9 +646,9 @@ struct TeamStatsHeader: View {
                     .font(.headline)
                     .fontWeight(.bold)
             }
-            
+
             Spacer()
-            
+
             VStack(alignment: .center, spacing: 4) {
                 Text("Meine Punkte")
                     .font(.caption)
@@ -636,9 +661,9 @@ struct TeamStatsHeader: View {
                         .fontWeight(.bold)
                 }
             }
-            
+
             Spacer()
-            
+
             VStack(alignment: .trailing, spacing: 4) {
                 Text("Teamwert")
                     .font(.caption)
@@ -666,7 +691,7 @@ struct MarketView: View {
     @EnvironmentObject var kickbaseManager: KickbaseManager
     @State private var sortBy: MarketSortOption = .price
     @State private var searchText = ""
-    
+
     enum MarketSortOption: String, CaseIterable {
         case price = "Preis"
         case marketValue = "Marktwert"
@@ -675,7 +700,7 @@ struct MarketView: View {
         case expiry = "Ablaufdatum"
         case offers = "Gebote"
     }
-    
+
     var body: some View {
         VStack(spacing: 0) {
             // Search and Sort Controls
@@ -686,12 +711,12 @@ struct MarketView: View {
                     TextField("Spieler suchen...", text: $searchText)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                 }
-                
+
                 HStack {
                     Text("Sortieren:")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    
+
                     Picker("Sortierung", selection: $sortBy) {
                         ForEach(MarketSortOption.allCases, id: \.self) { option in
                             Text(option.rawValue).tag(option)
@@ -702,7 +727,7 @@ struct MarketView: View {
             }
             .padding(.horizontal)
             .padding(.vertical, 8)
-            
+
             List {
                 ForEach(filteredAndSortedMarketPlayers) { player in
                     MarketPlayerRowView(player: player)
@@ -722,16 +747,18 @@ struct MarketView: View {
             }
         }
     }
-    
+
     private var filteredAndSortedMarketPlayers: [MarketPlayer] {
-        let filtered = searchText.isEmpty ? kickbaseManager.marketPlayers :
-            kickbaseManager.marketPlayers.filter { player in
-                player.firstName.localizedCaseInsensitiveContains(searchText) ||
-                player.lastName.localizedCaseInsensitiveContains(searchText) ||
-                player.fullTeamName.localizedCaseInsensitiveContains(searchText) ||
-                (player.owner?.name.localizedCaseInsensitiveContains(searchText) ?? false)
+        let filtered =
+            searchText.isEmpty
+            ? kickbaseManager.marketPlayers
+            : kickbaseManager.marketPlayers.filter { player in
+                player.firstName.localizedCaseInsensitiveContains(searchText)
+                    || player.lastName.localizedCaseInsensitiveContains(searchText)
+                    || player.fullTeamName.localizedCaseInsensitiveContains(searchText)
+                    || (player.owner?.name.localizedCaseInsensitiveContains(searchText) ?? false)
             }
-        
+
         return filtered.sorted(by: { player1, player2 in
             switch sortBy {
             case .price:
@@ -752,7 +779,7 @@ struct MarketView: View {
             }
         })
     }
-    
+
     private func parseExpiryDate(_ dateString: String) -> Date {
         let formatter = ISO8601DateFormatter()
         return formatter.date(from: dateString) ?? Date.distantFuture
@@ -764,7 +791,7 @@ struct MarketPlayerRowView: View {
     let player: MarketPlayer
     @State private var showingPlayerDetail = false
     @EnvironmentObject var kickbaseManager: KickbaseManager
-    
+
     var body: some View {
         Button(action: {
             print("🔄 MarketPlayerRowView: Tapped on player \(player.fullName)")
@@ -773,14 +800,14 @@ struct MarketPlayerRowView: View {
             HStack(spacing: 12) {
                 // Position Badge
                 PositionBadge(position: player.position)
-                
+
                 VStack(alignment: .leading, spacing: 4) {
                     // Name mit Status-Icons
                     HStack(spacing: 4) {
                         Text(player.fullName)
                             .font(.headline)
                             .fontWeight(.medium)
-                        
+
                         // Status-Icons basierend auf status-Feld aus API-Daten anzeigen
                         if player.status == 1 {
                             // Verletzt - rotes Kreuz
@@ -804,43 +831,45 @@ struct MarketPlayerRowView: View {
                                 .font(.caption)
                         }
                     }
-                    
+
                     // Team und Owner
-                                        VStack(alignment: .leading, spacing: 2) {
-                                            Text("\(player.fullTeamName)")
-                                                .font(.caption)
-                                                .foregroundColor(.secondary)
-                                                .onAppear {
-                                                    print("📝 Displaying team '\(player.fullTeamName)'")
-                                                }
-                                            
-                                            // Owner-Information anzeigen, falls vorhanden
-                                            if let owner = player.owner {
-                                                HStack(spacing: 4) {
-                                                    Image(systemName: "person.fill")
-                                                        .font(.caption2)
-                                                        .foregroundColor(.blue)
-                                                    Text("Besitzer: \(owner.name)")
-                                                        .font(.caption2)
-                                                        .foregroundColor(.blue)
-                                                        .fontWeight(.medium)
-                                                    
-                                                    // Verified badge falls der User verifiziert ist
-                                                    if owner.isVerified {
-                                                        Image(systemName: "checkmark.seal.fill")
-                                                            .font(.caption2)
-                                                            .foregroundColor(.green)
-                                                    }
-                                                }
-                                                .onAppear {
-                                                    print("👤 Displaying owner: '\(owner.name)' (ID: \(owner.id), verified: \(owner.isVerified))")
-                                                }
-                                            }
-                                        }
-                                    }
-                
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("\(player.fullTeamName)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .onAppear {
+                                print("📝 Displaying team '\(player.fullTeamName)'")
+                            }
+
+                        // Owner-Information anzeigen, falls vorhanden
+                        if let owner = player.owner {
+                            HStack(spacing: 4) {
+                                Image(systemName: "person.fill")
+                                    .font(.caption2)
+                                    .foregroundColor(.blue)
+                                Text("Besitzer: \(owner.name)")
+                                    .font(.caption2)
+                                    .foregroundColor(.blue)
+                                    .fontWeight(.medium)
+
+                                // Verified badge falls der User verifiziert ist
+                                if owner.isVerified {
+                                    Image(systemName: "checkmark.seal.fill")
+                                        .font(.caption2)
+                                        .foregroundColor(.green)
+                                }
+                            }
+                            .onAppear {
+                                print(
+                                    "👤 Displaying owner: '\(owner.name)' (ID: \(owner.id), verified: \(owner.isVerified))"
+                                )
+                            }
+                        }
+                    }
+                }
+
                 Spacer()
-                
+
                 // Punktzahlen für Marktplayer - mit fester Breite
                 VStack(alignment: .trailing, spacing: 4) {
                     // Durchschnittspunkte - jetzt groß und prominent mit fester Breite
@@ -856,7 +885,7 @@ struct MarketPlayerRowView: View {
                             .lineLimit(1)
                     }
                     .frame(minWidth: 60, alignment: .trailing)
-                    
+
                     // Gesamtpunkte - jetzt kleinere Anzeige mit fester Breite
                     HStack(spacing: 4) {
                         Image(systemName: "sum")
@@ -870,7 +899,7 @@ struct MarketPlayerRowView: View {
                     }
                     .frame(minWidth: 60, alignment: .trailing)
                 }
-                
+
                 VStack(alignment: .trailing, spacing: 4) {
                     // Verkaufspreis mit fester Breite
                     Text("€\(formatValue(player.price))")
@@ -880,7 +909,7 @@ struct MarketPlayerRowView: View {
                         .minimumScaleFactor(0.8)
                         .lineLimit(1)
                         .frame(minWidth: 50, alignment: .trailing)
-                    
+
                     // Marktwert mit fester Breite
                     Text("MW: €\(formatValue(player.marketValue))")
                         .font(.caption)
@@ -905,26 +934,28 @@ struct SalesRecommendationView: View {
     @State private var selectedGoal: OptimizationGoal = .balancePositive
     @State private var recommendedSales: [SalesRecommendation] = []
     @State private var selectedSales: Set<String> = []
-    
+
     enum OptimizationGoal: String, CaseIterable {
         case balancePositive = "Budget ins Plus"
         case maximizeProfit = "Maximaler Profit"
         case keepBestPlayers = "Beste Spieler behalten"
     }
-    
+
     // Berechnung der Spieleranzahl nach Positionen (ohne ausgewählte Verkäufe)
-    private var playerCountsAfterSales: (total: Int, goalkeepers: Int, defenders: Int, midfielders: Int, forwards: Int) {
+    private var playerCountsAfterSales:
+        (total: Int, goalkeepers: Int, defenders: Int, midfielders: Int, forwards: Int)
+    {
         let remainingPlayers = kickbaseManager.teamPlayers.filter { !selectedSales.contains($0.id) }
-        
+
         let goalkeepers = remainingPlayers.filter { $0.position == 1 }.count
         let defenders = remainingPlayers.filter { $0.position == 2 }.count
         let midfielders = remainingPlayers.filter { $0.position == 3 }.count
         let forwards = remainingPlayers.filter { $0.position == 4 }.count
         let total = remainingPlayers.count
-        
+
         return (total, goalkeepers, defenders, midfielders, forwards)
     }
-    
+
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
@@ -936,25 +967,25 @@ struct SalesRecommendationView: View {
                         recommendedSales.first(where: { $0.player.id == id })?.expectedValue
                     }.reduce(0, +)
                 )
-                
+
                 // Spieleranzahl-Übersicht
                 VStack(spacing: 16) {
                     Text("Verbleibende Spieler nach Verkauf")
                         .font(.title2)
                         .fontWeight(.bold)
-                    
+
                     PlayerCountOverview(playerCounts: playerCountsAfterSales)
                 }
                 .padding()
                 .background(Color(.systemGray6))
                 .cornerRadius(12)
-                
+
                 // Optimierungsziel Auswahl
                 VStack(spacing: 16) {
                     Text("Optimierungsziel")
                         .font(.title2)
                         .fontWeight(.bold)
-                    
+
                     Picker("Ziel wählen", selection: $selectedGoal) {
                         ForEach(OptimizationGoal.allCases, id: \.self) { goal in
                             Text(goal.rawValue).tag(goal)
@@ -965,16 +996,17 @@ struct SalesRecommendationView: View {
                 .padding()
                 .background(Color(.systemGray6))
                 .cornerRadius(12)
-                
+
                 // Verkaufs-Empfehlungen
-                SalesRecommendationSummary(recommendations: recommendedSales, optimizationGoal: selectedGoal)
-                
+                SalesRecommendationSummary(
+                    recommendations: recommendedSales, optimizationGoal: selectedGoal)
+
                 // Detaillierte Empfehlungen
                 VStack(alignment: .leading, spacing: 16) {
                     Text("Detaillierte Empfehlungen")
                         .font(.title2)
                         .fontWeight(.bold)
-                    
+
                     ForEach(recommendedSales) { recommendation in
                         SalesRecommendationRow(
                             recommendation: recommendation,
@@ -1002,14 +1034,14 @@ struct SalesRecommendationView: View {
             generateIntelligentRecommendations()
         }
     }
-    
+
     private func generateIntelligentRecommendations() {
         Task {
             let allPlayers = kickbaseManager.teamPlayers
             let currentBudget = kickbaseManager.userStats?.budget ?? 0
-            
+
             var newRecommendations: [SalesRecommendation] = []
-            
+
             // Analysiere alle Spieler und erstelle Empfehlungen basierend auf echten Kriterien
             for player in allPlayers {
                 if let recommendation = await analyzePlayerForSale(
@@ -1021,22 +1053,22 @@ struct SalesRecommendationView: View {
                     newRecommendations.append(recommendation)
                 }
             }
-            
+
             // Sortiere nach Priorität und Impact - beste Verkaufskandidaten zuerst
             newRecommendations.sort { recommendation1, recommendation2 in
                 let priority1Value = getPriorityValue(recommendation1.priority)
                 let priority2Value = getPriorityValue(recommendation2.priority)
                 let impact1Value = getImpactValue(recommendation1.impact)
                 let impact2Value = getImpactValue(recommendation2.impact)
-                
+
                 // Erstelle einen kombinierten Score: Hohe Priorität (niedrige Zahl) + Niedriger Impact (niedrige Zahl) = besserer Kandidat
                 let score1 = priority1Value + impact1Value
                 let score2 = priority2Value + impact2Value
-                
+
                 if score1 != score2 {
-                    return score1 < score2 // Niedrigerer Score = besserer Verkaufskandidat
+                    return score1 < score2  // Niedrigerer Score = besserer Verkaufskandidat
                 }
-                
+
                 // Bei gleichem Score: Sekundäre Sortierung nach Optimierungsziel
                 switch selectedGoal {
                 case .balancePositive:
@@ -1044,51 +1076,52 @@ struct SalesRecommendationView: View {
                 case .maximizeProfit:
                     return recommendation1.expectedValue > recommendation2.expectedValue
                 case .keepBestPlayers:
-                    return recommendation1.player.averagePoints < recommendation2.player.averagePoints
+                    return recommendation1.player.averagePoints
+                        < recommendation2.player.averagePoints
                 }
             }
-            
+
             // Update auf Main Thread
             await MainActor.run {
                 self.recommendedSales = newRecommendations
             }
         }
     }
-    
+
     private func analyzePlayerForSale(
         player: TeamPlayer,
         allPlayers: [TeamPlayer],
         currentBudget: Int,
         optimizationGoal: OptimizationGoal
     ) async -> SalesRecommendation? {
-        
+
         var reasons: [String] = []
         var shouldSell = false
         var priority: SalesRecommendation.Priority = .low
-        
+
         // 1. KRITISCHE KRITERIEN - Immer verkaufen
-        
+
         // Verletzte Spieler (Status 1)
         if player.status == 1 {
             reasons.append("Verletzt")
             shouldSell = true
             priority = .high
         }
-        
+
         // Gesperrte Spieler (Status 8)
         if player.status == 8 {
             reasons.append("Gesperrt")
             shouldSell = true
             priority = .high
         }
-        
+
         // Spieler im Aufbautraining (Status 4)
         if player.status == 4 {
             reasons.append("Aufbautraining")
             shouldSell = true
             priority = .high
         }
-        
+
         // 2. PERFORMANCE-ANALYSE & FIXTURE-ANALYSE parallel ausführen
         await withTaskGroup(of: Void.self) { group in
             // Performance-Analyse parallel starten
@@ -1100,7 +1133,7 @@ struct SalesRecommendationView: View {
                     priority: &priority
                 )
             }
-            
+
             // Fixture-Analyse parallel starten
             group.addTask {
                 await self.analyzeUpcomingFixtures(
@@ -1110,11 +1143,11 @@ struct SalesRecommendationView: View {
                     priority: &priority
                 )
             }
-            
+
             // Auf beide Tasks warten
             await group.waitForAll()
         }
-        
+
         // 4. POSITIONSLIMITS PRÜFEN
         let positionAnalysis = analyzePositionRedundancy(player: player, allPlayers: allPlayers)
         if positionAnalysis.isRedundant {
@@ -1123,11 +1156,11 @@ struct SalesRecommendationView: View {
                 priority = positionAnalysis.isWeakestInPosition ? .medium : .low
             }
         }
-        
+
         // 5. BUDGET-BASIERTE KRITERIEN (nur wenn Budget negativ)
         if currentBudget < 0 {
             let budgetPressure = abs(currentBudget)
-            
+
             // Bei hohem Budgetdruck verkaufe teure Spieler
             if player.marketValue >= budgetPressure / 2 {
                 reasons.append("Budget im Minus")
@@ -1137,7 +1170,7 @@ struct SalesRecommendationView: View {
                 }
             }
         }
-        
+
         // 6. OPTIMIERUNGSZIEL-SPEZIFISCHE KRITERIEN
         switch optimizationGoal {
         case .balancePositive:
@@ -1146,43 +1179,46 @@ struct SalesRecommendationView: View {
                 reasons.append("Schlechtes Preis-Leistungs-Verhältnis")
                 shouldSell = true
             }
-            
+
         case .maximizeProfit:
             // Verkaufe Spieler mit positiver Marktwertentwicklung
             if player.tfhmvt > 0 && player.tfhmvt > player.marketValue / 10 {
                 reasons.append("Hoher Marktwertgewinn")
                 shouldSell = true
             }
-            
+
         case .keepBestPlayers:
             // Verkaufe schwächste Spieler auf der Position
-            if isPlayerWeakestInPosition(player: player, allPlayers: allPlayers) && positionAnalysis.isRedundant {
+            if isPlayerWeakestInPosition(player: player, allPlayers: allPlayers)
+                && positionAnalysis.isRedundant
+            {
                 reasons.append("Schwächster Spieler auf Position")
                 shouldSell = true
             }
         }
-        
+
         // 7. WEITERE PERFORMANCE-KRITERIEN (nur bei geringer Priorität)
         if priority == .low {
-            let teamAveragePoints = allPlayers.map(\.averagePoints).reduce(0, +) / Double(allPlayers.count)
-            
+            let teamAveragePoints =
+                allPlayers.map(\.averagePoints).reduce(0, +) / Double(allPlayers.count)
+
             if player.averagePoints < teamAveragePoints * 0.6 {
                 reasons.append("Schwache Performance")
                 shouldSell = true
             }
-            
+
             // Fallender Marktwert
             if player.tfhmvt < 0 && abs(player.tfhmvt) > player.marketValue / 8 {
                 reasons.append("Fallender Marktwert")
                 shouldSell = true
             }
         }
-        
+
         guard shouldSell else { return nil }
-        
+
         // Aufstellungsimpact berechnen
         let lineupImpact = calculateLineupImpact(player: player, allPlayers: allPlayers)
-        
+
         return SalesRecommendation(
             player: player,
             reason: reasons.joined(separator: " • "),
@@ -1200,31 +1236,34 @@ struct SalesRecommendationView: View {
         priority: inout SalesRecommendation.Priority
     ) async {
         guard let selectedLeague = kickbaseManager.selectedLeague else { return }
-        
+
         // Lade die letzten 5 Spiele des Spielers
         if let recentPerformances = await kickbaseManager.loadPlayerRecentPerformanceWithTeamInfo(
             playerId: player.id,
             leagueId: selectedLeague.id
         ) {
-            
+
             // Analysiere die letzten gespielten Spiele
             let playedGames = recentPerformances.filter { $0.hasPlayed }
-            
+
             if playedGames.count >= 3 {
                 let recentPoints = playedGames.map { $0.points }
                 let recentAverage = Double(recentPoints.reduce(0, +)) / Double(recentPoints.count)
-                
+
                 // Vergleiche mit der Saison-Durchschnittsleistung
                 if recentAverage < player.averagePoints * 0.6 {
-                    reasons.append("Schwache Form (letzte \(playedGames.count) Spiele: \(String(format: "%.1f", recentAverage)) Pkt.)")
+                    reasons.append(
+                        "Schwache Form (letzte \(playedGames.count) Spiele: \(String(format: "%.1f", recentAverage)) Pkt.)"
+                    )
                     shouldSell = true
                     if priority == .low {
                         priority = .medium
                     }
                 }
-                
+
                 // Prüfe auf konstant schlechte Leistung
-                let goodGames = recentPoints.filter { Double($0) >= player.averagePoints * 0.8 }.count
+                let goodGames = recentPoints.filter { Double($0) >= player.averagePoints * 0.8 }
+                    .count
                 if goodGames == 0 && playedGames.count >= 3 {
                     reasons.append("Keine guten Spiele in letzten \(playedGames.count) Partien")
                     shouldSell = true
@@ -1233,18 +1272,18 @@ struct SalesRecommendationView: View {
                     }
                 }
             }
-            
+
             // Analysiere Einsatzzeiten und Status
             let startingElevenGames = playedGames.filter { $0.wasStartingEleven }.count
             let substituteGames = playedGames.filter { $0.wasSubstitute }.count
             let notInSquadGames = recentPerformances.filter { $0.wasNotInSquad }.count
-            
+
             // Spieler verliert Stammplatz
             if playedGames.count >= 3 && startingElevenGames == 0 && substituteGames > 0 {
                 reasons.append("Nur noch Einwechselspieler (keine Startelf)")
                 shouldSell = true
             }
-            
+
             // Spieler fällt aus dem Kader
             if notInSquadGames >= 2 {
                 reasons.append("Häufig nicht im Kader (\(notInSquadGames) Spiele)")
@@ -1255,7 +1294,7 @@ struct SalesRecommendationView: View {
             }
         }
     }
-    
+
     // MARK: - Upcoming Fixtures Analysis Helper
     private func analyzeUpcomingFixtures(
         player: TeamPlayer,
@@ -1267,60 +1306,74 @@ struct SalesRecommendationView: View {
             print("⚠️ Fixture-Analyse: Keine Liga ausgewählt für \(player.fullName)")
             return
         }
-        
+
         print("🔍 Fixture-Analyse startet für \(player.fullName) (Team: \(player.teamId))")
-        
+
         do {
             // Lade alle Performance-Daten um zukünftige Spiele zu analysieren
             if let allPerformances = try await kickbaseManager.loadPlayerPerformanceWithTeamInfo(
                 playerId: player.id,
                 leagueId: selectedLeague.id
             ) {
-                print("📊 \(allPerformances.count) Performance-Einträge geladen für \(player.fullName)")
-    
+                print(
+                    "📊 \(allPerformances.count) Performance-Einträge geladen für \(player.fullName)"
+                )
+
                 let currentMatchDay = getCurrentMatchDay(allPerformances: allPerformances)
                 print("🗓️ Aktueller Spieltag: \(currentMatchDay)")
-                
+
                 // Finde zukünftige Spiele (noch nicht gespielt)
-                let upcomingMatches = allPerformances.filter { !$0.hasPlayed && $0.matchDay >= currentMatchDay }
-                    .sorted { $0.matchDay < $1.matchDay }
-                    .prefix(3) // Analysiere die nächsten 3 Spiele
-                
-                print("🎯 \(upcomingMatches.count) zukünftige Spiele gefunden für \(player.fullName)")
-                
+                let upcomingMatches = allPerformances.filter {
+                    !$0.hasPlayed && $0.matchDay >= currentMatchDay
+                }
+                .sorted { $0.matchDay < $1.matchDay }
+                .prefix(3)  // Analysiere die nächsten 3 Spiele
+
+                print(
+                    "🎯 \(upcomingMatches.count) zukünftige Spiele gefunden für \(player.fullName)")
+
                 if upcomingMatches.count >= 1 {
                     // Debug: Zeige kommende Spiele - korrigierte Logik mit player.teamId
                     for (index, match) in upcomingMatches.enumerated() {
                         // Verwende die neuen Methoden mit der korrekten playerTeamId aus dem Player-Objekt
-                        let opponentTeamId = match.basePerformance.getOpponentTeamId(playerTeamId: player.teamId)
-                        let isAwayGame = !match.basePerformance.getIsHomeMatch(playerTeamId: player.teamId)
-                        print("   Spiel \(index + 1): Spieltag \(match.matchDay), Gegner: \(opponentTeamId), Auswärts: \(isAwayGame)")
+                        let opponentTeamId = match.basePerformance.getOpponentTeamId(
+                            playerTeamId: player.teamId)
+                        let isAwayGame = !match.basePerformance.getIsHomeMatch(
+                            playerTeamId: player.teamId)
+                        print(
+                            "   Spiel \(index + 1): Spieltag \(match.matchDay), Gegner: \(opponentTeamId), Auswärts: \(isAwayGame)"
+                        )
                     }
-                    
-                    let fixtureAnalysis = analyzeFixtureDifficulty(matches: Array(upcomingMatches), playerTeam: player.teamId)
+
+                    let fixtureAnalysis = analyzeFixtureDifficulty(
+                        matches: Array(upcomingMatches), playerTeam: player.teamId)
                     print("📈 Fixture-Analyse Ergebnis für \(player.fullName):")
-                    print("   - Durchschnittliche Schwierigkeit: \(String(format: "%.2f", fixtureAnalysis.averageDifficulty))")
+                    print(
+                        "   - Durchschnittliche Schwierigkeit: \(String(format: "%.2f", fixtureAnalysis.averageDifficulty))"
+                    )
                     print("   - Top-Teams als Gegner: \(fixtureAnalysis.topTeamOpponents)")
                     print("   - Schwere Auswärtsspiele: \(fixtureAnalysis.difficultAwayGames)")
-                    
+
                     // Schwere Fixture-Liste
                     if fixtureAnalysis.averageDifficulty >= 0.7 {
                         let difficultyPercentage = Int(fixtureAnalysis.averageDifficulty * 100)
-                        let reason = "Schwere Gegner kommend (\(difficultyPercentage)% Schwierigkeit, \(upcomingMatches.count) Spiele)"
+                        let reason =
+                            "Schwere Gegner kommend (\(difficultyPercentage)% Schwierigkeit, \(upcomingMatches.count) Spiele)"
                         reasons.append(reason)
                         shouldSell = true
                         print("✅ Verkaufsgrund hinzugefügt: \(reason)")
-                        
+
                         // Besonders schwer -> höhere Priorität
                         if fixtureAnalysis.averageDifficulty >= 0.8 && priority != .high {
                             priority = .medium
                             print("⬆️ Priorität auf MEDIUM erhöht wegen sehr schwerer Fixtures")
                         }
                     }
-                    
+
                     // Viele Top-6-Teams als Gegner
                     if fixtureAnalysis.topTeamOpponents >= 2 {
-                        let reason = "Viele Top-Teams als Gegner (\(fixtureAnalysis.topTeamOpponents) von \(upcomingMatches.count))"
+                        let reason =
+                            "Viele Top-Teams als Gegner (\(fixtureAnalysis.topTeamOpponents) von \(upcomingMatches.count))"
                         reasons.append(reason)
                         shouldSell = true
                         print("✅ Verkaufsgrund hinzugefügt: \(reason)")
@@ -1329,15 +1382,16 @@ struct SalesRecommendationView: View {
                             print("⬆️ Priorität auf MEDIUM erhöht wegen vieler Top-Teams")
                         }
                     }
-                    
+
                     // Auswärtsspiele-Schwere
                     if fixtureAnalysis.difficultAwayGames >= 2 {
-                        let reason = "Schwere Auswärtsspiele (\(fixtureAnalysis.difficultAwayGames) Spiele)"
+                        let reason =
+                            "Schwere Auswärtsspiele (\(fixtureAnalysis.difficultAwayGames) Spiele)"
                         reasons.append(reason)
                         shouldSell = true
                         print("✅ Verkaufsgrund hinzugefügt: \(reason)")
                     }
-                    
+
                     // Positive Indikatoren (gegen Verkauf)
                     if fixtureAnalysis.averageDifficulty <= 0.3 {
                         print("🟢 Sehr einfache kommende Spiele - Verkauf weniger empfehlenswert")
@@ -1358,40 +1412,43 @@ struct SalesRecommendationView: View {
             print("❌ Fehler beim Laden der Fixture-Daten für \(player.fullName): \(error)")
         }
     }
-    
+
     // MARK: - Fixture Difficulty Analysis
-    private func analyzeFixtureDifficulty(matches: [EnhancedMatchPerformance], playerTeam: String) -> FixtureAnalysis {
+    private func analyzeFixtureDifficulty(matches: [EnhancedMatchPerformance], playerTeam: String)
+        -> FixtureAnalysis
+    {
         var totalDifficulty: Double = 0
         var topTeamOpponents = 0
         var difficultAwayGames = 0
-        
+
         for match in matches {
             // Verwende die neuen Methoden mit der korrekten playerTeamId
             let opponentTeamId = match.basePerformance.getOpponentTeamId(playerTeamId: playerTeam)
             let isAwayGame = !match.basePerformance.getIsHomeMatch(playerTeamId: playerTeam)
-            
+
             // Berechne Gegnerstärke basierend auf echter Platzierung aus den Team-Infos
-            let opponentStrength = getTeamStrengthFromMatch(match: match, opponentTeamId: opponentTeamId)
+            let opponentStrength = getTeamStrengthFromMatch(
+                match: match, opponentTeamId: opponentTeamId)
             let difficultyScore = calculateMatchDifficulty(
                 opponentStrength: opponentStrength,
                 isAwayGame: isAwayGame
             )
-            
+
             totalDifficulty += difficultyScore
-            
+
             // Top-6-Teams zählen (Stärke >= 0.7)
             if opponentStrength >= 0.7 {
                 topTeamOpponents += 1
             }
-            
+
             // Schwere Auswärtsspiele
             if isAwayGame && opponentStrength >= 0.6 {
                 difficultAwayGames += 1
             }
         }
-        
+
         let averageDifficulty = matches.isEmpty ? 0.0 : totalDifficulty / Double(matches.count)
-        
+
         return FixtureAnalysis(
             averageDifficulty: averageDifficulty,
             topTeamOpponents: topTeamOpponents,
@@ -1399,12 +1456,14 @@ struct SalesRecommendationView: View {
             totalMatches: matches.count
         )
     }
-    
+
     // MARK: - Team Strength from Match Data
-    private func getTeamStrengthFromMatch(match: EnhancedMatchPerformance, opponentTeamId: String) -> Double {
+    private func getTeamStrengthFromMatch(match: EnhancedMatchPerformance, opponentTeamId: String)
+        -> Double
+    {
         // Versuche Team-Info aus den geladenen Daten zu finden
         let opponentTeamInfo: TeamInfo?
-        
+
         if match.team1Id == opponentTeamId {
             opponentTeamInfo = match.team1Info
         } else if match.team2Id == opponentTeamId {
@@ -1412,15 +1471,19 @@ struct SalesRecommendationView: View {
         } else {
             opponentTeamInfo = nil
         }
-        
+
         // Falls Team-Info verfügbar ist, berechne Stärke basierend auf Platzierung
         if let teamInfo = opponentTeamInfo {
             let strength = calculateTeamStrengthFromPlacement(teamInfo.placement)
-            print("🎯 Team \(teamInfo.name) (Platz \(teamInfo.placement)) hat Stärke \(String(format: "%.2f", strength))")
+            print(
+                "🎯 Team \(teamInfo.name) (Platz \(teamInfo.placement)) hat Stärke \(String(format: "%.2f", strength))"
+            )
             return strength
         } else {
             // Fallback: mittlere Stärke wenn keine Team-Info verfügbar
-            print("⚠️ Keine Team-Info für Team \(opponentTeamId) verfügbar, verwende Fallback-Stärke 0.5")
+            print(
+                "⚠️ Keine Team-Info für Team \(opponentTeamId) verfügbar, verwende Fallback-Stärke 0.5"
+            )
             return 0.5
         }
     }
@@ -1434,12 +1497,12 @@ struct SalesRecommendation: Identifiable {
     let priority: Priority
     let expectedValue: Int
     let impact: LineupImpact
-    
+
     enum Priority: String, CaseIterable {
         case high = "Hoch"
         case medium = "Mittel"
         case low = "Niedrig"
-        
+
         var color: Color {
             switch self {
             case .high: return .red
@@ -1448,12 +1511,12 @@ struct SalesRecommendation: Identifiable {
             }
         }
     }
-    
+
     enum LineupImpact: String, CaseIterable {
         case minimal = "Minimal"
         case moderate = "Moderat"
         case significant = "Erheblich"
-        
+
         var color: Color {
             switch self {
             case .minimal: return .green
@@ -1469,15 +1532,15 @@ struct SalesRecommendationHeader: View {
     let currentBudget: Int
     let recommendedSaleValue: Int
     let selectedSaleValue: Int
-    
+
     private var budgetAfterRecommended: Int {
         return currentBudget + recommendedSaleValue
     }
-    
+
     private var budgetAfterSelected: Int {
         return currentBudget + selectedSaleValue
     }
-    
+
     var body: some View {
         VStack(spacing: 16) {
             // Aktuelle Budget-Situation
@@ -1491,9 +1554,9 @@ struct SalesRecommendationHeader: View {
                         .fontWeight(.bold)
                         .foregroundColor(currentBudget < 0 ? .red : .green)
                 }
-                
+
                 Spacer()
-                
+
                 if currentBudget < 0 {
                     VStack(alignment: .trailing, spacing: 4) {
                         Text("Benötigt")
@@ -1509,7 +1572,7 @@ struct SalesRecommendationHeader: View {
             .padding()
             .background(currentBudget < 0 ? Color.red.opacity(0.1) : Color.green.opacity(0.1))
             .cornerRadius(12)
-            
+
             // Empfohlene vs. Ausgewählte Verkäufe
             if recommendedSaleValue > 0 || selectedSaleValue > 0 {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 12) {
@@ -1518,13 +1581,13 @@ struct SalesRecommendationHeader: View {
                         Text("Empfohlen")
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        
+
                         VStack(spacing: 4) {
                             Text("€\(formatValueWithSeparators(recommendedSaleValue))")
                                 .font(.headline)
                                 .fontWeight(.bold)
                                 .foregroundColor(.blue)
-                            
+
                             Text("Budget: €\(formatValueWithSeparators(budgetAfterRecommended))")
                                 .font(.caption)
                                 .foregroundColor(budgetAfterRecommended >= 0 ? .green : .red)
@@ -1533,19 +1596,19 @@ struct SalesRecommendationHeader: View {
                     .padding()
                     .background(Color(.systemGray6))
                     .cornerRadius(8)
-                    
+
                     // Ausgewählte Verkäufe
                     VStack(spacing: 8) {
                         Text("Ausgewählt")
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        
+
                         VStack(spacing: 4) {
                             Text("€\(formatValueWithSeparators(selectedSaleValue))")
                                 .font(.headline)
                                 .fontWeight(.bold)
                                 .foregroundColor(.orange)
-                            
+
                             if selectedSaleValue > 0 {
                                 Text("Budget: €\(formatValueWithSeparators(budgetAfterSelected))")
                                     .font(.caption)
@@ -1564,13 +1627,13 @@ struct SalesRecommendationHeader: View {
             }
         }
     }
-    
+
     private func formatValueWithSeparators(_ value: Int) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
         formatter.groupingSeparator = "."
         formatter.groupingSize = 3
-        
+
         if let formattedString = formatter.string(from: NSNumber(value: value)) {
             return formattedString
         } else {
@@ -1583,19 +1646,19 @@ struct SalesRecommendationHeader: View {
 struct SalesRecommendationSummary: View {
     let recommendations: [SalesRecommendation]
     let optimizationGoal: SalesRecommendationView.OptimizationGoal
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Empfehlungsübersicht")
                 .font(.title2)
                 .fontWeight(.bold)
-            
+
             // Strategieerklärung
             VStack(alignment: .leading, spacing: 8) {
                 Text("Strategie: \(optimizationGoal.rawValue)")
                     .font(.headline)
                     .foregroundColor(.blue)
-                
+
                 Text(getStrategyDescription(for: optimizationGoal))
                     .font(.subheadline)
                     .foregroundColor(.secondary)
@@ -1603,7 +1666,7 @@ struct SalesRecommendationSummary: View {
             .padding()
             .background(Color(.systemBackground))
             .cornerRadius(8)
-            
+
             // Prioritäten-Übersicht
             let priorityCounts = getPriorityCounts()
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 12) {
@@ -1612,11 +1675,11 @@ struct SalesRecommendationSummary: View {
                         Image(systemName: getPriorityIcon(priority))
                             .font(.title2)
                             .foregroundColor(priority.color)
-                        
+
                         Text("\(priorityCounts[priority] ?? 0)")
                             .font(.title)
                             .fontWeight(.bold)
-                        
+
                         Text(priority.rawValue)
                             .font(.caption)
                             .foregroundColor(.secondary)
@@ -1632,28 +1695,33 @@ struct SalesRecommendationSummary: View {
         .background(Color(.systemGray6))
         .cornerRadius(12)
     }
-    
-    private func getStrategyDescription(for goal: SalesRecommendationView.OptimizationGoal) -> String {
+
+    private func getStrategyDescription(for goal: SalesRecommendationView.OptimizationGoal)
+        -> String
+    {
         switch goal {
         case .balancePositive:
-            return "Verkaufe Spieler um das Budget ins Plus zu bringen, dabei werden Spielerleistung und Positionsbesetzung berücksichtigt."
+            return
+                "Verkaufe Spieler um das Budget ins Plus zu bringen, dabei werden Spielerleistung und Positionsbesetzung berücksichtigt."
         case .maximizeProfit:
-            return "Verkaufe Spieler mit dem höchsten Gewinn seit dem Kauf, um maximalen Profit zu erzielen."
+            return
+                "Verkaufe Spieler mit dem höchsten Gewinn seit dem Kauf, um maximalen Profit zu erzielen."
         case .keepBestPlayers:
-            return "Verkaufe schwächere Spieler zuerst, um die besten Leistungsträger im Team zu behalten."
+            return
+                "Verkaufe schwächere Spieler zuerst, um die besten Leistungsträger im Team zu behalten."
         }
     }
-    
+
     private func getPriorityCounts() -> [SalesRecommendation.Priority: Int] {
         var counts: [SalesRecommendation.Priority: Int] = [:]
-        
+
         for priority in SalesRecommendation.Priority.allCases {
             counts[priority] = recommendations.filter { $0.priority == priority }.count
         }
-        
+
         return counts
     }
-    
+
     private func getPriorityIcon(_ priority: SalesRecommendation.Priority) -> String {
         switch priority {
         case .high: return "exclamationmark.triangle.fill"
@@ -1668,15 +1736,15 @@ struct SalesRecommendationRow: View {
     let recommendation: SalesRecommendation
     let isSelected: Bool
     let onToggle: (Bool) -> Void
-    
+
     @State private var showingPlayerDetail = false
     @EnvironmentObject var kickbaseManager: KickbaseManager
-    
+
     var body: some View {
         HStack(spacing: 12) {
             // Position Badge
             PositionBadge(position: recommendation.player.position)
-            
+
             // Spieler-Info Bereich (klickbar für Details)
             Button(action: {
                 showingPlayerDetail = true
@@ -1688,7 +1756,7 @@ struct SalesRecommendationRow: View {
                             Text(recommendation.player.fullName)
                                 .font(.headline)
                                 .fontWeight(.medium)
-                            
+
                             // Status-Icons
                             if recommendation.player.status == 2 {
                                 Image(systemName: "pills.fill")
@@ -1696,21 +1764,21 @@ struct SalesRecommendationRow: View {
                                     .font(.caption)
                             }
                         }
-                        
+
                         // Team
                         Text(recommendation.player.fullTeamName)
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        
+
                         // Verkaufsgrund
                         Text(recommendation.reason)
                             .font(.caption)
                             .foregroundColor(.blue)
                             .italic()
                     }
-                    
+
                     Spacer()
-                    
+
                     // Stats
                     VStack(alignment: .trailing, spacing: 4) {
                         // Durchschnittspunkte
@@ -1722,14 +1790,14 @@ struct SalesRecommendationRow: View {
                                 .font(.subheadline)
                                 .fontWeight(.semibold)
                         }
-                        
+
                         // Marktwert
                         Text("€\(formatValue(recommendation.player.marketValue))")
                             .font(.headline)
                             .fontWeight(.bold)
                             .foregroundColor(.green)
                     }
-                    
+
                     VStack(spacing: 8) {
                         // Priorität
                         HStack(spacing: 4) {
@@ -1740,7 +1808,7 @@ struct SalesRecommendationRow: View {
                                 .font(.caption)
                                 .foregroundColor(recommendation.priority.color)
                         }
-                        
+
                         // Aufstellungsimpact
                         HStack(spacing: 4) {
                             Image(systemName: getImpactIcon(recommendation.impact))
@@ -1754,14 +1822,16 @@ struct SalesRecommendationRow: View {
                 }
             }
             .buttonStyle(PlainButtonStyle())
-            
+
             // Toggle (separater Bereich)
-            Toggle(isOn: Binding<Bool>(
-                get: { isSelected },
-                set: { newValue in
-                    onToggle(newValue)
-                }
-            )) {
+            Toggle(
+                isOn: Binding<Bool>(
+                    get: { isSelected },
+                    set: { newValue in
+                        onToggle(newValue)
+                    }
+                )
+            ) {
                 Text("")
             }
             .toggleStyle(SwitchToggleStyle(tint: .blue))
@@ -1772,7 +1842,7 @@ struct SalesRecommendationRow: View {
             PlayerDetailView(player: recommendation.player)
         }
     }
-    
+
     private func getImpactIcon(_ impact: SalesRecommendation.LineupImpact) -> String {
         switch impact {
         case .minimal: return "checkmark.circle.fill"
@@ -1786,12 +1856,12 @@ struct SalesRecommendationRow: View {
 struct LineupOptimizerView: View {
     @EnvironmentObject var kickbaseManager: KickbaseManager
     @State private var selectedOptimization: OptimizationType = .averagePoints
-    
+
     enum OptimizationType: String, CaseIterable {
         case averagePoints = "Durchschnittspunkte"
         case totalPoints = "Gesamtpunkte"
     }
-    
+
     // Verfügbare Formationen
     enum Formation: String, CaseIterable {
         case formation442 = "4-4-2"
@@ -1804,7 +1874,7 @@ struct LineupOptimizerView: View {
         case formation451 = "4-5-1"
         case formation361 = "3-6-1"
         case formation523 = "5-2-3"
-        
+
         var positions: (defenders: Int, midfielders: Int, forwards: Int) {
             switch self {
             case .formation442: return (4, 4, 2)
@@ -1820,7 +1890,7 @@ struct LineupOptimizerView: View {
             }
         }
     }
-    
+
     var body: some View {
         VStack(spacing: 0) {
             // Header with optimization type selector
@@ -1828,7 +1898,7 @@ struct LineupOptimizerView: View {
                 Text("Beste Aufstellung")
                     .font(.title2)
                     .fontWeight(.bold)
-                
+
                 Picker("Optimierung", selection: $selectedOptimization) {
                     ForEach(OptimizationType.allCases, id: \.self) { type in
                         Text(type.rawValue).tag(type)
@@ -1838,26 +1908,26 @@ struct LineupOptimizerView: View {
             }
             .padding()
             .background(Color(.systemGray6))
-            
+
             if kickbaseManager.teamPlayers.isEmpty {
                 // Empty state
                 VStack(spacing: 20) {
                     Spacer()
-                    
+
                     Image(systemName: "person.crop.square.fill.and.at.rectangle")
                         .font(.system(size: 60))
                         .foregroundColor(.gray)
-                    
+
                     Text("Keine Spieler geladen")
                         .font(.headline)
                         .foregroundColor(.primary)
-                    
+
                     Text("Lade dein Team, um die beste Aufstellung zu sehen")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
-                    
+
                     Button("Team laden") {
                         Task {
                             if let league = kickbaseManager.selectedLeague {
@@ -1866,7 +1936,7 @@ struct LineupOptimizerView: View {
                         }
                     }
                     .buttonStyle(.borderedProminent)
-                    
+
                     Spacer()
                 }
             } else {
@@ -1880,16 +1950,18 @@ struct LineupOptimizerView: View {
                             formation: optimalResult.formation,
                             optimizationType: selectedOptimization
                         )
-                        
+
                         // Formation display
                         OptimalLineupFormationView(
                             lineup: optimalResult.lineup,
                             formation: optimalResult.formation
                         )
-                        
+
                         // Reserve players section
                         ReservePlayersView(
-                            allPlayers: kickbaseManager.teamPlayers.filter { $0.status != 1 && $0.status != 4 && $0.status != 8 },
+                            allPlayers: kickbaseManager.teamPlayers.filter {
+                                $0.status != 1 && $0.status != 4 && $0.status != 8
+                            },
                             startingLineup: optimalResult.lineup,
                             optimizationType: selectedOptimization
                         )
@@ -1904,33 +1976,35 @@ struct LineupOptimizerView: View {
             }
         }
     }
-    
+
     private func getBestPossibleLineup() -> (lineup: OptimalLineup, formation: Formation) {
-        let availablePlayers = kickbaseManager.teamPlayers.filter { $0.status != 1 && $0.status != 4 && $0.status != 8 } // Ausschluss verletzter Spieler und Spieler im Aufbautraining
-        
+        let availablePlayers = kickbaseManager.teamPlayers.filter {
+            $0.status != 1 && $0.status != 4 && $0.status != 8
+        }  // Ausschluss verletzter Spieler und Spieler im Aufbautraining
+
         // Gruppiere verfügbare Spieler nach Position
         let goalkeepers = availablePlayers.filter { $0.position == 1 }
         let defenders = availablePlayers.filter { $0.position == 2 }
         let midfielders = availablePlayers.filter { $0.position == 3 }
         let forwards = availablePlayers.filter { $0.position == 4 }
-        
+
         // Muss mindestens einen Torwart haben
         guard !goalkeepers.isEmpty else {
             // Fallback: Verwende alle verfügbaren Spieler
             return createFallbackLineup(from: availablePlayers)
         }
-        
+
         // Finde die beste mögliche Formation basierend auf verfügbaren Spielern
         var bestResult: (lineup: OptimalLineup, formation: Formation, score: Double)?
-        
+
         for formation in Formation.allCases {
             let positions = formation.positions
-            
+
             // Prüfe ob genügend Spieler für diese Formation vorhanden sind
-            if defenders.count >= positions.defenders &&
-               midfielders.count >= positions.midfielders &&
-               forwards.count >= positions.forwards {
-                
+            if defenders.count >= positions.defenders && midfielders.count >= positions.midfielders
+                && forwards.count >= positions.forwards
+            {
+
                 let lineup = calculateOptimalLineupForFormation(
                     formation: formation,
                     goalkeepers: goalkeepers,
@@ -1938,15 +2012,15 @@ struct LineupOptimizerView: View {
                     midfielders: midfielders,
                     forwards: forwards
                 )
-                
+
                 let score = calculateLineupScore(lineup)
-                
+
                 if bestResult == nil || score > bestResult!.score {
                     bestResult = (lineup, formation, score)
                 }
             }
         }
-        
+
         // Falls keine komplette Formation möglich ist, verwende bestmögliche Aufstellung
         if let best = bestResult {
             return (best.lineup, best.formation)
@@ -1959,7 +2033,7 @@ struct LineupOptimizerView: View {
             )
         }
     }
-    
+
     private func calculateOptimalLineupForFormation(
         formation: Formation,
         goalkeepers: [TeamPlayer],
@@ -1968,13 +2042,13 @@ struct LineupOptimizerView: View {
         forwards: [TeamPlayer]
     ) -> OptimalLineup {
         let positions = formation.positions
-        
+
         // Sortiere Spieler basierend auf gewähltem Kriterium
         let sortedGK: [TeamPlayer]
         let sortedDF: [TeamPlayer]
         let sortedMF: [TeamPlayer]
         let sortedFW: [TeamPlayer]
-        
+
         switch selectedOptimization {
         case .averagePoints:
             sortedGK = goalkeepers.sorted { $0.averagePoints > $1.averagePoints }
@@ -1987,7 +2061,7 @@ struct LineupOptimizerView: View {
             sortedMF = midfielders.sorted { $0.totalPoints > $1.totalPoints }
             sortedFW = forwards.sorted { $0.totalPoints > $1.totalPoints }
         }
-        
+
         return OptimalLineup(
             goalkeeper: sortedGK.first,
             defenders: Array(sortedDF.prefix(positions.defenders)),
@@ -1995,7 +2069,7 @@ struct LineupOptimizerView: View {
             forwards: Array(sortedFW.prefix(positions.forwards))
         )
     }
-    
+
     private func calculateLineupScore(_ lineup: OptimalLineup) -> Double {
         switch selectedOptimization {
         case .averagePoints:
@@ -2004,7 +2078,7 @@ struct LineupOptimizerView: View {
             return Double(lineup.totalPoints)
         }
     }
-    
+
     private func createBestPossibleLineup(
         goalkeepers: [TeamPlayer],
         defenders: [TeamPlayer],
@@ -2012,10 +2086,10 @@ struct LineupOptimizerView: View {
         forwards: [TeamPlayer]
     ) -> (lineup: OptimalLineup, formation: Formation) {
         // Verwende so viele Spieler wie möglich, beginnend mit den besten
-        let maxDefenders = min(defenders.count, 5) // Max 5 Verteidiger
-        let maxMidfielders = min(midfielders.count, 6) // Max 6 Mittelfeldspieler
-        let maxForwards = min(forwards.count, 4) // Max 4 Stürmer
-        
+        let maxDefenders = min(defenders.count, 5)  // Max 5 Verteidiger
+        let maxMidfielders = min(midfielders.count, 6)  // Max 6 Mittelfeldspieler
+        let maxForwards = min(forwards.count, 4)  // Max 4 Stürmer
+
         // Finde eine passende Formation
         let customFormation: Formation
         switch (maxDefenders, maxMidfielders, maxForwards) {
@@ -2033,7 +2107,7 @@ struct LineupOptimizerView: View {
             // Fallback auf 4-3-3 mit verfügbaren Spielern
             customFormation = .formation433
         }
-        
+
         let lineup = calculateOptimalLineupForFormation(
             formation: customFormation,
             goalkeepers: goalkeepers,
@@ -2041,28 +2115,30 @@ struct LineupOptimizerView: View {
             midfielders: midfielders,
             forwards: forwards
         )
-        
+
         return (lineup, customFormation)
     }
-    
-    private func createFallbackLineup(from players: [TeamPlayer]) -> (lineup: OptimalLineup, formation: Formation) {
+
+    private func createFallbackLineup(from players: [TeamPlayer]) -> (
+        lineup: OptimalLineup, formation: Formation
+    ) {
         // Notfall: Wenn kein Torwart verfügbar ist, verwende den besten verfügbaren Spieler
         let sortedPlayers: [TeamPlayer]
-        
+
         switch selectedOptimization {
         case .averagePoints:
             sortedPlayers = players.sorted { $0.averagePoints > $1.averagePoints }
         case .totalPoints:
             sortedPlayers = players.sorted { $0.totalPoints > $1.totalPoints }
         }
-        
+
         let lineup = OptimalLineup(
             goalkeeper: sortedPlayers.first,
             defenders: Array(sortedPlayers.dropFirst().prefix(4)),
             midfielders: Array(sortedPlayers.dropFirst(8).prefix(3)),
             forwards: Array(sortedPlayers.dropFirst(11).prefix(3))
         )
-        
+
         return (lineup, .formation433)
     }
 }
@@ -2073,7 +2149,7 @@ struct OptimalLineup {
     let defenders: [TeamPlayer]
     let midfielders: [TeamPlayer]
     let forwards: [TeamPlayer]
-    
+
     var allPlayers: [TeamPlayer] {
         var players: [TeamPlayer] = []
         if let gk = goalkeeper { players.append(gk) }
@@ -2082,16 +2158,16 @@ struct OptimalLineup {
         players.append(contentsOf: forwards)
         return players
     }
-    
+
     var totalPoints: Int {
         allPlayers.reduce(0) { $0 + $1.totalPoints }
     }
-    
+
     var averagePoints: Double {
         let total = allPlayers.reduce(0.0) { $0 + $1.averagePoints }
         return allPlayers.isEmpty ? 0.0 : total / Double(allPlayers.count)
     }
-    
+
     var totalMarketValue: Int {
         allPlayers.reduce(0) { $0 + $1.marketValue }
     }
@@ -2102,13 +2178,13 @@ struct OptimalLineupStatsView: View {
     let lineup: OptimalLineup
     let formation: LineupOptimizerView.Formation
     let optimizationType: LineupOptimizerView.OptimizationType
-    
+
     var body: some View {
         VStack(spacing: 16) {
             Text("Aufstellungs-Statistiken")
                 .font(.headline)
                 .fontWeight(.bold)
-            
+
             // Formation info
             HStack {
                 Image(systemName: "rectangle.3.group")
@@ -2118,7 +2194,7 @@ struct OptimalLineupStatsView: View {
                     .fontWeight(.medium)
             }
             .padding(.bottom, 8)
-            
+
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 12) {
                 StatCard(
                     title: "Gesamtpunkte",
@@ -2145,7 +2221,7 @@ struct OptimalLineupStatsView: View {
                     color: .purple
                 )
             }
-            
+
             // Warnung wenn nicht genügend Spieler
             if lineup.allPlayers.count < 11 {
                 HStack {
@@ -2157,7 +2233,7 @@ struct OptimalLineupStatsView: View {
                 }
                 .padding(.top, 8)
             }
-            
+
             // Kein Torwart Warnung
             if lineup.goalkeeper == nil {
                 HStack {
@@ -2180,13 +2256,13 @@ struct OptimalLineupStatsView: View {
 struct OptimalLineupFormationView: View {
     let lineup: OptimalLineup
     let formation: LineupOptimizerView.Formation
-    
+
     var body: some View {
         VStack(spacing: 20) {
             Text("Formation (\(formation.rawValue))")
                 .font(.headline)
                 .fontWeight(.bold)
-            
+
             VStack(spacing: 25) {
                 // Forwards
                 if !lineup.forwards.isEmpty {
@@ -2196,7 +2272,7 @@ struct OptimalLineupFormationView: View {
                         }
                     }
                 }
-                
+
                 // Midfielders
                 if !lineup.midfielders.isEmpty {
                     HStack(spacing: 6) {
@@ -2205,7 +2281,7 @@ struct OptimalLineupFormationView: View {
                         }
                     }
                 }
-                
+
                 // Defenders
                 if !lineup.defenders.isEmpty {
                     HStack(spacing: 8) {
@@ -2214,7 +2290,7 @@ struct OptimalLineupFormationView: View {
                         }
                     }
                 }
-                
+
                 // Goalkeeper
                 if let goalkeeper = lineup.goalkeeper {
                     LineupPlayerCard(player: goalkeeper)
@@ -2223,7 +2299,8 @@ struct OptimalLineupFormationView: View {
             .padding()
             .background(
                 LinearGradient(
-                    gradient: Gradient(colors: [Color.green.opacity(0.3), Color.green.opacity(0.1)]),
+                    gradient: Gradient(colors: [Color.green.opacity(0.3), Color.green.opacity(0.1)]
+                    ),
                     startPoint: .top,
                     endPoint: .bottom
                 )
@@ -2238,92 +2315,97 @@ struct LineupPlayerCard: View {
     let player: TeamPlayer
     @State private var showingPlayerDetail = false
     @EnvironmentObject var kickbaseManager: KickbaseManager
-    
+
     // Plattformspezifische Größen
     private var cardSize: (width: CGFloat, height: CGFloat) {
-#if os(macOS)
-        return (width: 90, height: 110) // 30% größer auf macOS
-#else
-        if UIDevice.current.userInterfaceIdiom == .pad {
-            return (width: 80, height: 100) // 15% größer auf iPad
-        } else {
-            return (width: 60, height: 80) // 20% größer auf iPhone
-        }
-#endif
+        #if os(macOS)
+            return (width: 90, height: 110)  // 30% größer auf macOS
+        #else
+            if UIDevice.current.userInterfaceIdiom == .pad {
+                return (width: 80, height: 100)  // 15% größer auf iPad
+            } else {
+                return (width: 60, height: 80)  // 20% größer auf iPhone
+            }
+        #endif
     }
-    
-    private var fontSizes: (firstName: CGFloat, lastName: CGFloat, avgPoints: CGFloat, totalPoints: CGFloat, status: CGFloat) {
-#if os(macOS)
-        return (firstName: 14, lastName: 16, avgPoints: 14, totalPoints: 11, status: 12) // Größere Schriften auf macOS
-#else
-        if UIDevice.current.userInterfaceIdiom == .pad {
-            return (firstName: 13, lastName: 15, avgPoints: 13, totalPoints: 10, status: 11)
-        } else {
-            return (firstName: 11, lastName: 13, avgPoints: 12, totalPoints: 9, status: 10)
-        }
-#endif
-        }
-        
-        var body: some View {
-            Button(action: {
-                showingPlayerDetail = true
-            }) {
-                VStack(spacing: 5) { // Player name - größer und lesbarer
-                    VStack(spacing: 2) {
-                        Text(player.firstName)
-                            .font(.system(size: fontSizes.firstName, weight: .medium))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.7)
-                        Text(player.lastName)
-                            .font(.system(size: fontSizes.lastName, weight: .bold))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.7)
-                    }
-                    .foregroundColor(.primary)
-                    
-                    // Points - größer und prominenter
-                    VStack(spacing: 1) {
-                        Text(String(format: "%.0f", player.averagePoints))
-                            .font(.system(size: fontSizes.avgPoints, weight: .bold))
-                            .foregroundColor(.orange)
-                        Text("\(player.totalPoints)")
-                            .font(.system(size: fontSizes.totalPoints))
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    // Status indicator - größer
-                    if player.status == 2 {
-                        Image(systemName: "pills.fill")
-                            .foregroundColor(.orange)
-                            .font(.system(size: fontSizes.status))
-                    }
+
+    private var fontSizes:
+        (
+            firstName: CGFloat, lastName: CGFloat, avgPoints: CGFloat, totalPoints: CGFloat,
+            status: CGFloat
+        )
+    {
+        #if os(macOS)
+            return (firstName: 14, lastName: 16, avgPoints: 14, totalPoints: 11, status: 12)  // Größere Schriften auf macOS
+        #else
+            if UIDevice.current.userInterfaceIdiom == .pad {
+                return (firstName: 13, lastName: 15, avgPoints: 13, totalPoints: 10, status: 11)
+            } else {
+                return (firstName: 11, lastName: 13, avgPoints: 12, totalPoints: 9, status: 10)
+            }
+        #endif
+    }
+
+    var body: some View {
+        Button(action: {
+            showingPlayerDetail = true
+        }) {
+            VStack(spacing: 5) {  // Player name - größer und lesbarer
+                VStack(spacing: 2) {
+                    Text(player.firstName)
+                        .font(.system(size: fontSizes.firstName, weight: .medium))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                    Text(player.lastName)
+                        .font(.system(size: fontSizes.lastName, weight: .bold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                 }
-                .frame(
-                    width: cardSize.width,
-                    height: cardSize.height
-                )
-                .background(Color(.systemBackground))
-                .cornerRadius(10) // Größerer Radius
-                .shadow(radius: 1.0) // Stärkerer Schatten
+                .foregroundColor(.primary)
+
+                // Points - größer und prominenter
+                VStack(spacing: 1) {
+                    Text(String(format: "%.0f", player.averagePoints))
+                        .font(.system(size: fontSizes.avgPoints, weight: .bold))
+                        .foregroundColor(.orange)
+                    Text("\(player.totalPoints)")
+                        .font(.system(size: fontSizes.totalPoints))
+                        .foregroundColor(.secondary)
+                }
+
+                // Status indicator - größer
+                if player.status == 2 {
+                    Image(systemName: "pills.fill")
+                        .foregroundColor(.orange)
+                        .font(.system(size: fontSizes.status))
+                }
             }
-            .buttonStyle(PlainButtonStyle())
-            .sheet(isPresented: $showingPlayerDetail) {
-                PlayerDetailView(player: player)
-            }
+            .frame(
+                width: cardSize.width,
+                height: cardSize.height
+            )
+            .background(Color(.systemBackground))
+            .cornerRadius(10)  // Größerer Radius
+            .shadow(radius: 1.0)  // Stärkerer Schatten
+        }
+        .buttonStyle(PlainButtonStyle())
+        .sheet(isPresented: $showingPlayerDetail) {
+            PlayerDetailView(player: player)
         }
     }
+}
 
 // MARK: - Reserve Players View
 struct ReservePlayersView: View {
     let allPlayers: [TeamPlayer]
     let startingLineup: OptimalLineup
     let optimizationType: LineupOptimizerView.OptimizationType
-    
+
     private var reservePlayers: [TeamPlayer] {
         let sortedReserve = allPlayers.filter { player in
             !startingLineup.allPlayers.contains(where: { $0.id == player.id })
         }
-        
+
         // Sortiere nach gewähltem Kriterium
         switch optimizationType {
         case .averagePoints:
@@ -2332,19 +2414,19 @@ struct ReservePlayersView: View {
             return sortedReserve.sorted { $0.totalPoints > $1.totalPoints }
         }
     }
-    
+
     // Gruppiere Reservespieler nach Position
     private var reservePlayersByPosition: [(String, [TeamPlayer])] {
         let grouped = Dictionary(grouping: reservePlayers) { $0.position }
-        
+
         return [
             ("Torhüter", grouped[1] ?? []),
             ("Abwehr", grouped[2] ?? []),
             ("Mittelfeld", grouped[3] ?? []),
-            ("Sturm", grouped[4] ?? [])
+            ("Sturm", grouped[4] ?? []),
         ].filter { !$1.isEmpty }
     }
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             // Header mit Statistiken
@@ -2353,14 +2435,14 @@ struct ReservePlayersView: View {
                     Text("Reservebank")
                         .font(.title2)
                         .fontWeight(.bold)
-                    
+
                     Text("Beste verfügbare Alternativen")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                
+
                 Spacer()
-                
+
                 VStack(alignment: .trailing, spacing: 2) {
                     Text("\(reservePlayers.count)")
                         .font(.title2)
@@ -2371,7 +2453,7 @@ struct ReservePlayersView: View {
                         .foregroundColor(.secondary)
                 }
             }
-            
+
             if reservePlayers.isEmpty {
                 // Empty state
                 VStack(spacing: 12) {
@@ -2379,7 +2461,7 @@ struct ReservePlayersView: View {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundColor(.green)
                             .font(.title2)
-                        
+
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Optimale Nutzung!")
                                 .font(.headline)
@@ -2389,7 +2471,7 @@ struct ReservePlayersView: View {
                                 .foregroundColor(.secondary)
                         }
                     }
-                    
+
                     // Verletzt Spieler Info falls vorhanden
                     let injuredPlayers = allPlayers.filter { $0.status == 1 }
                     if !injuredPlayers.isEmpty {
@@ -2405,8 +2487,9 @@ struct ReservePlayersView: View {
                 .padding(.vertical, 8)
             } else {
                 // Reserve Statistiken
-                ReserveBenchStatsView(reservePlayers: reservePlayers, optimizationType: optimizationType)
-                
+                ReserveBenchStatsView(
+                    reservePlayers: reservePlayers, optimizationType: optimizationType)
+
                 // Positionsweise Gruppierung
                 ForEach(reservePlayersByPosition, id: \.0) { positionName, players in
                     VStack(alignment: .leading, spacing: 8) {
@@ -2414,15 +2497,17 @@ struct ReservePlayersView: View {
                             Text(positionName)
                                 .font(.headline)
                                 .foregroundColor(.primary)
-                            
+
                             Spacer()
-                            
+
                             Text("(\(players.count))")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
-                        
-                        LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 8) {
+
+                        LazyVGrid(
+                            columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 8
+                        ) {
                             ForEach(players, id: \.id) { player in
                                 ReservePlayerRow(player: player, showPosition: false)
                             }
@@ -2442,12 +2527,14 @@ struct ReservePlayersView: View {
 struct ReserveBenchStatsView: View {
     let reservePlayers: [TeamPlayer]
     let optimizationType: LineupOptimizerView.OptimizationType
-    
-    private var benchStats: (totalPoints: Int, averagePoints: Double, bestPlayer: TeamPlayer?, totalValue: Int) {
+
+    private var benchStats:
+        (totalPoints: Int, averagePoints: Double, bestPlayer: TeamPlayer?, totalValue: Int)
+    {
         let totalPoints = reservePlayers.reduce(0) { $0 + $1.totalPoints }
-        let averagePoints = reservePlayers.isEmpty ? 0.0 :
-            Double(totalPoints) / Double(reservePlayers.count)
-        
+        let averagePoints =
+            reservePlayers.isEmpty ? 0.0 : Double(totalPoints) / Double(reservePlayers.count)
+
         let bestPlayer: TeamPlayer?
         switch optimizationType {
         case .averagePoints:
@@ -2455,20 +2542,20 @@ struct ReserveBenchStatsView: View {
         case .totalPoints:
             bestPlayer = reservePlayers.max(by: { $0.totalPoints < $1.totalPoints })
         }
-        
+
         let totalValue = reservePlayers.reduce(0) { $0 + $1.marketValue }
-        
+
         return (totalPoints, averagePoints, bestPlayer, totalValue)
     }
-    
+
     var body: some View {
         let stats = benchStats
-        
+
         VStack(spacing: 12) {
             Text("Reservebank-Statistiken")
                 .font(.subheadline)
                 .fontWeight(.semibold)
-            
+
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 8) {
                 BenchStatCard(
                     title: "Gesamt\npunkte",
@@ -2510,17 +2597,17 @@ struct BenchStatCard: View {
     let value: String
     let icon: String
     let color: Color
-    
+
     var body: some View {
         VStack(spacing: 8) {
             Image(systemName: icon)
                 .font(.title2)
                 .foregroundColor(color)
-            
+
             Text(value)
                 .font(.title)
                 .fontWeight(.bold)
-            
+
             Text(title)
                 .font(.caption)
                 .foregroundColor(.secondary)
@@ -2539,14 +2626,14 @@ struct ReservePlayerRow: View {
     let player: TeamPlayer
     let showPosition: Bool
     @State private var showingPlayerDetail = false
-    
+
     @EnvironmentObject var kickbaseManager: KickbaseManager
-    
+
     init(player: TeamPlayer, showPosition: Bool = true) {
         self.player = player
         self.showPosition = showPosition
     }
-    
+
     var body: some View {
         Button(action: {
             showingPlayerDetail = true
@@ -2562,7 +2649,7 @@ struct ReservePlayerRow: View {
                         .background(positionColor(player.position))
                         .clipShape(Circle())
                 }
-                
+
                 // Player Info
                 VStack(alignment: .leading, spacing: 1) {
                     HStack(spacing: 3) {
@@ -2570,7 +2657,7 @@ struct ReservePlayerRow: View {
                             .font(.caption)
                             .fontWeight(.medium)
                             .lineLimit(1)
-                        
+
                         // Status indicator
                         if player.status == 2 {
                             Image(systemName: "pills.fill")
@@ -2578,26 +2665,26 @@ struct ReservePlayerRow: View {
                                 .font(.system(size: 6))
                         }
                     }
-                    
+
                     Text(player.fullTeamName)
                         .font(.caption2)
                         .foregroundColor(.secondary)
                         .lineLimit(1)
                 }
-                
+
                 Spacer()
-                
+
                 // Points und Wert
                 VStack(alignment: .trailing, spacing: 1) {
                     Text(String(format: "%.0f", player.averagePoints))
                         .font(.caption)
                         .fontWeight(.bold)
                         .foregroundColor(.orange)
-                    
+
                     Text("\(player.totalPoints)")
                         .font(.caption2)
                         .foregroundColor(.secondary)
-                    
+
                     Text("€\(formatValue(player.marketValue))")
                         .font(.caption2)
                         .foregroundColor(.green)
@@ -2614,7 +2701,7 @@ struct ReservePlayerRow: View {
             PlayerDetailView(player: player)
         }
     }
-    
+
     private func positionAbbreviation(_ position: Int) -> String {
         switch position {
         case 1: return "TW"
@@ -2624,7 +2711,7 @@ struct ReservePlayerRow: View {
         default: return "?"
         }
     }
-    
+
     private func positionColor(_ position: Int) -> Color {
         switch position {
         case 1: return .yellow
@@ -2638,21 +2725,22 @@ struct ReservePlayerRow: View {
 
 // MARK: - Player Count Overview
 struct PlayerCountOverview: View {
-    let playerCounts: (total: Int, goalkeepers: Int, defenders: Int, midfielders: Int, forwards: Int)
-    
+    let playerCounts:
+        (total: Int, goalkeepers: Int, defenders: Int, midfielders: Int, forwards: Int)
+
     private func getPositionColor(position: String, count: Int) -> Color {
         let minRequired: Int
         switch position {
-        case "TW": minRequired = 1 // Mindestens 1 Torwart
-        case "ABW": minRequired = 3 // Mindestens 3 Verteidiger
-        case "MF": minRequired = 2 // Mindestens 2 Mittelfeldspieler
-        case "ST": minRequired = 1 // Mindestens 1 Stürmer
+        case "TW": minRequired = 1  // Mindestens 1 Torwart
+        case "ABW": minRequired = 3  // Mindestens 3 Verteidiger
+        case "MF": minRequired = 2  // Mindestens 2 Mittelfeldspieler
+        case "ST": minRequired = 1  // Mindestens 1 Stürmer
         default: minRequired = 1
         }
-        
+
         return count >= minRequired ? .green : .red
     }
-    
+
     var body: some View {
         HStack {
             // Gesamtanzahl
@@ -2661,36 +2749,36 @@ struct PlayerCountOverview: View {
                 count: playerCounts.total,
                 color: playerCounts.total >= 11 ? .green : .red
             )
-            
+
             Spacer()
-            
+
             // Torhüter
             PlayerPositionCountView(
                 position: "TW",
                 count: playerCounts.goalkeepers,
                 color: getPositionColor(position: "TW", count: playerCounts.goalkeepers)
             )
-            
+
             Spacer()
-            
+
             // Verteidiger
             PlayerPositionCountView(
                 position: "ABW",
                 count: playerCounts.defenders,
                 color: getPositionColor(position: "ABW", count: playerCounts.defenders)
             )
-            
+
             Spacer()
-            
+
             // Mittelfeldspieler
             PlayerPositionCountView(
                 position: "MF",
                 count: playerCounts.midfielders,
                 color: getPositionColor(position: "MF", count: playerCounts.midfielders)
             )
-            
+
             Spacer()
-            
+
             // Stürmer
             PlayerPositionCountView(
                 position: "ST",
@@ -2711,13 +2799,13 @@ struct PlayerPositionCountView: View {
     let position: String
     let count: Int
     let color: Color
-    
+
     var body: some View {
         VStack(spacing: 4) {
             Text(position)
                 .font(.caption)
                 .foregroundColor(.secondary)
-            
+
             Text("\(count)")
                 .font(.title2)
                 .fontWeight(.bold)
@@ -2731,11 +2819,11 @@ struct PlayerPositionCountView: View {
 struct TeamBudgetHeaderMain: View {
     let currentBudget: Int
     let saleValue: Int
-    
+
     private var totalBudget: Int {
         return currentBudget + saleValue
     }
-    
+
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
@@ -2747,9 +2835,9 @@ struct TeamBudgetHeaderMain: View {
                     .fontWeight(.bold)
                     .foregroundColor(currentBudget < 0 ? .red : .green)
             }
-            
+
             Spacer()
-            
+
             VStack(alignment: .trailing, spacing: 4) {
                 Text("Budget + Verkäufe")
                     .font(.caption)
@@ -2765,13 +2853,13 @@ struct TeamBudgetHeaderMain: View {
         .cornerRadius(12)
         .padding(.horizontal)
     }
-    
+
     private func formatValueWithSeparators(_ value: Int) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
         formatter.groupingSeparator = "."
         formatter.groupingSize = 3
-        
+
         if let formattedString = formatter.string(from: NSNumber(value: value)) {
             return formattedString
         } else {
@@ -2783,17 +2871,17 @@ struct TeamBudgetHeaderMain: View {
 // MARK: - Stats View mit detaillierten Punktzahl-Statistiken
 struct StatsView: View {
     @EnvironmentObject var kickbaseManager: KickbaseManager
-    
+
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
                 if let stats = kickbaseManager.userStats {
                     DetailedStatsView(stats: stats)
                 }
-                
+
                 // Team-Punktzahl Übersicht
                 TeamPointsOverview()
-                
+
                 if let league = kickbaseManager.selectedLeague {
                     LeagueInfoView(league: league)
                 }
@@ -2806,17 +2894,18 @@ struct StatsView: View {
 // MARK: - Team Punktzahl Übersicht
 struct TeamPointsOverview: View {
     @EnvironmentObject var kickbaseManager: KickbaseManager
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Team Punktzahl-Übersicht")
                 .font(.title2)
                 .fontWeight(.bold)
-            
+
             let totalTeamPoints = kickbaseManager.teamPlayers.reduce(0) { $0 + $1.totalPoints }
-            let averageTeamPoints = kickbaseManager.teamPlayers.isEmpty ? 0.0 :
-                Double(totalTeamPoints) / Double(kickbaseManager.teamPlayers.count)
-            
+            let averageTeamPoints =
+                kickbaseManager.teamPlayers.isEmpty
+                ? 0.0 : Double(totalTeamPoints) / Double(kickbaseManager.teamPlayers.count)
+
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 16) {
                 StatCard(
                     title: "Teampunkte Gesamt",
@@ -2852,18 +2941,26 @@ struct TeamPointsOverview: View {
 
 struct DetailedStatsView: View {
     let stats: UserStats
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Meine Liga-Statistiken")
                 .font(.title2)
                 .fontWeight(.bold)
-            
+
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 16) {
-                StatCard(title: "Gesamtpunkte", value: "\(stats.points)", icon: "star.fill", color: .orange)
-                StatCard(title: "Platzierung", value: "#\(stats.placement)", icon: "trophy.fill", color: .yellow)
-                StatCard(title: "Siege", value: "\(stats.won)", icon: "checkmark.circle.fill", color: .green)
-                StatCard(title: "Niederlagen", value: "\(stats.lost)", icon: "xmark.circle.fill", color: .red)
+                StatCard(
+                    title: "Gesamtpunkte", value: "\(stats.points)", icon: "star.fill",
+                    color: .orange)
+                StatCard(
+                    title: "Platzierung", value: "#\(stats.placement)", icon: "trophy.fill",
+                    color: .yellow)
+                StatCard(
+                    title: "Siege", value: "\(stats.won)", icon: "checkmark.circle.fill",
+                    color: .green)
+                StatCard(
+                    title: "Niederlagen", value: "\(stats.lost)", icon: "xmark.circle.fill",
+                    color: .red)
             }
         }
         .padding()
@@ -2877,17 +2974,17 @@ struct StatCard: View {
     let value: String
     let icon: String
     let color: Color
-    
+
     var body: some View {
         VStack(spacing: 8) {
             Image(systemName: icon)
                 .font(.title2)
                 .foregroundColor(color)
-            
+
             Text(value)
                 .font(.title)
                 .fontWeight(.bold)
-            
+
             Text(title)
                 .font(.caption)
                 .foregroundColor(.secondary)
@@ -2903,13 +3000,13 @@ struct StatCard: View {
 
 struct LeagueInfoView: View {
     let league: League
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Liga-Informationen")
                 .font(.title2)
                 .fontWeight(.bold)
-            
+
             InfoRow(label: "Liga", value: league.name)
             InfoRow(label: "Saison", value: league.season)
             InfoRow(label: "Spieltag", value: "\(league.matchDay)")
@@ -2926,7 +3023,7 @@ struct LeagueInfoView: View {
 struct InfoRow: View {
     let label: String
     let value: String
-    
+
     var body: some View {
         HStack {
             Text(label + ":")
@@ -2953,11 +3050,11 @@ private func convertMarketPlayerToTeamPlayer(_ marketPlayer: MarketPlayer) -> Te
         totalPoints: marketPlayer.totalPoints,
         marketValue: marketPlayer.marketValue,
         marketValueTrend: marketPlayer.marketValueTrend,
-        tfhmvt: 0, // MarketPlayer hat kein tfhmvt-Feld
+        tfhmvt: 0,  // MarketPlayer hat kein tfhmvt-Feld
         prlo: marketPlayer.prlo ?? 0,
         stl: marketPlayer.stl,
         status: marketPlayer.status,
-        userOwnsPlayer: false // MarketPlayer gehört nicht dem User
+        userOwnsPlayer: false  // MarketPlayer gehört nicht dem User
     )
 }
 
@@ -2969,12 +3066,12 @@ struct AllPlayersRow: View {
     let onToggle: (Bool) -> Void
     @EnvironmentObject var kickbaseManager: KickbaseManager
     @State private var showingPlayerDetail = false
-    
+
     var body: some View {
         HStack(spacing: 12) {
             // Position Badge
             PositionBadge(position: player.position)
-            
+
             // Spieler-Info Bereich (klickbar für Details)
             Button(action: {
                 showingPlayerDetail = true
@@ -2986,14 +3083,14 @@ struct AllPlayersRow: View {
                             Text(player.fullName)
                                 .font(.headline)
                                 .fontWeight(.medium)
-                            
+
                             // Empfehlungsindikator
                             if isRecommended {
                                 Image(systemName: "star.fill")
                                     .foregroundColor(.orange)
                                     .font(.caption)
                             }
-                            
+
                             // Status-Icons
                             if player.status == 1 {
                                 Image(systemName: "cross.circle.fill")
@@ -3013,12 +3110,12 @@ struct AllPlayersRow: View {
                                     .font(.caption)
                             }
                         }
-                        
+
                         // Team
                         Text(player.fullTeamName)
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        
+
                         // Verkaufsgrund falls empfohlen
                         if isRecommended {
                             Text("Verkaufsempfehlung")
@@ -3027,9 +3124,9 @@ struct AllPlayersRow: View {
                                 .italic()
                         }
                     }
-                    
+
                     Spacer()
-                    
+
                     // Stats
                     VStack(alignment: .trailing, spacing: 4) {
                         // Durchschnittspunkte
@@ -3041,7 +3138,7 @@ struct AllPlayersRow: View {
                                 .font(.subheadline)
                                 .fontWeight(.semibold)
                         }
-                        
+
                         // Marktwert
                         Text("€\(formatValue(player.marketValue))")
                             .font(.headline)
@@ -3051,14 +3148,16 @@ struct AllPlayersRow: View {
                 }
             }
             .buttonStyle(PlainButtonStyle())
-            
+
             // Toggle für Verkauf (separater Bereich)
-            Toggle(isOn: Binding<Bool>(
-                get: { isSelected },
-                set: { newValue in
-                    onToggle(newValue)
-                }
-            )) {
+            Toggle(
+                isOn: Binding<Bool>(
+                    get: { isSelected },
+                    set: { newValue in
+                        onToggle(newValue)
+                    }
+                )
+            ) {
                 Text("")
             }
             .toggleStyle(SwitchToggleStyle(tint: .blue))
@@ -3075,10 +3174,16 @@ struct AllPlayersRow: View {
 
 // MARK: - Helper Functions
 private func formatValue(_ value: Int) -> String {
-    if value >= 1000000 {
-        return String(format: "%.1fM", Double(value) / 1000000)
+    if value >= 1_000_000 {
+        return String(format: "%.1fM", Double(value) / 1_000_000)
     } else if value >= 1000 {
-        return String(format: "%.0fk", Double(value) / 1000)
+        let kValue = Double(value) / 1000
+        // Zeige Dezimalstelle wenn unter 10k, sonst ganz Zahlen
+        if kValue < 10 {
+            return String(format: "%.1fk", kValue)
+        } else {
+            return String(format: "%.0fk", kValue)
+        }
     } else {
         return "\(value)"
     }
@@ -3100,60 +3205,65 @@ private func getImpactValue(_ impact: SalesRecommendation.LineupImpact) -> Int {
     }
 }
 
-private func analyzePositionRedundancy(player: TeamPlayer, allPlayers: [TeamPlayer]) -> (isRedundant: Bool, isWeakestInPosition: Bool) {
+private func analyzePositionRedundancy(player: TeamPlayer, allPlayers: [TeamPlayer]) -> (
+    isRedundant: Bool, isWeakestInPosition: Bool
+) {
     let playersInSamePosition = allPlayers.filter { $0.position == player.position }
-    
+
     // Mindestanzahl pro Position
     let minRequired: Int
     switch player.position {
-    case 1: minRequired = 1 // Torwart
-    case 2: minRequired = 3 // Verteidiger
-    case 3: minRequired = 2 // Mittelfeld
-    case 4: minRequired = 1 // Sturm
+    case 1: minRequired = 1  // Torwart
+    case 2: minRequired = 3  // Verteidiger
+    case 3: minRequired = 2  // Mittelfeld
+    case 4: minRequired = 1  // Sturm
     default: minRequired = 1
     }
-    
+
     let isRedundant = playersInSamePosition.count > minRequired
-    
+
     // Prüfe ob der Spieler der schwächste auf seiner Position ist
     let sortedByPerformance = playersInSamePosition.sorted { $0.averagePoints > $1.averagePoints }
     let isWeakestInPosition = sortedByPerformance.last?.id == player.id
-    
+
     return (isRedundant, isWeakestInPosition)
 }
 
 private func isPlayerOverpriced(player: TeamPlayer, allPlayers: [TeamPlayer]) -> Bool {
     let teamAveragePoints = allPlayers.map(\.averagePoints).reduce(0, +) / Double(allPlayers.count)
-    let teamAverageValue = Double(allPlayers.map(\.marketValue).reduce(0, +)) / Double(allPlayers.count)
-    
+    let teamAverageValue =
+        Double(allPlayers.map(\.marketValue).reduce(0, +)) / Double(allPlayers.count)
+
     // Spieler ist überbewertet wenn sein Wert/Punkte-Verhältnis deutlich schlechter ist als der Teamdurchschnitt
     let playerValuePerPoint = Double(player.marketValue) / max(player.averagePoints, 1.0)
     let teamValuePerPoint = teamAverageValue / max(teamAveragePoints, 1.0)
-    
-    return playerValuePerPoint > teamValuePerPoint * 1.3 // 30% schlechter als Durchschnitt
+
+    return playerValuePerPoint > teamValuePerPoint * 1.3  // 30% schlechter als Durchschnitt
 }
 
 private func isPlayerWeakestInPosition(player: TeamPlayer, allPlayers: [TeamPlayer]) -> Bool {
     let playersInSamePosition = allPlayers.filter { $0.position == player.position }
     let sortedByPerformance = playersInSamePosition.sorted { $0.averagePoints > $1.averagePoints }
-    
+
     return sortedByPerformance.last?.id == player.id
 }
 
-private func calculateLineupImpact(player: TeamPlayer, allPlayers: [TeamPlayer]) -> SalesRecommendation.LineupImpact {
+private func calculateLineupImpact(player: TeamPlayer, allPlayers: [TeamPlayer])
+    -> SalesRecommendation.LineupImpact
+{
     let positionAnalysis = analyzePositionRedundancy(player: player, allPlayers: allPlayers)
-    
+
     // Hoher Impact wenn Position nicht redundant ist
     if !positionAnalysis.isRedundant {
         return .significant
     }
-    
+
     // Mittlerer Impact wenn Spieler überdurchschnittlich ist
     let teamAveragePoints = allPlayers.map(\.averagePoints).reduce(0, +) / Double(allPlayers.count)
     if player.averagePoints > teamAveragePoints * 1.1 {
         return .moderate
     }
-    
+
     // Minimaler Impact bei schwachen, redundanten Spielern
     return .minimal
 }
@@ -3170,7 +3280,7 @@ private func calculateTeamStrengthFromPlacement(_ placement: Int, totalTeams: In
     // Platz 1 = Stärke 1.0, Platz 18 = Stärke ~0.06
     let normalizedPlacement = Double(placement - 1) / Double(totalTeams - 1)
     let strength = 1.0 - normalizedPlacement
-    
+
     // Minimum-Stärke von 0.1 für das schlechteste Team
     return max(0.1, strength)
 }
@@ -3178,12 +3288,12 @@ private func calculateTeamStrengthFromPlacement(_ placement: Int, totalTeams: In
 // MARK: - Match Difficulty Calculation
 private func calculateMatchDifficulty(opponentStrength: Double, isAwayGame: Bool) -> Double {
     var difficulty = opponentStrength
-    
+
     // Auswärtsspiele sind schwieriger
     if isAwayGame {
-        difficulty *= 1.2 // 20% schwieriger
+        difficulty *= 1.2  // 20% schwieriger
     }
-    
+
     // Begrenze auf maximale Schwierigkeit von 1.0
     return min(1.0, difficulty)
 }
@@ -3195,5 +3305,5 @@ private func getCurrentMatchDay(allPerformances: [EnhancedMatchPerformance]) -> 
         return currentMatch.matchDay
     }
 
-    return 1 // Fallback-Wert
+    return 1  // Fallback-Wert
 }
