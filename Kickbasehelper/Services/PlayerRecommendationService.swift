@@ -52,13 +52,16 @@ class PlayerRecommendationService: ObservableObject {
             teamPlayers: teamPlayers, user: league.currentUser, budget: currentBudget)
 
         // Filter market players für Replacements
+        // WICHTIG: Schließe Spieler aus, die der aktuelle Benutzer selbst auf den Transfermarkt gestellt hat
         let qualityMarketPlayers = marketPlayers.filter { player in
             guard player.status != 8 && player.status != 16 else { return false }
             guard player.averagePoints >= 70.0 else { return false }
+            
+            // Schließe Spieler aus, die der aktuellen Benutzer auf den Transfermarkt gestellt hat
+            guard player.seller.id != league.currentUser.id else { return false }
+            
             return true
-        }
-
-        var saleRecommendations: [SaleRecommendation] = []
+        };        var saleRecommendations: [SaleRecommendation] = []
 
         switch goal {
         case .balanceBudget:
@@ -156,11 +159,12 @@ class PlayerRecommendationService: ObservableObject {
             // Dann Leistungschecks
             guard player.averagePoints >= 70.0 else { return false }
             guard player.totalPoints >= 140 else { return false }
+            
+            // Schließe Spieler aus, die der aktuellen Benutzer auf den Transfermarkt gestellt hat
+            guard player.seller.id != currentUser.id else { return false }
 
             return true
-        }
-
-        print(
+        };        print(
             "📊 Pre-filtered from \(marketPlayers.count) to \(qualityMarketPlayers.count) quality players"
         )
 
