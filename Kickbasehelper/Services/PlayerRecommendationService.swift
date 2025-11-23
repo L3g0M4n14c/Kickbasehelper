@@ -66,7 +66,8 @@ class PlayerRecommendationService: ObservableObject {
                 teamPlayers: teamPlayers,
                 marketPlayers: qualityMarketPlayers,
                 currentBudget: currentBudget,
-                teamAnalysis: teamAnalysis
+                teamAnalysis: teamAnalysis,
+                maxPlayersPerTeam: league.currentUser.mpst
             )
 
         case .improvePosition:
@@ -758,7 +759,8 @@ extension PlayerRecommendationService {
         teamPlayers: [TeamPlayer],
         marketPlayers: [MarketPlayer],
         currentBudget: Int,
-        teamAnalysis: TeamAnalysis
+        teamAnalysis: TeamAnalysis,
+        maxPlayersPerTeam: Int? = nil
     ) -> [SaleRecommendation] {
         var recommendations: [SaleRecommendation] = []
 
@@ -810,7 +812,9 @@ extension PlayerRecommendationService {
             let replacementCandidates = findReplacementCandidates(
                 for: teamPlayer,
                 in: marketPlayers,
-                maxPrice: maxPriceForReplacement
+                maxPrice: maxPriceForReplacement,
+                teamPlayers: teamPlayers,
+                maxPlayersPerTeam: maxPlayersPerTeam
             )
 
             if !replacementCandidates.isEmpty {
@@ -1057,23 +1061,50 @@ extension PlayerRecommendationService {
     private func findReplacementCandidates(
         for teamPlayer: TeamPlayer,
         in marketPlayers: [MarketPlayer],
-        maxPrice: Int
+        maxPrice: Int,
+        teamPlayers: [TeamPlayer]? = nil,
+        maxPlayersPerTeam: Int? = nil
     ) -> [ReplacementSuggestion] {
         print(
             "   🔎 Finding replacements for \(teamPlayer.fullName) (pos: \(teamPlayer.position), maxPrice: €\(maxPrice / 1000)k)"
         )
 
+        // Zähle wie viele Spieler vom gleichen Team bereits im Team sind
+        var playersFromTeam = 0
+        if let teamPlayers = teamPlayers {
+            playersFromTeam = teamPlayers.filter { $0.teamId == teamPlayer.teamId }.count
+        }
+
         // Filter nach Position und Preis
         let candidates = marketPlayers.filter { marketPlayer in
             guard marketPlayer.position == teamPlayer.position else { return false }
             guard marketPlayer.price <= maxPrice else { return false }
+
+            // Beachte maxPlayersPerTeam - aber NICHT wenn wir einen Spieler vom gleichen Team ersetzen
+            if let maxPlayersPerTeam = maxPlayersPerTeam {
+                let replacementTeamCount =
+                    teamPlayers?.filter { $0.teamId == marketPlayer.teamId }.count ?? 0
+                // Wenn wir einen Spieler vom gleichen Team ersetzen (playersFromTeam > 0),
+                // können wir jemanden vom gleichen Team nehmen
+                let teamPlayerAlreadySelected =
+                    teamPlayers?.contains { $0.teamId == marketPlayer.teamId } ?? false
+                if teamPlayerAlreadySelected && replacementTeamCount >= maxPlayersPerTeam {
+                    // Nur erlauben wenn wir vom gleichen Team ersetzen
+                    if marketPlayer.teamId != teamPlayer.teamId {
+                        return false
+                    }
+                } else if replacementTeamCount >= maxPlayersPerTeam {
+                    return false
+                }
+            }
+
             // Viel weniger streng: Akzeptiere auch Spieler mit geringen Punkten
             // da es um Budget-Einsparung geht, nicht um Perfektion
             guard marketPlayer.totalPoints >= 0 else { return false }
             return true
         }
 
-        print("   📊 Found \(candidates.count) candidates in price range")
+        print("   📊 Found \(candidates.count) candidates in price range (after team limit check)")
 
         // Bewerte und sortiere
         let scored = candidates.map { candidate -> (MarketPlayer, Double) in

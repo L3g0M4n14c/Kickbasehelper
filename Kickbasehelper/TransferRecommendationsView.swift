@@ -13,14 +13,17 @@ struct TransferRecommendationsView: View {
     @State private var showFilterSheet = false
     @State private var selectedRecommendation: TransferRecommendation?
     @State private var columnVisibility = NavigationSplitViewVisibility.all
-    
+
     init(kickbaseManager: KickbaseManager) {
         self.kickbaseManager = kickbaseManager
-        self._recommendationService = StateObject(wrappedValue: PlayerRecommendationService(kickbaseManager: kickbaseManager))
+        self._recommendationService = StateObject(
+            wrappedValue: PlayerRecommendationService(kickbaseManager: kickbaseManager))
     }
-    
+
     var body: some View {
-        if UIDevice.current.userInterfaceIdiom == .pad || UIDevice.current.userInterfaceIdiom == .mac {
+        if UIDevice.current.userInterfaceIdiom == .pad
+            || UIDevice.current.userInterfaceIdiom == .mac
+        {
             // iPad/macOS Version mit NavigationSplitView
             NavigationSplitView(columnVisibility: $columnVisibility) {
                 // Sidebar Content
@@ -47,7 +50,7 @@ struct TransferRecommendationsView: View {
             }
         }
     }
-    
+
     private var sidebarContent: some View {
         VStack(spacing: 0) {
             if isLoading {
@@ -70,7 +73,7 @@ struct TransferRecommendationsView: View {
             ToolbarItem(placement: .navigationBarTrailing) {
                 HStack {
                     Menu {
-                        Button(action: { 
+                        Button(action: {
                             Task {
                                 await loadRecommendations()
                             }
@@ -78,7 +81,7 @@ struct TransferRecommendationsView: View {
                             Label("Aktualisieren", systemImage: "arrow.clockwise")
                         }
                         .disabled(isLoading)
-                        
+
                         Button(action: {
                             if let leagueId = kickbaseManager.selectedLeague?.id {
                                 recommendationService.clearCacheForLeague(leagueId)
@@ -93,7 +96,7 @@ struct TransferRecommendationsView: View {
                     } label: {
                         Image(systemName: "ellipsis.circle")
                     }
-                    
+
                     Button(action: { showFilterSheet = true }) {
                         Image(systemName: "slider.horizontal.3")
                     }
@@ -107,7 +110,7 @@ struct TransferRecommendationsView: View {
             FilterSheet(filters: $filters)
         }
     }
-    
+
     private var mainContent: some View {
         VStack(spacing: 0) {
             if isLoading {
@@ -132,7 +135,7 @@ struct TransferRecommendationsView: View {
                     Button(action: { showFilterSheet = true }) {
                         Image(systemName: "slider.horizontal.3")
                     }
-                    
+
                     Button("Aktualisieren") {
                         Task {
                             await loadRecommendations()
@@ -146,18 +149,18 @@ struct TransferRecommendationsView: View {
             await loadRecommendations()
         }
     }
-    
+
     private var defaultDetailView: some View {
         VStack(spacing: 20) {
             Image(systemName: "person.crop.circle.badge.plus")
                 .font(.system(size: 80))
                 .foregroundColor(.gray)
-            
+
             Text("Wählen Sie eine Empfehlung")
                 .font(.title2)
                 .fontWeight(.medium)
                 .foregroundColor(.secondary)
-            
+
             Text("Tippen Sie auf eine Transfer-Empfehlung in der Liste, um Details zu sehen.")
                 .font(.body)
                 .foregroundColor(.secondary)
@@ -167,23 +170,25 @@ struct TransferRecommendationsView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.systemGroupedBackground))
     }
-    
+
     private var emptyStateView: some View {
         VStack(spacing: 20) {
             Image(systemName: "person.crop.circle.badge.plus")
                 .font(.system(size: 60))
                 .foregroundColor(.gray)
-            
+
             Text("Keine Empfehlungen verfügbar")
                 .font(.title2)
                 .fontWeight(.medium)
-            
-            Text("Wählen Sie eine Liga aus und stellen Sie sicher, dass Transfermarkt-Daten verfügbar sind.")
-                .font(.body)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
-            
+
+            Text(
+                "Wählen Sie eine Liga aus und stellen Sie sicher, dass Transfermarkt-Daten verfügbar sind."
+            )
+            .font(.body)
+            .foregroundColor(.secondary)
+            .multilineTextAlignment(.center)
+            .padding(.horizontal)
+
             if let errorMessage = errorMessage {
                 Text("Fehler: \(errorMessage)")
                     .font(.caption)
@@ -192,7 +197,7 @@ struct TransferRecommendationsView: View {
                     .background(Color.red.opacity(0.1))
                     .cornerRadius(8)
             }
-            
+
             Button("Erneut versuchen") {
                 Task {
                     await loadRecommendations()
@@ -202,18 +207,18 @@ struct TransferRecommendationsView: View {
         }
         .padding()
     }
-    
+
     private var recommendationsContent: some View {
         VStack(spacing: 0) {
             // Enhanced Team Analysis Header
             enhancedTeamAnalysisHeader
-            
+
             // Quick Filters
             quickFiltersSection
-            
+
             // Sort Options
             sortingSection
-            
+
             // Recommendations List
             ScrollView {
                 LazyVStack(spacing: 12) {
@@ -227,18 +232,20 @@ struct TransferRecommendationsView: View {
             }
         }
     }
-    
+
     private var enhancedTeamAnalysisHeader: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("Team-Analyse")
                     .font(.headline)
                 Spacer()
-                Text("Budget: \(formatCurrency(kickbaseManager.selectedLeague?.currentUser.budget ?? 0))")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+                Text(
+                    "Budget: \(formatCurrency(kickbaseManager.selectedLeague?.currentUser.budget ?? 0))"
+                )
+                .font(.subheadline)
+                .foregroundColor(.secondary)
             }
-            
+
             if let analysis = teamAnalysis {
                 // Budget Analysis
                 HStack {
@@ -250,9 +257,9 @@ struct TransferRecommendationsView: View {
                             .font(.subheadline)
                             .fontWeight(.semibold)
                     }
-                    
+
                     Spacer()
-                    
+
                     VStack(alignment: .trailing, spacing: 4) {
                         Text("Reserve")
                             .font(.caption)
@@ -263,7 +270,7 @@ struct TransferRecommendationsView: View {
                             .foregroundColor(.green)
                     }
                 }
-                
+
                 // Weak Positions
                 if !analysis.weakPositions.isEmpty {
                     VStack(alignment: .leading, spacing: 6) {
@@ -271,7 +278,7 @@ struct TransferRecommendationsView: View {
                             .font(.caption)
                             .fontWeight(.medium)
                             .foregroundColor(.secondary)
-                        
+
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 8) {
                                 ForEach(analysis.weakPositions, id: \.self) { position in
@@ -288,36 +295,50 @@ struct TransferRecommendationsView: View {
                         }
                     }
                 }
-                
+
                 // Stats Summary
                 HStack {
-                    Label("\(recommendations.count) Empfehlungen", systemImage: "person.crop.circle.badge.plus")
-                        .font(.caption)
-                        .foregroundColor(.blue)
-                    
+                    Label(
+                        "\(recommendations.count) Empfehlungen",
+                        systemImage: "person.crop.circle.badge.plus"
+                    )
+                    .font(.caption)
+                    .foregroundColor(.blue)
+
                     Spacer()
-                    
-                    let highPriorityCount = recommendations.filter { $0.priority == .essential }.count
+
+                    let highPriorityCount = recommendations.filter { $0.priority == .essential }
+                        .count
                     if highPriorityCount > 0 {
-                        Label("\(highPriorityCount) dringend", systemImage: "exclamationmark.triangle.fill")
-                            .font(.caption)
-                            .foregroundColor(.red)
+                        Label(
+                            "\(highPriorityCount) dringend",
+                            systemImage: "exclamationmark.triangle.fill"
+                        )
+                        .font(.caption)
+                        .foregroundColor(.red)
                     }
                 }
             } else {
                 // Fallback when no team analysis available
                 HStack {
-                    Label("\(recommendations.count) Empfehlungen", systemImage: "person.crop.circle.badge.plus")
-                        .font(.caption)
-                        .foregroundColor(.blue)
-                    
+                    Label(
+                        "\(recommendations.count) Empfehlungen",
+                        systemImage: "person.crop.circle.badge.plus"
+                    )
+                    .font(.caption)
+                    .foregroundColor(.blue)
+
                     Spacer()
-                    
-                    let highPriorityCount = recommendations.filter { $0.priority == .essential }.count
+
+                    let highPriorityCount = recommendations.filter { $0.priority == .essential }
+                        .count
                     if highPriorityCount > 0 {
-                        Label("\(highPriorityCount) dringend", systemImage: "exclamationmark.triangle.fill")
-                            .font(.caption)
-                            .foregroundColor(.red)
+                        Label(
+                            "\(highPriorityCount) dringend",
+                            systemImage: "exclamationmark.triangle.fill"
+                        )
+                        .font(.caption)
+                        .foregroundColor(.red)
                     }
                 }
             }
@@ -327,16 +348,22 @@ struct TransferRecommendationsView: View {
         .cornerRadius(12)
         .padding(.horizontal)
     }
-    
+
     private var quickFiltersSection: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 12) {
-                FilterChip(title: "Alle", isSelected: filters.positions.isEmpty && filters.maxRisk == .high && filters.minPriority == .optional) {
+                FilterChip(
+                    title: "Alle",
+                    isSelected: filters.positions.isEmpty && filters.maxRisk == .high
+                        && filters.minPriority == .optional
+                ) {
                     filters = RecommendationFilters()
                 }
-                
+
                 ForEach(TeamAnalysis.Position.allCases, id: \.self) { position in
-                    FilterChip(title: position.rawValue, isSelected: filters.positions.contains(position)) {
+                    FilterChip(
+                        title: position.rawValue, isSelected: filters.positions.contains(position)
+                    ) {
                         if filters.positions.contains(position) {
                             filters.positions.remove(position)
                         } else {
@@ -344,16 +371,17 @@ struct TransferRecommendationsView: View {
                         }
                     }
                 }
-                
+
                 FilterChip(title: "Niedriges Risiko", isSelected: filters.maxRisk == .low) {
                     filters.maxRisk = filters.maxRisk == .low ? .high : .low
                 }
-                
+
                 FilterChip(title: "Dringend", isSelected: filters.minPriority == .essential) {
                     filters.minPriority = filters.minPriority == .essential ? .optional : .essential
                 }
-                
-                FilterChip(title: "Aufsteigende Form", isSelected: filters.formTrend == .improving) {
+
+                FilterChip(title: "Aufsteigende Form", isSelected: filters.formTrend == .improving)
+                {
                     filters.formTrend = filters.formTrend == .improving ? nil : .improving
                 }
             }
@@ -361,7 +389,7 @@ struct TransferRecommendationsView: View {
         }
         .padding(.vertical, 8)
     }
-    
+
     private var sortingSection: some View {
         Picker("Sortierung", selection: $sortOption) {
             Text("Empfehlungswert").tag(SortOption.recommendationScore)
@@ -375,7 +403,7 @@ struct TransferRecommendationsView: View {
         .padding(.horizontal)
         .padding(.bottom, 8)
     }
-    
+
     private var filteredAndSortedRecommendations: [TransferRecommendation] {
         print("🔧 [DEBUG] Filtering \(recommendations.count) recommendations")
         print("🔧 [DEBUG] Current filters:")
@@ -386,14 +414,16 @@ struct TransferRecommendationsView: View {
         print("   - Max Price: \(filters.maxPrice ?? 0)")
         print("   - Min Points: \(filters.minPoints ?? 0)")
         print("   - Min Confidence: \(filters.minConfidence ?? 0.0)")
-        
+
         let filtered = recommendations.filter { recommendation in
-            print("🔧 [DEBUG] Checking recommendation: \(recommendation.player.firstName) \(recommendation.player.lastName)")
+            print(
+                "🔧 [DEBUG] Checking recommendation: \(recommendation.player.firstName) \(recommendation.player.lastName)"
+            )
             print("   - Position: \(recommendation.player.position)")
             print("   - Risk Level: \(recommendation.riskLevel.rawValue)")
             print("   - Priority: \(recommendation.priority.rawValue)")
             print("   - Form Trend: \(recommendation.analysis.formTrend.rawValue)")
-            
+
             // Position filter
             if !filters.positions.isEmpty {
                 let playerPosition = mapIntToPosition(recommendation.player.position)
@@ -404,49 +434,55 @@ struct TransferRecommendationsView: View {
                     }
                 }
             }
-            
+
             // Risk filter - Korrigiert: Direkte Enum-Vergleiche
             if !isRiskLevelAcceptable(recommendation.riskLevel, maxRisk: filters.maxRisk) {
-                print("   ❌ Failed risk filter (\(recommendation.riskLevel.rawValue) > \(filters.maxRisk.rawValue))")
+                print(
+                    "   ❌ Failed risk filter (\(recommendation.riskLevel.rawValue) > \(filters.maxRisk.rawValue))"
+                )
                 return false
             }
-            
+
             // Priority filter - Korrigiert: Direkte Enum-Vergleiche
             if !isPriorityAcceptable(recommendation.priority, minPriority: filters.minPriority) {
-                print("   ❌ Failed priority filter (\(recommendation.priority.rawValue) < \(filters.minPriority.rawValue))")
+                print(
+                    "   ❌ Failed priority filter (\(recommendation.priority.rawValue) < \(filters.minPriority.rawValue))"
+                )
                 return false
             }
-            
+
             // Form trend filter
             if let formTrend = filters.formTrend, recommendation.analysis.formTrend != formTrend {
                 print("   ❌ Failed form trend filter")
                 return false
             }
-            
+
             // Price filter
             if let maxPrice = filters.maxPrice, recommendation.player.price > maxPrice {
                 print("   ❌ Failed price filter")
                 return false
             }
-            
+
             // Points filter
             if let minPoints = filters.minPoints, recommendation.player.totalPoints < minPoints {
                 print("   ❌ Failed points filter")
                 return false
             }
-            
+
             // Confidence filter
-            if let minConfidence = filters.minConfidence, recommendation.analysis.seasonProjection.confidence < minConfidence {
+            if let minConfidence = filters.minConfidence,
+                recommendation.analysis.seasonProjection.confidence < minConfidence
+            {
                 print("   ❌ Failed confidence filter")
                 return false
             }
-            
+
             print("   ✅ Passed all filters")
             return true
         }
-        
+
         print("🔧 [DEBUG] Filtered to \(filtered.count) recommendations")
-        
+
         return filtered.sorted { first, second in
             switch sortOption {
             case .recommendationScore:
@@ -464,17 +500,21 @@ struct TransferRecommendationsView: View {
             }
         }
     }
-    
+
     // MARK: - Helper Functions für Enum-Vergleiche
-    
-    private func isRiskLevelAcceptable(_ riskLevel: TransferRecommendation.RiskLevel, maxRisk: TransferRecommendation.RiskLevel) -> Bool {
+
+    private func isRiskLevelAcceptable(
+        _ riskLevel: TransferRecommendation.RiskLevel, maxRisk: TransferRecommendation.RiskLevel
+    ) -> Bool {
         return getRiskLevelOrder(riskLevel) <= getRiskLevelOrder(maxRisk)
     }
-    
-    private func isPriorityAcceptable(_ priority: TransferRecommendation.Priority, minPriority: TransferRecommendation.Priority) -> Bool {
+
+    private func isPriorityAcceptable(
+        _ priority: TransferRecommendation.Priority, minPriority: TransferRecommendation.Priority
+    ) -> Bool {
         return getPriorityOrder(priority) >= getPriorityOrder(minPriority)
     }
-    
+
     private func getRiskLevelOrder(_ risk: TransferRecommendation.RiskLevel) -> Int {
         switch risk {
         case .low: return 1
@@ -482,7 +522,7 @@ struct TransferRecommendationsView: View {
         case .high: return 3
         }
     }
-    
+
     private func getPriorityOrder(_ priority: TransferRecommendation.Priority) -> Int {
         switch priority {
         case .optional: return 1
@@ -490,7 +530,7 @@ struct TransferRecommendationsView: View {
         case .essential: return 3
         }
     }
-    
+
     private func mapIntToPosition(_ position: Int) -> TeamAnalysis.Position? {
         switch position {
         case 1:
@@ -505,26 +545,27 @@ struct TransferRecommendationsView: View {
             return nil
         }
     }
-    
+
     private func loadRecommendations() async {
         guard let selectedLeague = kickbaseManager.selectedLeague else {
             errorMessage = "Keine Liga ausgewählt"
             return
         }
-        
+
         isLoading = true
         errorMessage = nil
-        
+
         do {
             loadingMessage = "Lade Spieldaten..."
             let budget = selectedLeague.currentUser.budget
             print("🎯 Loading recommendations with budget: \(budget)")
-            
+
             loadingMessage = "Analysiere Spieler..."
-            let results = try await recommendationService.generateRecommendations(for: selectedLeague, budget: budget)
-            
+            let results = try await recommendationService.generateRecommendations(
+                for: selectedLeague, budget: budget)
+
             loadingMessage = "Bereite Empfehlungen vor..."
-            
+
             await MainActor.run {
                 self.recommendations = results
                 self.isLoading = false
@@ -538,7 +579,7 @@ struct TransferRecommendationsView: View {
             }
         }
     }
-    
+
     private func formatCurrency(_ amount: Int) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
@@ -553,7 +594,7 @@ struct TransferRecommendationsView: View {
 struct EnhancedRecommendationCard: View {
     let recommendation: TransferRecommendation
     let onTap: () -> Void
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             // Player Header with Enhanced Info
@@ -564,18 +605,18 @@ struct EnhancedRecommendationCard: View {
                             .font(.headline)
                             .fontWeight(.semibold)
                             .foregroundColor(.primary)
-                        
+
                         // Form Trend Indicator
                         FormTrendBadge(trend: recommendation.analysis.formTrend)
                     }
-                    
+
                     HStack {
                         Text(recommendation.player.teamName)
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        
+
                         Spacer()
-                        
+
                         // Position with enhanced styling
                         Text(positionName(for: recommendation.player.position))
                             .font(.caption)
@@ -587,15 +628,15 @@ struct EnhancedRecommendationCard: View {
                             .cornerRadius(6)
                     }
                 }
-                
+
                 Spacer()
-                
+
                 VStack(alignment: .trailing, spacing: 4) {
                     Text(formatPrice(recommendation.player.price))
                         .font(.headline)
                         .fontWeight(.bold)
                         .foregroundColor(.primary)
-                    
+
                     HStack(spacing: 6) {
                         RiskBadge(risk: recommendation.riskLevel)
                         PriorityBadge(priority: recommendation.priority)
@@ -604,16 +645,27 @@ struct EnhancedRecommendationCard: View {
             }
             .contentShape(Rectangle())
             .onTapGesture(perform: onTap)
-            
+
             // Enhanced Stats Section
             VStack(spacing: 8) {
                 HStack {
-                    EnhancedStatItem(title: "Punkte", value: "\(recommendation.player.totalPoints)", icon: "target")
-                    EnhancedStatItem(title: "Ø Punkte", value: String(format: "%.1f", recommendation.analysis.pointsPerGame), icon: "chart.bar")
-                    EnhancedStatItem(title: "Wert/€M", value: String(format: "%.1f", recommendation.analysis.valueForMoney), icon: "eurosign.circle")
-                    EnhancedStatItem(title: "Score", value: String(format: "%.1f", recommendation.recommendationScore), icon: "star.fill")
+                    EnhancedStatItem(
+                        title: "Punkte", value: "\(recommendation.player.totalPoints)",
+                        icon: "target")
+                    EnhancedStatItem(
+                        title: "Ø Punkte",
+                        value: String(format: "%.1f", recommendation.analysis.pointsPerGame),
+                        icon: "chart.bar")
+                    EnhancedStatItem(
+                        title: "Wert/€M",
+                        value: String(format: "%.1f", recommendation.analysis.valueForMoney),
+                        icon: "eurosign.circle")
+                    EnhancedStatItem(
+                        title: "Score",
+                        value: String(format: "%.1f", recommendation.recommendationScore),
+                        icon: "star.fill")
                 }
-                
+
                 // Season Projection
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
@@ -621,31 +673,28 @@ struct EnhancedRecommendationCard: View {
                             .font(.caption2)
                             .fontWeight(.medium)
                             .foregroundColor(.secondary)
-                        
-                        HStack {
-                            Text("\(recommendation.analysis.seasonProjection.projectedTotalPoints) Pkt.")
-                                .font(.caption)
-                                .fontWeight(.medium)
-                            
-                            Text("(\(recommendation.analysis.seasonProjection.projectedValueIncrease > 0 ? "+" : "")\(formatCurrency(recommendation.analysis.seasonProjection.projectedValueIncrease)))")
-                                .font(.caption)
-                                .foregroundColor(recommendation.analysis.seasonProjection.projectedValueIncrease > 0 ? .green : .red)
-                        }
+
+                        Text(
+                            "\(recommendation.analysis.seasonProjection.projectedTotalPoints) Pkt."
+                        )
+                        .font(.caption)
+                        .fontWeight(.medium)
                     }
-                    
+
                     Spacer()
-                    
+
                     // Confidence Indicator
                     HStack {
                         Text("Vertrauen:")
                             .font(.caption2)
                             .foregroundColor(.secondary)
-                        ConfidenceBadge(confidence: recommendation.analysis.seasonProjection.confidence)
+                        ConfidenceBadge(
+                            confidence: recommendation.analysis.seasonProjection.confidence)
                     }
                 }
             }
             .padding(.top, 4)
-            
+
             // Enhanced Reasons Section
             if !recommendation.reasons.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
@@ -653,21 +702,21 @@ struct EnhancedRecommendationCard: View {
                         .font(.caption)
                         .fontWeight(.semibold)
                         .foregroundColor(.secondary)
-                    
+
                     ForEach(recommendation.reasons.prefix(3)) { reason in
                         HStack(spacing: 8) {
                             Image(systemName: iconForReasonType(reason.type))
                                 .font(.caption)
                                 .foregroundColor(colorForImpact(reason.impact))
                                 .frame(width: 16)
-                            
+
                             Text(reason.description)
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                                 .lineLimit(2)
-                            
+
                             Spacer()
-                            
+
                             // Impact Score
                             Text(String(format: "%.1f", reason.impact))
                                 .font(.caption2)
@@ -679,7 +728,7 @@ struct EnhancedRecommendationCard: View {
                                 .cornerRadius(4)
                         }
                     }
-                    
+
                     if recommendation.reasons.count > 3 {
                         Text("... und \(recommendation.reasons.count - 3) weitere Gründe")
                             .font(.caption2)
@@ -700,9 +749,7 @@ struct EnhancedRecommendationCard: View {
                 .opacity(0.3)
         )
     }
-    
-    
-    
+
     private func positionName(for position: Int) -> String {
         switch position {
         case 1: return "TW"
@@ -712,21 +759,21 @@ struct EnhancedRecommendationCard: View {
         default: return "?"
         }
     }
-    
+
     private func positionColor(for position: Int) -> Color {
         switch position {
-        case 1: return .blue      // Torwart
-        case 2: return .green     // Abwehr
-        case 3: return .orange    // Mittelfeld
-        case 4: return .red       // Sturm
+        case 1: return .blue  // Torwart
+        case 2: return .green  // Abwehr
+        case 3: return .orange  // Mittelfeld
+        case 4: return .red  // Sturm
         default: return .gray
         }
     }
-    
+
     private func formatPrice(_ price: Int) -> String {
         return "€\(String(format: "%.1f", Double(price) / 1_000_000.0))M"
     }
-    
+
     private func priorityBorderColor(_ priority: TransferRecommendation.Priority) -> Color {
         switch priority {
         case .essential: return .red
@@ -734,7 +781,7 @@ struct EnhancedRecommendationCard: View {
         case .optional: return .blue
         }
     }
-    
+
     private func iconForReasonType(_ type: RecommendationReason.ReasonType) -> String {
         switch type {
         case .performance: return "chart.line.uptrend.xyaxis"
@@ -746,14 +793,19 @@ struct EnhancedRecommendationCard: View {
         case .opponent: return "sportscourt"
         }
     }
-    
+
     private func colorForImpact(_ impact: Double) -> Color {
-        if impact >= 7 { return .green }
-        else if impact >= 4 { return .blue }
-        else if impact >= 0 { return .orange }
-        else { return .red }
+        if impact >= 7 {
+            return .green
+        } else if impact >= 4 {
+            return .blue
+        } else if impact >= 0 {
+            return .orange
+        } else {
+            return .red
+        }
     }
-    
+
     private func formatCurrency(_ amount: Int) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
@@ -767,7 +819,7 @@ struct EnhancedRecommendationCard: View {
 
 struct RecommendationPlayerDetailView: View {
     let recommendation: TransferRecommendation
-    
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
@@ -775,29 +827,32 @@ struct RecommendationPlayerDetailView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
                         VStack(alignment: .leading) {
-                            Text(recommendation.player.firstName + " " + recommendation.player.lastName)
-                                .font(.title2)
-                                .fontWeight(.bold)
-                            
+                            Text(
+                                recommendation.player.firstName + " "
+                                    + recommendation.player.lastName
+                            )
+                            .font(.title2)
+                            .fontWeight(.bold)
+
                             Text(recommendation.player.teamName)
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                         }
-                        
+
                         Spacer()
-                        
+
                         VStack(alignment: .trailing) {
                             Text(formatPrice(recommendation.player.price))
                                 .font(.title2)
                                 .fontWeight(.bold)
-                            
+
                             HStack {
                                 RiskBadge(risk: recommendation.riskLevel)
                                 PriorityBadge(priority: recommendation.priority)
                             }
                         }
                     }
-                    
+
                     // Score and Rating
                     HStack {
                         VStack(alignment: .leading) {
@@ -808,37 +863,45 @@ struct RecommendationPlayerDetailView: View {
                                 .font(.headline)
                                 .fontWeight(.semibold)
                         }
-                        
+
                         Spacer()
-                        
+
                         // Progress Bar for Score
                         ProgressView(value: recommendation.recommendationScore, total: 10.0)
-                            .progressViewStyle(LinearProgressViewStyle(tint: scoreColor(recommendation.recommendationScore)))
+                            .progressViewStyle(
+                                LinearProgressViewStyle(
+                                    tint: scoreColor(recommendation.recommendationScore))
+                            )
                             .frame(width: 100)
                     }
                 }
                 .padding()
                 .background(Color(.systemGray6))
                 .cornerRadius(12)
-                
+
                 // Detailed Analysis
                 VStack(alignment: .leading, spacing: 16) {
                     Text("Detaillierte Analyse")
                         .font(.headline)
-                    
+
                     // Performance Stats
                     HStack {
-                        StatDetailItem(title: "Gesamtpunkte", value: "\(recommendation.player.totalPoints)")
-                        StatDetailItem(title: "Ø pro Spiel", value: String(format: "%.1f", recommendation.analysis.pointsPerGame))
-                        StatDetailItem(title: "Preis-Leistung", value: String(format: "%.1f", recommendation.analysis.valueForMoney))
+                        StatDetailItem(
+                            title: "Gesamtpunkte", value: "\(recommendation.player.totalPoints)")
+                        StatDetailItem(
+                            title: "Ø pro Spiel",
+                            value: String(format: "%.1f", recommendation.analysis.pointsPerGame))
+                        StatDetailItem(
+                            title: "Preis-Leistung",
+                            value: String(format: "%.1f", recommendation.analysis.valueForMoney))
                     }
-                    
+
                     // Form
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Form")
                             .font(.subheadline)
                             .fontWeight(.medium)
-                        
+
                         HStack {
                             VStack(alignment: .leading) {
                                 Text("Form-Trend")
@@ -846,45 +909,54 @@ struct RecommendationPlayerDetailView: View {
                                     .foregroundColor(.secondary)
                                 FormTrendBadge(trend: recommendation.analysis.formTrend)
                             }
-                            
+
                             Spacer()
                         }
                     }
-                    
+
                     // Season Projection
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Saisonprognose")
                             .font(.subheadline)
                             .fontWeight(.medium)
-                        
+
                         HStack {
                             VStack(alignment: .leading) {
                                 Text("Erwartete Punkte")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
-                                Text("\(recommendation.analysis.seasonProjection.projectedTotalPoints)")
-                                    .font(.subheadline)
-                                    .fontWeight(.semibold)
+                                Text(
+                                    "\(recommendation.analysis.seasonProjection.projectedTotalPoints)"
+                                )
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
                             }
-                            
+
                             Spacer()
-                            
+
                             VStack(alignment: .trailing) {
                                 Text("Wertsteigerung")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
-                                Text(formatCurrency(recommendation.analysis.seasonProjection.projectedValueIncrease))
-                                    .font(.subheadline)
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(recommendation.analysis.seasonProjection.projectedValueIncrease > 0 ? .green : .red)
+                                Text(
+                                    formatCurrency(
+                                        recommendation.analysis.seasonProjection
+                                            .projectedValueIncrease)
+                                )
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundColor(
+                                    recommendation.analysis.seasonProjection.projectedValueIncrease
+                                        > 0 ? .green : .red)
                             }
                         }
-                        
+
                         HStack {
                             Text("Vertrauen:")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                            ConfidenceBadge(confidence: recommendation.analysis.seasonProjection.confidence)
+                            ConfidenceBadge(
+                                confidence: recommendation.analysis.seasonProjection.confidence)
                             Spacer()
                         }
                     }
@@ -892,12 +964,12 @@ struct RecommendationPlayerDetailView: View {
                 .padding()
                 .background(Color(.systemGray6))
                 .cornerRadius(12)
-                
+
                 // All Reasons
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Alle Empfehlungsgründe")
                         .font(.headline)
-                    
+
                     ForEach(recommendation.reasons) { reason in
                         VStack(alignment: .leading, spacing: 6) {
                             HStack {
@@ -916,7 +988,7 @@ struct RecommendationPlayerDetailView: View {
                                     .foregroundColor(colorForImpact(reason.impact))
                                     .cornerRadius(4)
                             }
-                            
+
                             Text(reason.description)
                                 .font(.caption)
                                 .foregroundColor(.secondary)
@@ -931,11 +1003,11 @@ struct RecommendationPlayerDetailView: View {
         }
         .navigationTitle("Spieler Details")
     }
-    
+
     private func formatPrice(_ price: Int) -> String {
         return "€\(String(format: "%.1f", Double(price) / 1_000_000.0))M"
     }
-    
+
     private func formatCurrency(_ amount: Int) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
@@ -943,14 +1015,19 @@ struct RecommendationPlayerDetailView: View {
         formatter.currencyCode = "EUR"
         return formatter.string(from: NSNumber(value: Double(amount) / 100.0)) ?? "€0"
     }
-    
+
     private func scoreColor(_ score: Double) -> Color {
-        if score >= 7 { return .green }
-        else if score >= 5 { return .blue }
-        else if score >= 3 { return .orange }
-        else { return .red }
+        if score >= 7 {
+            return .green
+        } else if score >= 5 {
+            return .blue
+        } else if score >= 3 {
+            return .orange
+        } else {
+            return .red
+        }
     }
-    
+
     private func colorForInjuryRisk(_ risk: PlayerAnalysis.InjuryRisk) -> Color {
         switch risk {
         case .low: return .green
@@ -958,7 +1035,7 @@ struct RecommendationPlayerDetailView: View {
         case .high: return .red
         }
     }
-    
+
     private func iconForReasonType(_ type: RecommendationReason.ReasonType) -> String {
         switch type {
         case .performance: return "chart.line.uptrend.xyaxis"
@@ -970,19 +1047,24 @@ struct RecommendationPlayerDetailView: View {
         case .opponent: return "sportscourt"
         }
     }
-    
+
     private func colorForImpact(_ impact: Double) -> Color {
-        if impact >= 7 { return .green }
-        else if impact >= 4 { return .blue }
-        else if impact >= 0 { return .orange }
-        else { return .red }
+        if impact >= 7 {
+            return .green
+        } else if impact >= 4 {
+            return .blue
+        } else if impact >= 0 {
+            return .orange
+        } else {
+            return .red
+        }
     }
 }
 
 struct StatDetailItem: View {
     let title: String
     let value: String
-    
+
     var body: some View {
         VStack {
             Text(title)
@@ -1002,7 +1084,7 @@ struct EnhancedStatItem: View {
     let title: String
     let value: String
     let icon: String
-    
+
     var body: some View {
         VStack(spacing: 2) {
             HStack(spacing: 2) {
@@ -1023,7 +1105,7 @@ struct EnhancedStatItem: View {
 
 struct FormTrendBadge: View {
     let trend: PlayerAnalysis.FormTrend
-    
+
     var body: some View {
         HStack(spacing: 2) {
             Image(systemName: iconForTrend(trend))
@@ -1037,7 +1119,7 @@ struct FormTrendBadge: View {
         .foregroundColor(colorForTrend(trend))
         .cornerRadius(4)
     }
-    
+
     private func iconForTrend(_ trend: PlayerAnalysis.FormTrend) -> String {
         switch trend {
         case .improving: return "arrow.up"
@@ -1045,7 +1127,7 @@ struct FormTrendBadge: View {
         case .declining: return "arrow.down"
         }
     }
-    
+
     private func colorForTrend(_ trend: PlayerAnalysis.FormTrend) -> Color {
         switch trend {
         case .improving: return .green
@@ -1057,7 +1139,7 @@ struct FormTrendBadge: View {
 
 struct ConfidenceBadge: View {
     let confidence: Double
-    
+
     var body: some View {
         Text("\(Int(confidence * 100))%")
             .font(.caption2)
@@ -1068,18 +1150,23 @@ struct ConfidenceBadge: View {
             .foregroundColor(colorForConfidence(confidence))
             .cornerRadius(4)
     }
-    
+
     private func colorForConfidence(_ confidence: Double) -> Color {
-        if confidence >= 0.8 { return .green }
-        else if confidence >= 0.6 { return .blue }
-        else if confidence >= 0.4 { return .orange }
-        else { return .red }
+        if confidence >= 0.8 {
+            return .green
+        } else if confidence >= 0.6 {
+            return .blue
+        } else if confidence >= 0.4 {
+            return .orange
+        } else {
+            return .red
+        }
     }
 }
 
 struct RiskBadge: View {
     let risk: TransferRecommendation.RiskLevel
-    
+
     var body: some View {
         Text(risk.rawValue)
             .font(.caption2)
@@ -1090,7 +1177,7 @@ struct RiskBadge: View {
             .foregroundColor(.white)
             .cornerRadius(4)
     }
-    
+
     private var backgroundColor: Color {
         switch risk {
         case .low: return .green
@@ -1102,7 +1189,7 @@ struct RiskBadge: View {
 
 struct PriorityBadge: View {
     let priority: TransferRecommendation.Priority
-    
+
     var body: some View {
         Text(priority.rawValue)
             .font(.caption2)
@@ -1113,7 +1200,7 @@ struct PriorityBadge: View {
             .foregroundColor(.white)
             .cornerRadius(4)
     }
-    
+
     private var backgroundColor: Color {
         switch priority {
         case .essential: return .red
@@ -1127,7 +1214,7 @@ struct FilterChip: View {
     let title: String
     let isSelected: Bool
     let action: () -> Void
-    
+
     var body: some View {
         Button(action: action) {
             Text(title)
@@ -1147,7 +1234,7 @@ struct FilterChip: View {
 struct FilterSheet: View {
     @Binding var filters: RecommendationFilters
     @Environment(\.presentationMode) var presentationMode
-    
+
     var body: some View {
         NavigationView {
             Form {
@@ -1171,39 +1258,43 @@ struct FilterSheet: View {
                         }
                     }
                 }
-                
+
                 Section("Risiko & Priorität") {
                     Picker("Max. Risiko", selection: $filters.maxRisk) {
                         ForEach(TransferRecommendation.RiskLevel.allCases, id: \.self) { risk in
                             Text(risk.rawValue).tag(risk)
                         }
                     }
-                    
+
                     Picker("Min. Priorität", selection: $filters.minPriority) {
                         ForEach(TransferRecommendation.Priority.allCases, id: \.self) { priority in
                             Text(priority.rawValue).tag(priority)
                         }
                     }
                 }
-                
+
                 Section("Erweiterte Filter") {
                     Picker("Form-Trend", selection: $filters.formTrend) {
                         Text("Alle").tag(PlayerAnalysis.FormTrend?.none)
-                        ForEach([PlayerAnalysis.FormTrend.improving, .stable, .declining], id: \.self) { trend in
+                        ForEach(
+                            [PlayerAnalysis.FormTrend.improving, .stable, .declining], id: \.self
+                        ) { trend in
                             Text(trend.rawValue).tag(PlayerAnalysis.FormTrend?.some(trend))
                         }
                     }
                 }
-                
+
                 Section("Werte-Filter") {
                     HStack {
                         Text("Max. Preis")
                         Spacer()
-                        TextField("€ Millionen", value: $filters.maxPrice, formatter: NumberFormatter())
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .frame(width: 120)
+                        TextField(
+                            "€ Millionen", value: $filters.maxPrice, formatter: NumberFormatter()
+                        )
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .frame(width: 120)
                     }
-                    
+
                     HStack {
                         Text("Min. Punkte")
                         Spacer()
@@ -1211,13 +1302,15 @@ struct FilterSheet: View {
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .frame(width: 80)
                     }
-                    
+
                     HStack {
                         Text("Min. Vertrauen")
                         Spacer()
-                        TextField("0.0 - 1.0", value: $filters.minConfidence, formatter: NumberFormatter())
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .frame(width: 100)
+                        TextField(
+                            "0.0 - 1.0", value: $filters.minConfidence, formatter: NumberFormatter()
+                        )
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .frame(width: 100)
                     }
                 }
             }
@@ -1239,7 +1332,7 @@ struct FilterSheet: View {
 struct PlayerDetailSheet: View {
     let recommendation: TransferRecommendation
     @Environment(\.presentationMode) var presentationMode
-    
+
     var body: some View {
         NavigationView {
             ScrollView {
@@ -1248,29 +1341,32 @@ struct PlayerDetailSheet: View {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             VStack(alignment: .leading) {
-                                Text(recommendation.player.firstName + " " + recommendation.player.lastName)
-                                    .font(.title2)
-                                    .fontWeight(.bold)
-                                
+                                Text(
+                                    recommendation.player.firstName + " "
+                                        + recommendation.player.lastName
+                                )
+                                .font(.title2)
+                                .fontWeight(.bold)
+
                                 Text(recommendation.player.teamName)
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                             }
-                            
+
                             Spacer()
-                            
+
                             VStack(alignment: .trailing) {
                                 Text(formatPrice(recommendation.player.price))
                                     .font(.title2)
                                     .fontWeight(.bold)
-                                
+
                                 HStack {
                                     RiskBadge(risk: recommendation.riskLevel)
                                     PriorityBadge(priority: recommendation.priority)
                                 }
                             }
                         }
-                        
+
                         // Score and Rating
                         HStack {
                             VStack(alignment: .leading) {
@@ -1281,37 +1377,48 @@ struct PlayerDetailSheet: View {
                                     .font(.headline)
                                     .fontWeight(.semibold)
                             }
-                            
+
                             Spacer()
-                            
+
                             // Progress Bar for Score
                             ProgressView(value: recommendation.recommendationScore, total: 10.0)
-                                .progressViewStyle(LinearProgressViewStyle(tint: scoreColor(recommendation.recommendationScore)))
+                                .progressViewStyle(
+                                    LinearProgressViewStyle(
+                                        tint: scoreColor(recommendation.recommendationScore))
+                                )
                                 .frame(width: 100)
                         }
                     }
                     .padding()
                     .background(Color(.systemGray6))
                     .cornerRadius(12)
-                    
+
                     // Detailed Analysis
                     VStack(alignment: .leading, spacing: 16) {
                         Text("Detaillierte Analyse")
                             .font(.headline)
-                        
+
                         // Performance Stats
                         HStack {
-                            StatDetailItem(title: "Gesamtpunkte", value: "\(recommendation.player.totalPoints)")
-                            StatDetailItem(title: "Ø pro Spiel", value: String(format: "%.1f", recommendation.analysis.pointsPerGame))
-                            StatDetailItem(title: "Preis-Leistung", value: String(format: "%.1f", recommendation.analysis.valueForMoney))
+                            StatDetailItem(
+                                title: "Gesamtpunkte", value: "\(recommendation.player.totalPoints)"
+                            )
+                            StatDetailItem(
+                                title: "Ø pro Spiel",
+                                value: String(format: "%.1f", recommendation.analysis.pointsPerGame)
+                            )
+                            StatDetailItem(
+                                title: "Preis-Leistung",
+                                value: String(format: "%.1f", recommendation.analysis.valueForMoney)
+                            )
                         }
-                        
+
                         // Form
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Form")
                                 .font(.subheadline)
                                 .fontWeight(.medium)
-                            
+
                             HStack {
                                 VStack(alignment: .leading) {
                                     Text("Form-Trend")
@@ -1319,45 +1426,54 @@ struct PlayerDetailSheet: View {
                                         .foregroundColor(.secondary)
                                     FormTrendBadge(trend: recommendation.analysis.formTrend)
                                 }
-                                
+
                                 Spacer()
                             }
                         }
-                        
+
                         // Season Projection
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Saisonprognose")
                                 .font(.subheadline)
                                 .fontWeight(.medium)
-                            
+
                             HStack {
                                 VStack(alignment: .leading) {
                                     Text("Erwartete Punkte")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
-                                    Text("\(recommendation.analysis.seasonProjection.projectedTotalPoints)")
-                                        .font(.subheadline)
-                                        .fontWeight(.semibold)
+                                    Text(
+                                        "\(recommendation.analysis.seasonProjection.projectedTotalPoints)"
+                                    )
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
                                 }
-                                
+
                                 Spacer()
-                                
+
                                 VStack(alignment: .trailing) {
                                     Text("Wertsteigerung")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
-                                    Text(formatCurrency(recommendation.analysis.seasonProjection.projectedValueIncrease))
-                                        .font(.subheadline)
-                                        .fontWeight(.semibold)
-                                        .foregroundColor(recommendation.analysis.seasonProjection.projectedValueIncrease > 0 ? .green : .red)
+                                    Text(
+                                        formatCurrency(
+                                            recommendation.analysis.seasonProjection
+                                                .projectedValueIncrease)
+                                    )
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(
+                                        recommendation.analysis.seasonProjection
+                                            .projectedValueIncrease > 0 ? .green : .red)
                                 }
                             }
-                            
+
                             HStack {
                                 Text("Vertrauen:")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
-                                ConfidenceBadge(confidence: recommendation.analysis.seasonProjection.confidence)
+                                ConfidenceBadge(
+                                    confidence: recommendation.analysis.seasonProjection.confidence)
                                 Spacer()
                             }
                         }
@@ -1365,12 +1481,12 @@ struct PlayerDetailSheet: View {
                     .padding()
                     .background(Color(.systemGray6))
                     .cornerRadius(12)
-                    
+
                     // All Reasons
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Alle Empfehlungsgründe")
                             .font(.headline)
-                        
+
                         ForEach(recommendation.reasons) { reason in
                             VStack(alignment: .leading, spacing: 6) {
                                 HStack {
@@ -1389,7 +1505,7 @@ struct PlayerDetailSheet: View {
                                         .foregroundColor(colorForImpact(reason.impact))
                                         .cornerRadius(4)
                                 }
-                                
+
                                 Text(reason.description)
                                     .font(.caption)
                                     .foregroundColor(.secondary)
@@ -1403,16 +1519,17 @@ struct PlayerDetailSheet: View {
                 .padding()
             }
             .navigationTitle("Spieler Details")
-            .navigationBarItems(trailing: Button("Schließen") {
-                presentationMode.wrappedValue.dismiss()
-            })
+            .navigationBarItems(
+                trailing: Button("Schließen") {
+                    presentationMode.wrappedValue.dismiss()
+                })
         }
     }
-    
+
     private func formatPrice(_ price: Int) -> String {
         return "€\(String(format: "%.1f", Double(price) / 1_000_000.0))M"
     }
-    
+
     private func formatCurrency(_ amount: Int) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
@@ -1420,14 +1537,19 @@ struct PlayerDetailSheet: View {
         formatter.currencyCode = "EUR"
         return formatter.string(from: NSNumber(value: Double(amount) / 100.0)) ?? "€0"
     }
-    
+
     private func scoreColor(_ score: Double) -> Color {
-        if score >= 7 { return .green }
-        else if score >= 5 { return .blue }
-        else if score >= 3 { return .orange }
-        else { return .red }
+        if score >= 7 {
+            return .green
+        } else if score >= 5 {
+            return .blue
+        } else if score >= 3 {
+            return .orange
+        } else {
+            return .red
+        }
     }
-    
+
     private func colorForInjuryRisk(_ risk: PlayerAnalysis.InjuryRisk) -> Color {
         switch risk {
         case .low: return .green
@@ -1435,7 +1557,7 @@ struct PlayerDetailSheet: View {
         case .high: return .red
         }
     }
-    
+
     private func iconForReasonType(_ type: RecommendationReason.ReasonType) -> String {
         switch type {
         case .performance: return "chart.line.uptrend.xyaxis"
@@ -1447,12 +1569,17 @@ struct PlayerDetailSheet: View {
         case .opponent: return "sportscourt"
         }
     }
-    
+
     private func colorForImpact(_ impact: Double) -> Color {
-        if impact >= 7 { return .green }
-        else if impact >= 4 { return .blue }
-        else if impact >= 0 { return .orange }
-        else { return .red }
+        if impact >= 7 {
+            return .green
+        } else if impact >= 4 {
+            return .blue
+        } else if impact >= 0 {
+            return .orange
+        } else {
+            return .red
+        }
     }
 }
 
