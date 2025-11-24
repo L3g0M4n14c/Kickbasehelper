@@ -1,0 +1,216 @@
+{
+  "source": "/Users/marcocorro/Documents/xCode/Kickbasehelper/Kickbasehelper/SaleRecommendationsView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Aktuelles Budget",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 23
+        }
+      },
+      {
+        "comment": "",
+        "key": "Status",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 35
+        }
+      },
+      {
+        "comment": "",
+        "key": "Im Plus",
+        "location": {
+          "startingColumn": 54,
+          "startingLine": 44
+        }
+      },
+      {
+        "comment": "",
+        "key": "Im Minus",
+        "location": {
+          "startingColumn": 66,
+          "startingLine": 44
+        }
+      },
+      {
+        "comment": "",
+        "key": "Verkaufs-Empfehlungen",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 56
+        }
+      },
+      {
+        "comment": "",
+        "key": "Generiere Empfehlungen...",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 87
+        }
+      },
+      {
+        "comment": "",
+        "key": "Fehler",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 98
+        }
+      },
+      {
+        "comment": "",
+        "key": "Keine Empfehlungen",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 113
+        }
+      },
+      {
+        "comment": "",
+        "key": "Für dieses Ziel gibt es derzeit keine Empfehlungen.",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 115
+        }
+      },
+      {
+        "comment": "",
+        "key": "Aktuelles Budget",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 225
+        }
+      },
+      {
+        "comment": "",
+        "key": "Nach Empfehlung",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 246
+        }
+      },
+      {
+        "comment": "",
+        "key": "+%@",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 261
+        }
+      },
+      {
+        "comment": "",
+        "key": "Zum Verkaufen",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 277
+        }
+      },
+      {
+        "comment": "",
+        "key": "Verkaufswert",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 304
+        }
+      },
+      {
+        "comment": "",
+        "key": "€%lldM",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 307
+        }
+      },
+      {
+        "comment": "",
+        "key": "Punkte",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 316
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 319
+        }
+      },
+      {
+        "comment": "",
+        "key": "Ø/Spiel",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 325
+        }
+      },
+      {
+        "comment": "",
+        "key": "Verletzt",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 342
+        }
+      },
+      {
+        "comment": "",
+        "key": "Angeschlagen",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 350
+        }
+      },
+      {
+        "comment": "",
+        "key": "Warum?",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 363
+        }
+      },
+      {
+        "comment": "",
+        "key": "Alle anzeigen (%lld)",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 388
+        }
+      },
+      {
+        "comment": "",
+        "key": "Empfohlener Ersatz",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 381
+        }
+      },
+      {
+        "comment": "",
+        "key": "Weniger anzeigen",
+        "location": {
+          "startingColumn": 43,
+          "startingLine": 418
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld weitere Option(en)",
+        "location": {
+          "startingColumn": 43,
+          "startingLine": 419
+        }
+      },
+      {
+        "comment": "",
+        "key": "-%@",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 479
+        }
+      }
+    ]
+  },
+  "version": 1
+}

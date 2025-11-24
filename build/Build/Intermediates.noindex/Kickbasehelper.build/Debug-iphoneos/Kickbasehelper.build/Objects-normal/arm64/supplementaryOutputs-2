@@ -1,0 +1,23 @@
+{
+  "/Users/marcocorro/Documents/xCode/Kickbasehelper/Kickbasehelper/Services/KickbaseLeagueService.swift" : {
+    "const-values" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/KickbaseLeagueService.swiftconstvalues",
+    "dependencies" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/KickbaseLeagueService.d",
+    "diagnostics" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/KickbaseLeagueService.dia",
+    "object" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/KickbaseLeagueService.o",
+    "swift-dependencies" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/KickbaseLeagueService.swiftdeps"
+  },
+  "/Users/marcocorro/Documents/xCode/Kickbasehelper/Kickbasehelper/Services/KickbasePlayerService.swift" : {
+    "const-values" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/KickbasePlayerService.swiftconstvalues",
+    "dependencies" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/KickbasePlayerService.d",
+    "diagnostics" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/KickbasePlayerService.dia",
+    "object" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/KickbasePlayerService.o",
+    "swift-dependencies" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/KickbasePlayerService.swiftdeps"
+  },
+  "/Users/marcocorro/Documents/xCode/Kickbasehelper/Kickbasehelper/Services/KickbaseUserStatsService.swift" : {
+    "const-values" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/KickbaseUserStatsService.swiftconstvalues",
+    "dependencies" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/KickbaseUserStatsService.d",
+    "diagnostics" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/KickbaseUserStatsService.dia",
+    "object" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/KickbaseUserStatsService.o",
+    "swift-dependencies" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/KickbaseUserStatsService.swiftdeps"
+  }
+}

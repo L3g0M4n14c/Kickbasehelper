@@ -1,0 +1,456 @@
+{
+  "source": "/Users/marcocorro/Documents/xCode/Kickbasehelper/Kickbasehelper/TeamManagementViews.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Mein Team (%lld)",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 159
+        }
+      },
+      {
+        "comment": "",
+        "key": "View",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 41
+        }
+      },
+      {
+        "comment": "",
+        "key": "Mein Team",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 42
+        }
+      },
+      {
+        "comment": "",
+        "key": "Verkaufs-Tipps",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 43
+        }
+      },
+      {
+        "comment": "",
+        "key": "Spieler suchen...",
+        "location": {
+          "startingColumn": 43,
+          "startingLine": 68
+        }
+      },
+      {
+        "comment": "",
+        "key": "Sortieren:",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 73
+        }
+      },
+      {
+        "comment": "",
+        "key": "Sortierung",
+        "location": {
+          "startingColumn": 40,
+          "startingLine": 77
+        }
+      },
+      {
+        "comment": "",
+        "key": "Keine Spieler geladen",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 96
+        }
+      },
+      {
+        "comment": "",
+        "key": "Ziehe nach unten um zu aktualisieren oder wähle eine Liga aus",
+        "location": {
+          "startingColumn": 37,
+          "startingLine": 101
+        }
+      },
+      {
+        "comment": "",
+        "key": "Team neu laden",
+        "location": {
+          "startingColumn": 40,
+          "startingLine": 108
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 224
+        }
+      },
+      {
+        "comment": "",
+        "key": "%.0f",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 267
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 272
+        }
+      },
+      {
+        "comment": "",
+        "key": "€%lldM",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 277
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 334
+        }
+      },
+      {
+        "comment": "",
+        "key": "%.0f",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 377
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 382
+        }
+      },
+      {
+        "comment": "",
+        "key": "€%lldM",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 387
+        }
+      },
+      {
+        "comment": "",
+        "key": "Transfermarkt (%lld)",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 580
+        }
+      },
+      {
+        "comment": "",
+        "key": "Debug Info:",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 445
+        }
+      },
+      {
+        "comment": "",
+        "key": "Market Players Count: %lld",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 448
+        }
+      },
+      {
+        "comment": "",
+        "key": "Filtered Count: %lld",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 451
+        }
+      },
+      {
+        "comment": "",
+        "key": "Selected League: %@",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 454
+        }
+      },
+      {
+        "comment": "",
+        "key": "Is Loading: %@",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 457
+        }
+      },
+      {
+        "comment": "",
+        "key": "Manual Loading: %@",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 460
+        }
+      },
+      {
+        "comment": "",
+        "key": "Error: %@",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 464
+        }
+      },
+      {
+        "comment": "",
+        "key": "Spieler oder Verein suchen...",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 478
+        }
+      },
+      {
+        "comment": "",
+        "key": "Ladevorgang läuft...",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 511
+        }
+      },
+      {
+        "comment": "",
+        "key": "Lade Transfermarkt...",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 509
+        }
+      },
+      {
+        "comment": "",
+        "key": "Fehler beim Laden",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 524
+        }
+      },
+      {
+        "comment": "",
+        "key": "Erneut versuchen",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 534
+        }
+      },
+      {
+        "comment": "",
+        "key": "Keine Transfermarkt-Spieler verfügbar",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 550
+        }
+      },
+      {
+        "comment": "",
+        "key": "Derzeit sind keine Spieler auf dem Transfermarkt",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 554
+        }
+      },
+      {
+        "comment": "",
+        "key": "Aktualisieren",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 560
+        }
+      },
+      {
+        "comment": "",
+        "key": "Von: %@",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 731
+        }
+      },
+      {
+        "comment": "",
+        "key": "€%lldM",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 742
+        }
+      },
+      {
+        "comment": "",
+        "key": "MW: €%lldM",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 748
+        }
+      },
+      {
+        "comment": "",
+        "key": "Spielerdetails",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 904
+        }
+      },
+      {
+        "comment": "",
+        "key": "Verletzt",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 828
+        }
+      },
+      {
+        "comment": "",
+        "key": "Angeschlagen",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 836
+        }
+      },
+      {
+        "comment": "",
+        "key": "Aufbautraining",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 844
+        }
+      },
+      {
+        "comment": "",
+        "key": "Transferinformationen",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 855
+        }
+      },
+      {
+        "comment": "",
+        "key": "Preis",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 860
+        }
+      },
+      {
+        "comment": "",
+        "key": "€%lldM",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 863
+        }
+      },
+      {
+        "comment": "",
+        "key": "Marktwert",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 872
+        }
+      },
+      {
+        "comment": "",
+        "key": "€%lldM",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 876
+        }
+      },
+      {
+        "comment": "",
+        "key": "Verkäufer",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 892
+        }
+      },
+      {
+        "comment": "",
+        "key": "Schließen",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 908
+        }
+      },
+      {
+        "comment": "",
+        "key": "Aktuelles Budget",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 929
+        }
+      },
+      {
+        "comment": "",
+        "key": "€%lldM",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 932
+        }
+      },
+      {
+        "comment": "",
+        "key": "Ausgewählt zum Verkauf",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 940
+        }
+      },
+      {
+        "comment": "",
+        "key": "€%lldM",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 943
+        }
+      },
+      {
+        "comment": "",
+        "key": "Gesamtbudget (mit Verkäufen)",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 953
+        }
+      },
+      {
+        "comment": "",
+        "key": "€%lldM",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 956
+        }
+      },
+      {
+        "comment": "",
+        "key": "Zusätzliches Budget",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 966
+        }
+      },
+      {
+        "comment": "",
+        "key": "+€%lldM",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 969
+        }
+      }
+    ]
+  },
+  "version": 1
+}

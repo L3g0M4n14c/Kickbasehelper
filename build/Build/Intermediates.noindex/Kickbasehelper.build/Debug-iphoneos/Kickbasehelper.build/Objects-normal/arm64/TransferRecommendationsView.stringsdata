@@ -1,0 +1,592 @@
+{
+  "source": "/Users/marcocorro/Documents/xCode/Kickbasehelper/Kickbasehelper/TransferRecommendationsView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Transfer-Empfehlungen",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 71
+        }
+      },
+      {
+        "comment": "",
+        "key": "Transfer-Empfehlungen",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 131
+        }
+      },
+      {
+        "comment": "",
+        "key": "Aktualisieren",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 81
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cache leeren & neu laden",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 93
+        }
+      },
+      {
+        "comment": "",
+        "key": "Aktualisieren",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 139
+        }
+      },
+      {
+        "comment": "",
+        "key": "Wählen Sie eine Empfehlung",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 159
+        }
+      },
+      {
+        "comment": "",
+        "key": "Tippen Sie auf eine Transfer-Empfehlung in der Liste, um Details zu sehen.",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 164
+        }
+      },
+      {
+        "comment": "",
+        "key": "Keine Empfehlungen verfügbar",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 180
+        }
+      },
+      {
+        "comment": "",
+        "key": "Wählen Sie eine Liga aus und stellen Sie sicher, dass Transfermarkt-Daten verfügbar sind.",
+        "location": {
+          "startingColumn": 17,
+          "startingLine": 185
+        }
+      },
+      {
+        "comment": "",
+        "key": "Fehler: %@",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 193
+        }
+      },
+      {
+        "comment": "",
+        "key": "Erneut versuchen",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 201
+        }
+      },
+      {
+        "comment": "",
+        "key": "Sortierung",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 394
+        }
+      },
+      {
+        "comment": "",
+        "key": "Team-Analyse",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 239
+        }
+      },
+      {
+        "comment": "",
+        "key": "Budget: %@",
+        "location": {
+          "startingColumn": 21,
+          "startingLine": 243
+        }
+      },
+      {
+        "comment": "",
+        "key": "Empfohlene Ausgaben",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 253
+        }
+      },
+      {
+        "comment": "",
+        "key": "Reserve",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 264
+        }
+      },
+      {
+        "comment": "",
+        "key": "Prioritäre Positionen",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 277
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld Empfehlungen",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 302
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld dringend",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 314
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld Empfehlungen",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 325
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld dringend",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 337
+        }
+      },
+      {
+        "comment": "",
+        "key": "Empfehlungswert",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 395
+        }
+      },
+      {
+        "comment": "",
+        "key": "Preis",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 396
+        }
+      },
+      {
+        "comment": "",
+        "key": "Punkte",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 397
+        }
+      },
+      {
+        "comment": "",
+        "key": "Preis-Leistung",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 398
+        }
+      },
+      {
+        "comment": "",
+        "key": "Form-Trend",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 399
+        }
+      },
+      {
+        "comment": "",
+        "key": "Risiko",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 400
+        }
+      },
+      {
+        "comment": "",
+        "key": "Saisonprognose",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 672
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld Pkt.",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 678
+        }
+      },
+      {
+        "comment": "",
+        "key": "Vertrauen:",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 688
+        }
+      },
+      {
+        "comment": "",
+        "key": "Gründe für die Empfehlung:",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 701
+        }
+      },
+      {
+        "comment": "",
+        "key": "... und %lld weitere Gründe",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 733
+        }
+      },
+      {
+        "comment": "",
+        "key": "Spieler Details",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 1004
+        }
+      },
+      {
+        "comment": "",
+        "key": "Empfehlungswert",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 859
+        }
+      },
+      {
+        "comment": "",
+        "key": "Detaillierte Analyse",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 884
+        }
+      },
+      {
+        "comment": "",
+        "key": "Form",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 901
+        }
+      },
+      {
+        "comment": "",
+        "key": "Form-Trend",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 907
+        }
+      },
+      {
+        "comment": "",
+        "key": "Saisonprognose",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 919
+        }
+      },
+      {
+        "comment": "",
+        "key": "Erwartete Punkte",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 925
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 37,
+          "startingLine": 929
+        }
+      },
+      {
+        "comment": "",
+        "key": "Wertsteigerung",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 938
+        }
+      },
+      {
+        "comment": "",
+        "key": "Vertrauen:",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 955
+        }
+      },
+      {
+        "comment": "",
+        "key": "Alle Empfehlungsgründe",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 970
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld%%",
+        "location": {
+          "startingColumn": 14,
+          "startingLine": 1144
+        }
+      },
+      {
+        "comment": "",
+        "key": "Filter",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1317
+        }
+      },
+      {
+        "comment": "",
+        "key": "Zurücksetzen",
+        "location": {
+          "startingColumn": 33,
+          "startingLine": 1319
+        }
+      },
+      {
+        "comment": "",
+        "key": "Fertig",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 1322
+        }
+      },
+      {
+        "comment": "",
+        "key": "Positionen",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 1241
+        }
+      },
+      {
+        "comment": "",
+        "key": "Risiko & Priorität",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 1262
+        }
+      },
+      {
+        "comment": "",
+        "key": "Erweiterte Filter",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 1276
+        }
+      },
+      {
+        "comment": "",
+        "key": "Werte-Filter",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 1287
+        }
+      },
+      {
+        "comment": "",
+        "key": "Max. Risiko",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 1263
+        }
+      },
+      {
+        "comment": "",
+        "key": "Min. Priorität",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 1269
+        }
+      },
+      {
+        "comment": "",
+        "key": "Form-Trend",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 1277
+        }
+      },
+      {
+        "comment": "",
+        "key": "Alle",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1278
+        }
+      },
+      {
+        "comment": "",
+        "key": "Max. Preis",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1289
+        }
+      },
+      {
+        "comment": "",
+        "key": "€ Millionen",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 1292
+        }
+      },
+      {
+        "comment": "",
+        "key": "Min. Punkte",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1299
+        }
+      },
+      {
+        "comment": "",
+        "key": "Punkte",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 1301
+        }
+      },
+      {
+        "comment": "",
+        "key": "Min. Vertrauen",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1307
+        }
+      },
+      {
+        "comment": "",
+        "key": "0.0 - 1.0",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 1310
+        }
+      },
+      {
+        "comment": "",
+        "key": "Spieler Details",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1521
+        }
+      },
+      {
+        "comment": "",
+        "key": "Schließen",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 1523
+        }
+      },
+      {
+        "comment": "",
+        "key": "Empfehlungswert",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 1373
+        }
+      },
+      {
+        "comment": "",
+        "key": "Detaillierte Analyse",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1398
+        }
+      },
+      {
+        "comment": "",
+        "key": "Form",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 1418
+        }
+      },
+      {
+        "comment": "",
+        "key": "Form-Trend",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 1424
+        }
+      },
+      {
+        "comment": "",
+        "key": "Saisonprognose",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 1436
+        }
+      },
+      {
+        "comment": "",
+        "key": "Erwartete Punkte",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 1442
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 41,
+          "startingLine": 1446
+        }
+      },
+      {
+        "comment": "",
+        "key": "Wertsteigerung",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 1455
+        }
+      },
+      {
+        "comment": "",
+        "key": "Vertrauen:",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 1472
+        }
+      },
+      {
+        "comment": "",
+        "key": "Alle Empfehlungsgründe",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1487
+        }
+      }
+    ]
+  },
+  "version": 1
+}

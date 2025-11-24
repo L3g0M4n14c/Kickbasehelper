@@ -1,0 +1,23 @@
+{
+  "/Users/marcocorro/Documents/xCode/Kickbasehelper/Kickbasehelper/AuthenticationManager.swift" : {
+    "const-values" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/AuthenticationManager.swiftconstvalues",
+    "dependencies" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/AuthenticationManager.d",
+    "diagnostics" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/AuthenticationManager.dia",
+    "object" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/AuthenticationManager.o",
+    "swift-dependencies" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/AuthenticationManager.swiftdeps"
+  },
+  "/Users/marcocorro/Documents/xCode/Kickbasehelper/Kickbasehelper/Services/PlayerRecommendationService.swift" : {
+    "const-values" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/PlayerRecommendationService.swiftconstvalues",
+    "dependencies" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/PlayerRecommendationService.d",
+    "diagnostics" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/PlayerRecommendationService.dia",
+    "object" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/PlayerRecommendationService.o",
+    "swift-dependencies" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/PlayerRecommendationService.swiftdeps"
+  },
+  "/Users/marcocorro/Documents/xCode/Kickbasehelper/Kickbasehelper/Utilities/ScalingUtility.swift" : {
+    "const-values" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/ScalingUtility.swiftconstvalues",
+    "dependencies" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/ScalingUtility.d",
+    "diagnostics" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/ScalingUtility.dia",
+    "object" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/ScalingUtility.o",
+    "swift-dependencies" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/ScalingUtility.swiftdeps"
+  }
+}

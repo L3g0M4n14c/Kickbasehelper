@@ -625,3 +625,376 @@ struct MarketValueChange {
         return absoluteChange < 0
     }
 }
+
+// MARK: - Demo Data Service
+
+/// Service für realistische Demo-Daten für Apple Review
+class DemoDataService {
+
+    // MARK: - Demo User
+
+    static func createDemoUser() -> User {
+        return User(
+            id: "demo-user-001",
+            name: "Demo User",
+            teamName: "Demo Team",
+            email: "demo@kickbasehelper.app",
+            budget: 2_500_000,
+            teamValue: 45_000_000,
+            points: 287,
+            placement: 5,
+            flags: 0
+        )
+    }
+
+    // MARK: - Demo Leagues
+
+    static func createDemoLeagues() -> [League] {
+        let currentUser = LeagueUser(
+            id: "demo-user-001",
+            name: "Demo User",
+            teamName: "Demo Team",
+            budget: 2_500_000,
+            teamValue: 45_000_000,
+            points: 287,
+            placement: 5,
+            won: 8,
+            drawn: 2,
+            lost: 5,
+            se11: 0,
+            ttm: 0,
+            mpst: 3
+        )
+
+        return [
+            League(
+                id: "demo-league-001",
+                name: "🏆 Bundesliga Classic",
+                creatorName: "Demo Admin",
+                adminName: "Demo Admin",
+                created: "2024-08-01",
+                season: "2024/25",
+                matchDay: 12,
+                currentUser: currentUser
+            ),
+            League(
+                id: "demo-league-002",
+                name: "⚽ Friends Challenge",
+                creatorName: "Demo Creator",
+                adminName: "Demo Creator",
+                created: "2024-09-15",
+                season: "2024/25",
+                matchDay: 10,
+                currentUser: LeagueUser(
+                    id: "demo-user-001",
+                    name: "Demo User",
+                    teamName: "Expert Squad",
+                    budget: 1_800_000,
+                    teamValue: 52_000_000,
+                    points: 315,
+                    placement: 2,
+                    won: 9,
+                    drawn: 1,
+                    lost: 5,
+                    se11: 0,
+                    ttm: 0,
+                    mpst: 3
+                )
+            ),
+        ]
+    }
+
+    // MARK: - Demo Team Players
+
+    static func createDemoTeamPlayers() -> [TeamPlayer] {
+        return [
+            // Torwart
+            TeamPlayer(
+                id: "demo-player-001",
+                firstName: "Manuel",
+                lastName: "Neuer",
+                profileBigUrl: "",
+                teamName: "FC Bayern",
+                teamId: "1",
+                position: 1,  // Torwart
+                number: 1,
+                averagePoints: 7.2,
+                totalPoints: 86,
+                marketValue: 8_000_000,
+                marketValueTrend: 500_000,
+                tfhmvt: 250_000,
+                prlo: 7_500_000,
+                stl: 0,
+                status: 0,
+                userOwnsPlayer: true
+            ),
+            // Abwehr
+            TeamPlayer(
+                id: "demo-player-002",
+                firstName: "Antonio",
+                lastName: "Rüdiger",
+                profileBigUrl: "",
+                teamName: "Real Madrid",
+                teamId: "2",
+                position: 2,  // Abwehr
+                number: 3,
+                averagePoints: 6.8,
+                totalPoints: 82,
+                marketValue: 22_000_000,
+                marketValueTrend: 1_000_000,
+                tfhmvt: 500_000,
+                prlo: 20_000_000,
+                stl: 0,
+                status: 0,
+                userOwnsPlayer: true
+            ),
+            // Mittelfeld
+            TeamPlayer(
+                id: "demo-player-003",
+                firstName: "Jamal",
+                lastName: "Musiala",
+                profileBigUrl: "",
+                teamName: "FC Bayern",
+                teamId: "1",
+                position: 3,  // Mittelfeld
+                number: 42,
+                averagePoints: 7.5,
+                totalPoints: 90,
+                marketValue: 72_000_000,
+                marketValueTrend: 2_000_000,
+                tfhmvt: 1_000_000,
+                prlo: 68_000_000,
+                stl: 0,
+                status: 0,
+                userOwnsPlayer: true
+            ),
+            // Stürmer
+            TeamPlayer(
+                id: "demo-player-004",
+                firstName: "Serge",
+                lastName: "Gnabry",
+                profileBigUrl: "",
+                teamName: "FC Bayern",
+                teamId: "1",
+                position: 4,  // Stürmer
+                number: 7,
+                averagePoints: 6.9,
+                totalPoints: 83,
+                marketValue: 48_000_000,
+                marketValueTrend: -500_000,
+                tfhmvt: -250_000,
+                prlo: 45_000_000,
+                stl: 0,
+                status: 0,
+                userOwnsPlayer: true
+            ),
+            // Bank - Stürmer
+            TeamPlayer(
+                id: "demo-player-005",
+                firstName: "Mathys",
+                lastName: "Tel",
+                profileBigUrl: "",
+                teamName: "FC Bayern",
+                teamId: "1",
+                position: 4,  // Stürmer
+                number: 39,
+                averagePoints: 5.2,
+                totalPoints: 52,
+                marketValue: 28_000_000,
+                marketValueTrend: 1_500_000,
+                tfhmvt: 750_000,
+                prlo: 26_000_000,
+                stl: 0,
+                status: 0,
+                userOwnsPlayer: true
+            ),
+        ]
+    }
+
+    // MARK: - Demo Market Players
+
+    static func createDemoMarketPlayers() -> [MarketPlayer] {
+        return [
+            // Hochwertige Spieler auf dem Markt
+            MarketPlayer(
+                id: "demo-market-001",
+                firstName: "Florian",
+                lastName: "Wirtz",
+                profileBigUrl: "",
+                teamName: "Bayer Leverkusen",
+                teamId: "5",
+                position: 3,  // Mittelfeld
+                number: 10,
+                averagePoints: 8.1,
+                totalPoints: 97,
+                marketValue: 95_000_000,
+                marketValueTrend: 5_000_000,
+                price: 85_000_000,
+                expiry: "2025-12-15T23:59:59Z",
+                offers: 2,
+                seller: MarketSeller(id: "seller-001", name: "Aktiver Spieler"),
+                stl: 0,
+                status: 1,
+                prlo: 82_000_000,
+                owner: nil,
+                exs: 1_735_689_599
+            ),
+            MarketPlayer(
+                id: "demo-market-002",
+                firstName: "Florent",
+                lastName: "Inzaghi",
+                profileBigUrl: "",
+                teamName: "Benfica Lissabon",
+                teamId: "6",
+                position: 4,  // Stürmer
+                number: 9,
+                averagePoints: 7.8,
+                totalPoints: 94,
+                marketValue: 58_000_000,
+                marketValueTrend: 2_000_000,
+                price: 52_000_000,
+                expiry: "2025-12-10T23:59:59Z",
+                offers: 4,
+                seller: MarketSeller(id: "seller-002", name: "Demo Seller"),
+                stl: 0,
+                status: 1,
+                prlo: 50_000_000,
+                owner: nil,
+                exs: 1_735_430_399
+            ),
+            MarketPlayer(
+                id: "demo-market-003",
+                firstName: "Lamine",
+                lastName: "Yamal",
+                profileBigUrl: "",
+                teamName: "FC Barcelona",
+                teamId: "3",
+                position: 3,  // Mittelfeld
+                number: 27,
+                averagePoints: 7.2,
+                totalPoints: 86,
+                marketValue: 75_000_000,
+                marketValueTrend: 3_500_000,
+                price: 68_000_000,
+                expiry: "2025-12-20T23:59:59Z",
+                offers: 1,
+                seller: MarketSeller(id: "seller-003", name: "Team Lead"),
+                stl: 0,
+                status: 1,
+                prlo: 65_000_000,
+                owner: nil,
+                exs: 1_735_862_399
+            ),
+            MarketPlayer(
+                id: "demo-market-004",
+                firstName: "Vinícius",
+                lastName: "Júnior",
+                profileBigUrl: "",
+                teamName: "Real Madrid",
+                teamId: "2",
+                position: 4,  // Stürmer
+                number: 20,
+                averagePoints: 8.4,
+                totalPoints: 100,
+                marketValue: 110_000_000,
+                marketValueTrend: 4_000_000,
+                price: 95_000_000,
+                expiry: "2025-12-25T23:59:59Z",
+                offers: 0,
+                seller: MarketSeller(id: "seller-004", name: "Whale"),
+                stl: 0,
+                status: 1,
+                prlo: 90_000_000,
+                owner: nil,
+                exs: 1_735_948_799
+            ),
+            MarketPlayer(
+                id: "demo-market-005",
+                firstName: "Joshua",
+                lastName: "Kimmich",
+                profileBigUrl: "",
+                teamName: "FC Bayern",
+                teamId: "1",
+                position: 2,  // Abwehr
+                number: 32,
+                averagePoints: 6.7,
+                totalPoints: 80,
+                marketValue: 32_000_000,
+                marketValueTrend: -1_000_000,
+                price: 28_000_000,
+                expiry: "2025-12-05T23:59:59Z",
+                offers: 3,
+                seller: MarketSeller(id: "seller-005", name: "Casual Player"),
+                stl: 0,
+                status: 1,
+                prlo: 27_000_000,
+                owner: nil,
+                exs: 1_735_084_799
+            ),
+        ]
+    }
+
+    // MARK: - Demo User Stats
+
+    static func createDemoUserStats() -> UserStats {
+        return UserStats(
+            teamValue: 45_000_000,
+            teamValueTrend: 500_000,
+            budget: 2_500_000,
+            points: 287,
+            placement: 5,
+            won: 8,
+            drawn: 2,
+            lost: 5
+        )
+    }
+
+    // MARK: - Demo Market Value History
+
+    static func createDemoMarketValueHistory() -> MarketValueChange {
+        let dailyChanges = [
+            DailyMarketValueChange(
+                date: "24. Nov",
+                value: 45_500_000,
+                change: 200_000,
+                percentageChange: 0.44,
+                daysAgo: 0
+            ),
+            DailyMarketValueChange(
+                date: "23. Nov",
+                value: 45_300_000,
+                change: 100_000,
+                percentageChange: 0.22,
+                daysAgo: 1
+            ),
+            DailyMarketValueChange(
+                date: "22. Nov",
+                value: 45_200_000,
+                change: -300_000,
+                percentageChange: -0.66,
+                daysAgo: 2
+            ),
+        ]
+
+        return MarketValueChange(
+            daysSinceLastUpdate: 1,
+            absoluteChange: 500_000,
+            percentageChange: 1.12,
+            previousValue: 45_000_000,
+            currentValue: 45_500_000,
+            dailyChanges: dailyChanges
+        )
+    }
+
+    // MARK: - Demo Login Response
+
+    static func createDemoLoginResponse() -> LoginResponse {
+        let user = createDemoUser()
+        return LoginResponse(
+            tkn: "demo-token-\(UUID().uuidString)",
+            user: user,
+            leagues: createDemoLeagues(),
+            userId: user.id
+        )
+    }
+}

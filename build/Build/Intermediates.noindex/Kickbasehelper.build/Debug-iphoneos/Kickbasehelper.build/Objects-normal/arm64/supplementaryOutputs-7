@@ -1,0 +1,23 @@
+{
+  "/Users/marcocorro/Documents/xCode/Kickbasehelper/Kickbasehelper/PlayerDetailView.swift" : {
+    "const-values" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/PlayerDetailView.swiftconstvalues",
+    "dependencies" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/PlayerDetailView.d",
+    "diagnostics" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/PlayerDetailView.dia",
+    "object" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/PlayerDetailView.o",
+    "swift-dependencies" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/PlayerDetailView.swiftdeps"
+  },
+  "/Users/marcocorro/Documents/xCode/Kickbasehelper/Kickbasehelper/RecommendationModels.swift" : {
+    "const-values" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/RecommendationModels.swiftconstvalues",
+    "dependencies" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/RecommendationModels.d",
+    "diagnostics" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/RecommendationModels.dia",
+    "object" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/RecommendationModels.o",
+    "swift-dependencies" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/RecommendationModels.swiftdeps"
+  },
+  "/Users/marcocorro/Documents/xCode/Kickbasehelper/Kickbasehelper/SaleRecommendationsView.swift" : {
+    "const-values" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/SaleRecommendationsView.swiftconstvalues",
+    "dependencies" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/SaleRecommendationsView.d",
+    "diagnostics" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/SaleRecommendationsView.dia",
+    "object" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/SaleRecommendationsView.o",
+    "swift-dependencies" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/build/Build/Intermediates.noindex/Kickbasehelper.build/Debug-iphoneos/Kickbasehelper.build/Objects-normal/arm64/SaleRecommendationsView.swiftdeps"
+  }
+}

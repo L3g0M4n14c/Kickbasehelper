@@ -1,0 +1,744 @@
+{
+  "source": "/Users/marcocorro/Documents/xCode/Kickbasehelper/Kickbasehelper/MainDashboardView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Kickbase Helper",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 71
+        }
+      },
+      {
+        "comment": "",
+        "key": "Team",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 47
+        }
+      },
+      {
+        "comment": "",
+        "key": "Markt",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 52
+        }
+      },
+      {
+        "comment": "",
+        "key": "Verkaufen",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 57
+        }
+      },
+      {
+        "comment": "",
+        "key": "Aufstellung",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 62
+        }
+      },
+      {
+        "comment": "",
+        "key": "Transfer-Tipps",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 67
+        }
+      },
+      {
+        "comment": "",
+        "key": "Logout",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 75
+        }
+      },
+      {
+        "comment": "",
+        "key": "Team",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 118
+        }
+      },
+      {
+        "comment": "",
+        "key": "Markt",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 126
+        }
+      },
+      {
+        "comment": "",
+        "key": "Verkaufen",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 134
+        }
+      },
+      {
+        "comment": "",
+        "key": "Aufstellung",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 142
+        }
+      },
+      {
+        "comment": "",
+        "key": "Transfer-Tipps",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 150
+        }
+      },
+      {
+        "comment": "",
+        "key": "Logout",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 158
+        }
+      },
+      {
+        "comment": "",
+        "key": "View",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 245
+        }
+      },
+      {
+        "comment": "",
+        "key": "Mein Team",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 246
+        }
+      },
+      {
+        "comment": "",
+        "key": "Verkaufs-Tipps",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 247
+        }
+      },
+      {
+        "comment": "",
+        "key": "Sortieren:",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 274
+        }
+      },
+      {
+        "comment": "",
+        "key": "Sortierung",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 278
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 420
+        }
+      },
+      {
+        "comment": "",
+        "key": "€%@",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 434
+        }
+      },
+      {
+        "comment": "",
+        "key": "€%@",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 447
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 549
+        }
+      },
+      {
+        "comment": "",
+        "key": "€%@",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 560
+        }
+      },
+      {
+        "comment": "",
+        "key": "€%@",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 573
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 598
+        }
+      },
+      {
+        "comment": "",
+        "key": "Budget",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 642
+        }
+      },
+      {
+        "comment": "",
+        "key": "€%@",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 645
+        }
+      },
+      {
+        "comment": "",
+        "key": "Meine Punkte",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 653
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 659
+        }
+      },
+      {
+        "comment": "",
+        "key": "Teamwert",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 668
+        }
+      },
+      {
+        "comment": "",
+        "key": "€%@",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 672
+        }
+      },
+      {
+        "comment": "",
+        "key": "Spieler suchen...",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 711
+        }
+      },
+      {
+        "comment": "",
+        "key": "Sortieren:",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 716
+        }
+      },
+      {
+        "comment": "",
+        "key": "Sortierung",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 720
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 837
+        }
+      },
+      {
+        "comment": "",
+        "key": "Besitzer: %@",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 850
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 894
+        }
+      },
+      {
+        "comment": "",
+        "key": "€%@",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 905
+        }
+      },
+      {
+        "comment": "",
+        "key": "MW: €%@",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 914
+        }
+      },
+      {
+        "comment": "",
+        "key": "Verbleibende Spieler nach Verkauf",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 973
+        }
+      },
+      {
+        "comment": "",
+        "key": "Optimierungsziel",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 985
+        }
+      },
+      {
+        "comment": "",
+        "key": "Ziel wählen",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 989
+        }
+      },
+      {
+        "comment": "",
+        "key": "Detaillierte Empfehlungen",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 1006
+        }
+      },
+      {
+        "comment": "",
+        "key": "Aktuelles Budget",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 1549
+        }
+      },
+      {
+        "comment": "",
+        "key": "€%@",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 1552
+        }
+      },
+      {
+        "comment": "",
+        "key": "Benötigt",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1562
+        }
+      },
+      {
+        "comment": "",
+        "key": "€%@",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1565
+        }
+      },
+      {
+        "comment": "",
+        "key": "Empfohlen",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1581
+        }
+      },
+      {
+        "comment": "",
+        "key": "€%@",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 1586
+        }
+      },
+      {
+        "comment": "",
+        "key": "Budget: €%@",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 1591
+        }
+      },
+      {
+        "comment": "",
+        "key": "Ausgewählt",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1602
+        }
+      },
+      {
+        "comment": "",
+        "key": "€%@",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 1607
+        }
+      },
+      {
+        "comment": "",
+        "key": "Budget: €%@",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 1613
+        }
+      },
+      {
+        "comment": "",
+        "key": "Keine Auswahl",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 1617
+        }
+      },
+      {
+        "comment": "",
+        "key": "Empfehlungsübersicht",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 1652
+        }
+      },
+      {
+        "comment": "",
+        "key": "Strategie: %@",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 1658
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1679
+        }
+      },
+      {
+        "comment": "",
+        "key": "€%@",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1795
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 1835
+        }
+      },
+      {
+        "comment": "",
+        "key": "Beste Aufstellung",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 1898
+        }
+      },
+      {
+        "comment": "",
+        "key": "Optimierung",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 1902
+        }
+      },
+      {
+        "comment": "",
+        "key": "Keine Spieler geladen",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 1921
+        }
+      },
+      {
+        "comment": "",
+        "key": "Lade dein Team, um die beste Aufstellung zu sehen",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 1925
+        }
+      },
+      {
+        "comment": "",
+        "key": "Team laden",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 1931
+        }
+      },
+      {
+        "comment": "",
+        "key": "Aufstellungs-Statistiken",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 2184
+        }
+      },
+      {
+        "comment": "",
+        "key": "Formation: %@",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 2192
+        }
+      },
+      {
+        "comment": "",
+        "key": "Nicht genügend Spieler für eine komplette Aufstellung",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 2230
+        }
+      },
+      {
+        "comment": "",
+        "key": "Kein Torwart verfügbar - bester Spieler als Ersatz eingesetzt",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 2242
+        }
+      },
+      {
+        "comment": "",
+        "key": "Formation (%@)",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 2262
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 2371
+        }
+      },
+      {
+        "comment": "",
+        "key": "Reservebank",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 2435
+        }
+      },
+      {
+        "comment": "",
+        "key": "Beste verfügbare Alternativen",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 2439
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 2447
+        }
+      },
+      {
+        "comment": "",
+        "key": "Spieler",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 2451
+        }
+      },
+      {
+        "comment": "",
+        "key": "Optimale Nutzung!",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 2466
+        }
+      },
+      {
+        "comment": "",
+        "key": "Alle verfügbaren Spieler sind in der Startaufstellung.",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 2469
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld verletzte Spieler nicht berücksichtigt",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 2481
+        }
+      },
+      {
+        "comment": "",
+        "key": "(%lld)",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 2503
+        }
+      },
+      {
+        "comment": "",
+        "key": "Reservebank-Statistiken",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 2555
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 2684
+        }
+      },
+      {
+        "comment": "",
+        "key": "€%@",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 2688
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 2809
+        }
+      },
+      {
+        "comment": "",
+        "key": "Aktuelles Budget",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 2830
+        }
+      },
+      {
+        "comment": "",
+        "key": "€%@",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 2833
+        }
+      },
+      {
+        "comment": "",
+        "key": "Budget + Verkäufe",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 2842
+        }
+      },
+      {
+        "comment": "",
+        "key": "€%@",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 2845
+        }
+      },
+      {
+        "comment": "",
+        "key": "Team Punktzahl-Übersicht",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 2900
+        }
+      },
+      {
+        "comment": "",
+        "key": "Meine Liga-Statistiken",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 2947
+        }
+      },
+      {
+        "comment": "",
+        "key": "Liga-Informationen",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 3006
+        }
+      },
+      {
+        "comment": "",
+        "key": "Verkaufsempfehlung",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 3121
+        }
+      },
+      {
+        "comment": "",
+        "key": "€%@",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 3143
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 3161
+        }
+      }
+    ]
+  },
+  "version": 1
+}
