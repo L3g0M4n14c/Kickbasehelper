@@ -56,12 +56,13 @@ class PlayerRecommendationService: ObservableObject {
         let qualityMarketPlayers = marketPlayers.filter { player in
             guard player.status != 8 && player.status != 16 else { return false }
             guard player.averagePoints >= 70.0 else { return false }
-            
+
             // Schließe Spieler aus, die der aktuellen Benutzer auf den Transfermarkt gestellt hat
             guard player.seller.id != league.currentUser.id else { return false }
-            
+
             return true
-        };        var saleRecommendations: [SaleRecommendation] = []
+        }
+        var saleRecommendations: [SaleRecommendation] = []
 
         switch goal {
         case .balanceBudget:
@@ -159,12 +160,13 @@ class PlayerRecommendationService: ObservableObject {
             // Dann Leistungschecks
             guard player.averagePoints >= 70.0 else { return false }
             guard player.totalPoints >= 140 else { return false }
-            
+
             // Schließe Spieler aus, die der aktuellen Benutzer auf den Transfermarkt gestellt hat
             guard player.seller.id != currentUser.id else { return false }
 
             return true
-        };        print(
+        }
+        print(
             "📊 Pre-filtered from \(marketPlayers.count) to \(qualityMarketPlayers.count) quality players"
         )
 
@@ -427,7 +429,9 @@ class PlayerRecommendationService: ObservableObject {
         let remainingGames = max(34 - estimatedGamesPlayed, 0)
 
         let projectedTotal = currentPoints + Int(pointsPerGame * Double(remainingGames))
-        let projectedValueIncrease = marketPlayer.marketValueTrend * remainingGames / 10
+        // Nutze tfhmvt wenn verfügbar, sonst Fallback auf marketValueTrend
+        let dailyChange = marketPlayer.marketValueTrend
+        let projectedValueIncrease = dailyChange * remainingGames
 
         // Niedrige Confidence, da keine echten Stats
         let confidence = 0.5
@@ -448,7 +452,9 @@ class PlayerRecommendationService: ObservableObject {
         let remainingGames = max(34 - gamesPlayed, 0)
 
         let projectedTotal = currentPoints + Int(pointsPerGame * Double(remainingGames))
-        let projectedValueIncrease = marketPlayer.marketValueTrend * remainingGames / 10
+        // Nutze tfhmvt wenn verfügbar, sonst Fallback auf marketValueTrend
+        let dailyChange = marketPlayer.marketValueTrend
+        let projectedValueIncrease = dailyChange * remainingGames
 
         // Debug: Zeige Stats
         print("📊 Stats for \(marketPlayer.firstName) \(marketPlayer.lastName):")
@@ -641,7 +647,8 @@ class PlayerRecommendationService: ObservableObject {
             score += 1.5  // Sehr günstig
         }
 
-        return max(score, 0.0)
+        // Score auf theoretisches Maximum von ~24 Punkten begrenzen
+        return min(max(score, 0.0), 24.0)
     }
 
     private func mapIntToPosition(_ position: Int) -> TeamAnalysis.Position? {
@@ -674,9 +681,9 @@ class PlayerRecommendationService: ObservableObject {
         -> TransferRecommendation.Priority
     {
         if let playerPosition = mapIntToPosition(position) {
-            if teamAnalysis.weakPositions.contains(playerPosition) && score > 7.0 {
+            if teamAnalysis.weakPositions.contains(playerPosition) && score >= 19.2 {
                 return .essential
-            } else if score > 6.0 {
+            } else if score >= 12.0 {
                 return .recommended
             } else {
                 return .optional

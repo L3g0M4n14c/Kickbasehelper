@@ -110,9 +110,12 @@ if possibleGames > 0 {
 7. **Spiele-Konsistenz** (-1 bis +1 Punkte)
 8. **Preis-Effizienz** (0-2 Punkte)
 
-**Maximaler Score:** ~24 Punkte (theoretisch)  
-**Typischer guter Score:** 8-12 Punkte  
-**Empfehlungsschwelle:** ≥2.0 Punkte
+**Roher kombinierter Score:** ~0-24 Punkte (theoretisch)
+**Finaler normalisierter Score:** **0-24 Punkte** (max-capped)
+**Typischer guter Score:** 12-18 Punkte
+**Sehr guter Score:** 18-22 Punkte
+**Top-Tier Score:** 22-24 Punkte
+**Empfehlungsschwelle:** ≥2.0 Punkte (vor Normalisierung)
 
 ---
 
@@ -171,6 +174,39 @@ Dies spiegelt wider, dass Spieler mit hoher Beteiligung verlässlichere Datenpun
 **Empfehlung nach Update:**
 - Cache einmal manuell leeren für sofortige neue Bewertungen
 - Oder 5 Minuten warten (automatische Cache-Invalidierung)
+
+---
+
+## Priority-Schwellwerte (29. November 2025 - Update)
+
+Nach der Anpassung auf 24er-Skala wurden auch die Priority-Schwellwerte neu kalibriert:
+
+**Neue Schwellwerte (24er-Skala):**
+- **Essential** 🔴: Schwache Position + Score ≥ **19.2** (80%)
+- **Recommended** 🟠: Score ≥ **12.0** (50%)
+- **Optional** 🔵: Score < 12.0
+
+**Begründung:**
+- Essentiell = wirklich Top-Spieler (obere 20%) auf benötigten Positionen
+- Empfohlen = gute Spieler (obere 50%) unabhängig von Position
+- Optional = alle anderen Empfehlungen
+
+---
+
+**Problem (v1):** Der Empfehlungsscore konnte über 10 hinausgehen (z.B. 16/10), obwohl die UI ihn als "/10" anzeigte.
+
+**Erste Lösung (v1):** Score wurde auf 0-10 Range normalisiert.
+
+**Problem (v2):** Mit 0-10 Normalisierung bekommen zu viele Spieler 10/10, Unterschiede nicht erkennbar.
+
+**Aktuelle Lösung (v2):** Score wird auf theoretisches Maximum von ~24 Punkten begrenzt mit `min(max(score, 0.0), 24.0)`.
+
+**Auswirkung:**
+- ✅ Beste Spieler bekommen Maximum 24.0 (statt 10.0 oder 16+)
+- ✅ Mittelmäßige Spieler: 12-16
+- ✅ Gute Spieler: 18-22
+- ✅ Unterschiede zwischen Spielern sind jetzt deutlich erkennbar
+- ✅ Schwellwert von 2.0 Punkten bleibt erhalten
 
 ---
 

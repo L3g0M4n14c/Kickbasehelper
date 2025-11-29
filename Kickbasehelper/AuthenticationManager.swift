@@ -76,12 +76,21 @@ class AuthenticationManager: ObservableObject {
         } catch {
             print("💥 Login error: \(error)")
 
-            if let apiError = error as? APIError {
-                errorMessage = apiError.localizedDescription
-            } else if (error as NSError).domain == NSURLErrorDomain {
-                errorMessage = "Netzwerkfehler. Bitte prüfen Sie Ihre Internetverbindung."
+            // Spezifische Fehlerbehandlung
+            let nsError = error as NSError
+
+            if nsError.domain == "InvalidCredentials" || nsError.code == 401 {
+                errorMessage =
+                    "Ungültige E-Mail oder Passwort. Bitte überprüfen Sie Ihre Anmeldedaten."
+            } else if nsError.domain == NSURLErrorDomain {
+                errorMessage =
+                    "Netzwerkfehler. Bitte prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut."
+            } else if let localizedDescription = nsError.localizedDescription as String?,
+                !localizedDescription.isEmpty
+            {
+                errorMessage = localizedDescription
             } else {
-                errorMessage = "Login fehlgeschlagen: \(error.localizedDescription)"
+                errorMessage = "Login fehlgeschlagen. Bitte versuchen Sie es erneut."
             }
         }
 

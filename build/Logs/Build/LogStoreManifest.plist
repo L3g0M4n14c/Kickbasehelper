@@ -6,7 +6,7 @@
 	<integer>11</integer>
 	<key>logs</key>
 	<dict>
-		<key>821C0F00-C2EB-4222-BCEE-F4C905194736</key>
+		<key>48622BC7-AE08-4E9F-AD3F-EFD5552A8A52</key>
 		<dict>
 			<key>className</key>
 			<string>IDECommandLineBuildLog</string>
@@ -15,13 +15,13 @@
 			<key>domainType</key>
 			<string>Xcode.IDEActivityLogDomainType.BuildLog</string>
 			<key>fileName</key>
-			<string>821C0F00-C2EB-4222-BCEE-F4C905194736.xcactivitylog</string>
+			<string>48622BC7-AE08-4E9F-AD3F-EFD5552A8A52.xcactivitylog</string>
 			<key>hasPrimaryLog</key>
 			<true/>
 			<key>primaryObservable</key>
 			<dict>
 				<key>highLevelStatus</key>
-				<string>S</string>
+				<string>W</string>
 				<key>totalNumberOfAnalyzerIssues</key>
 				<integer>0</integer>
 				<key>totalNumberOfErrors</key>
@@ -29,7 +29,7 @@
 				<key>totalNumberOfTestFailures</key>
 				<integer>0</integer>
 				<key>totalNumberOfWarnings</key>
-				<integer>0</integer>
+				<integer>21</integer>
 			</dict>
 			<key>schemeIdentifier-containerName</key>
 			<string>Kickbasehelper project</string>
@@ -38,15 +38,15 @@
 			<key>schemeIdentifier-sharedScheme</key>
 			<integer>1</integer>
 			<key>signature</key>
-			<string>Cleaning project Kickbasehelper with scheme Kickbasehelper and configuration Debug</string>
+			<string>Building project Kickbasehelper with scheme Kickbasehelper and configuration Debug</string>
 			<key>timeStartedRecording</key>
-			<real>785660373.77838802</real>
+			<real>785711146.44896805</real>
 			<key>timeStoppedRecording</key>
-			<real>785660374.07763803</real>
+			<real>785711151.59883106</real>
 			<key>title</key>
-			<string>Cleaning project Kickbasehelper with scheme Kickbasehelper and configuration Debug</string>
+			<string>Building project Kickbasehelper with scheme Kickbasehelper and configuration Debug</string>
 			<key>uniqueIdentifier</key>
-			<string>821C0F00-C2EB-4222-BCEE-F4C905194736</string>
+			<string>48622BC7-AE08-4E9F-AD3F-EFD5552A8A52</string>
 		</dict>
 		<key>95FAA8DD-B067-4346-B0D1-112DD2A98681</key>
 		<dict>

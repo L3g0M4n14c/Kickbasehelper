@@ -585,7 +585,7 @@ struct TransferRecommendationsView: View {
         formatter.numberStyle = .currency
         formatter.locale = Locale(identifier: "de_DE")
         formatter.currencyCode = "EUR"
-        return formatter.string(from: NSNumber(value: Double(amount) / 100.0)) ?? "€0"
+        return formatter.string(from: NSNumber(value: Double(amount))) ?? "€0"
     }
 }
 
@@ -598,8 +598,9 @@ struct EnhancedRecommendationCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             // Player Header with Enhanced Info
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 6) {
+                    // Name with Form Trend
                     HStack {
                         Text(recommendation.player.firstName + " " + recommendation.player.lastName)
                             .font(.headline)
@@ -610,14 +611,14 @@ struct EnhancedRecommendationCard: View {
                         FormTrendBadge(trend: recommendation.analysis.formTrend)
                     }
 
-                    HStack {
-                        Text(recommendation.player.teamName)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                    // Team Name
+                    Text(recommendation.player.teamName)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
 
-                        Spacer()
-
-                        // Position with enhanced styling
+                    // All Badges in one row (Position, Risk, Priority)
+                    HStack(spacing: 6) {
+                        // Position Badge
                         Text(positionName(for: recommendation.player.position))
                             .font(.caption)
                             .fontWeight(.medium)
@@ -626,6 +627,9 @@ struct EnhancedRecommendationCard: View {
                             .background(positionColor(for: recommendation.player.position))
                             .foregroundColor(.white)
                             .cornerRadius(6)
+
+                        RiskBadge(risk: recommendation.riskLevel)
+                        PriorityBadge(priority: recommendation.priority)
                     }
                 }
 
@@ -636,11 +640,6 @@ struct EnhancedRecommendationCard: View {
                         .font(.headline)
                         .fontWeight(.bold)
                         .foregroundColor(.primary)
-
-                    HStack(spacing: 6) {
-                        RiskBadge(risk: recommendation.riskLevel)
-                        PriorityBadge(priority: recommendation.priority)
-                    }
                 }
             }
             .contentShape(Rectangle())
@@ -811,7 +810,7 @@ struct EnhancedRecommendationCard: View {
         formatter.numberStyle = .currency
         formatter.locale = Locale(identifier: "de_DE")
         formatter.currencyCode = "EUR"
-        return formatter.string(from: NSNumber(value: Double(amount) / 100.0)) ?? "€0"
+        return formatter.string(from: NSNumber(value: Double(amount))) ?? "€0"
     }
 }
 
@@ -819,6 +818,18 @@ struct EnhancedRecommendationCard: View {
 
 struct RecommendationPlayerDetailView: View {
     let recommendation: TransferRecommendation
+    @EnvironmentObject var kickbaseManager: KickbaseManager
+    @State private var marketValueHistory: MarketValueChange?
+    @State private var isLoadingHistory = false
+
+    var latestDailyChange: Int {
+        guard let history = marketValueHistory,
+            let today = history.dailyChanges.first(where: { $0.daysAgo == 0 })
+        else {
+            return recommendation.analysis.seasonProjection.projectedValueIncrease
+        }
+        return today.change
+    }
 
     var body: some View {
         ScrollView {
@@ -859,7 +870,7 @@ struct RecommendationPlayerDetailView: View {
                             Text("Empfehlungswert")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                            Text(String(format: "%.1f/10", recommendation.recommendationScore))
+                            Text(String(format: "%.1f/24", recommendation.recommendationScore))
                                 .font(.headline)
                                 .fontWeight(.semibold)
                         }
@@ -867,7 +878,7 @@ struct RecommendationPlayerDetailView: View {
                         Spacer()
 
                         // Progress Bar for Score
-                        ProgressView(value: recommendation.recommendationScore, total: 10.0)
+                        ProgressView(value: recommendation.recommendationScore, total: 24.0)
                             .progressViewStyle(
                                 LinearProgressViewStyle(
                                     tint: scoreColor(recommendation.recommendationScore))
@@ -935,19 +946,13 @@ struct RecommendationPlayerDetailView: View {
                             Spacer()
 
                             VStack(alignment: .trailing) {
-                                Text("Wertsteigerung")
+                                Text("Wertsteigerung (täglich)")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
-                                Text(
-                                    formatCurrency(
-                                        recommendation.analysis.seasonProjection
-                                            .projectedValueIncrease)
-                                )
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                                .foregroundColor(
-                                    recommendation.analysis.seasonProjection.projectedValueIncrease
-                                        > 0 ? .green : .red)
+                                Text(formatCurrency(latestDailyChange))
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(latestDailyChange > 0 ? .green : .red)
                             }
                         }
 
@@ -1002,6 +1007,21 @@ struct RecommendationPlayerDetailView: View {
             .padding()
         }
         .navigationTitle("Spieler Details")
+        .task {
+            await loadMarketValueHistory()
+        }
+    }
+
+    @MainActor
+    private func loadMarketValueHistory() async {
+        guard let selectedLeague = kickbaseManager.selectedLeague else { return }
+        isLoadingHistory = true
+        let history = await kickbaseManager.loadPlayerMarketValueHistory(
+            playerId: recommendation.player.id,
+            leagueId: selectedLeague.id
+        )
+        marketValueHistory = history
+        isLoadingHistory = false
     }
 
     private func formatPrice(_ price: Int) -> String {
@@ -1013,7 +1033,7 @@ struct RecommendationPlayerDetailView: View {
         formatter.numberStyle = .currency
         formatter.locale = Locale(identifier: "de_DE")
         formatter.currencyCode = "EUR"
-        return formatter.string(from: NSNumber(value: Double(amount) / 100.0)) ?? "€0"
+        return formatter.string(from: NSNumber(value: Double(amount))) ?? "€0"
     }
 
     private func scoreColor(_ score: Double) -> Color {
@@ -1331,7 +1351,19 @@ struct FilterSheet: View {
 
 struct PlayerDetailSheet: View {
     let recommendation: TransferRecommendation
+    @EnvironmentObject var kickbaseManager: KickbaseManager
     @Environment(\.presentationMode) var presentationMode
+    @State private var marketValueHistory: MarketValueChange?
+    @State private var isLoadingHistory = false
+
+    var latestDailyChange: Int {
+        guard let history = marketValueHistory,
+            let today = history.dailyChanges.first(where: { $0.daysAgo == 0 })
+        else {
+            return recommendation.analysis.seasonProjection.projectedValueIncrease
+        }
+        return today.change
+    }
 
     var body: some View {
         NavigationView {
@@ -1373,7 +1405,7 @@ struct PlayerDetailSheet: View {
                                 Text("Empfehlungswert")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
-                                Text(String(format: "%.1f/10", recommendation.recommendationScore))
+                                Text(String(format: "%.1f/24", recommendation.recommendationScore))
                                     .font(.headline)
                                     .fontWeight(.semibold)
                             }
@@ -1381,7 +1413,7 @@ struct PlayerDetailSheet: View {
                             Spacer()
 
                             // Progress Bar for Score
-                            ProgressView(value: recommendation.recommendationScore, total: 10.0)
+                            ProgressView(value: recommendation.recommendationScore, total: 24.0)
                                 .progressViewStyle(
                                     LinearProgressViewStyle(
                                         tint: scoreColor(recommendation.recommendationScore))
@@ -1452,19 +1484,13 @@ struct PlayerDetailSheet: View {
                                 Spacer()
 
                                 VStack(alignment: .trailing) {
-                                    Text("Wertsteigerung")
+                                    Text("Wertsteigerung (täglich)")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
-                                    Text(
-                                        formatCurrency(
-                                            recommendation.analysis.seasonProjection
-                                                .projectedValueIncrease)
-                                    )
-                                    .font(.subheadline)
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(
-                                        recommendation.analysis.seasonProjection
-                                            .projectedValueIncrease > 0 ? .green : .red)
+                                    Text(formatCurrency(latestDailyChange))
+                                        .font(.subheadline)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(latestDailyChange > 0 ? .green : .red)
                                 }
                             }
 
@@ -1524,6 +1550,21 @@ struct PlayerDetailSheet: View {
                     presentationMode.wrappedValue.dismiss()
                 })
         }
+        .task {
+            await loadMarketValueHistory()
+        }
+    }
+
+    @MainActor
+    private func loadMarketValueHistory() async {
+        guard let selectedLeague = kickbaseManager.selectedLeague else { return }
+        isLoadingHistory = true
+        let history = await kickbaseManager.loadPlayerMarketValueHistory(
+            playerId: recommendation.player.id,
+            leagueId: selectedLeague.id
+        )
+        marketValueHistory = history
+        isLoadingHistory = false
     }
 
     private func formatPrice(_ price: Int) -> String {
@@ -1535,7 +1576,7 @@ struct PlayerDetailSheet: View {
         formatter.numberStyle = .currency
         formatter.locale = Locale(identifier: "de_DE")
         formatter.currencyCode = "EUR"
-        return formatter.string(from: NSNumber(value: Double(amount) / 100.0)) ?? "€0"
+        return formatter.string(from: NSNumber(value: Double(amount))) ?? "€0"
     }
 
     private func scoreColor(_ score: Double) -> Color {
