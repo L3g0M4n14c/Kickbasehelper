@@ -1151,4 +1151,320 @@ extension PlayerRecommendationService {
             )
         }
     }
+
+    // MARK: - Lineup Optimization Functions
+
+    /// Generiert optimale Aufstellungen: nur eigene Spieler vs. Hybrid mit Markt-Spielern
+    func generateOptimalLineupComparison(
+        for league: League,
+        teamPlayers: [TeamPlayer],
+        marketPlayers: [MarketPlayer],
+        formation: [Int]  // z.B. [1,4,4,2] für 4-2-3-1 (1 TW, 4 ABW, 4 MF, 2 ST)
+    ) async -> LineupComparison {
+        print("🎯 Generating optimal lineup comparison for formation: \(formation)")
+
+        // Schritt 1: Generiere Team-Only Aufstellung
+        let teamOnlyLineup = generateTeamOnlyLineup(
+            teamPlayers: teamPlayers,
+            formation: formation
+        )
+
+        // Schritt 2: Generiere Hybrid-Aufstellung mit Markt-Spielern
+        // Filtere Marktspieler: nur gute Spieler, nicht verletzt, und NICHT bereits im Team
+        let teamPlayerIds = Set(teamPlayers.map { $0.id })
+        let qualityMarketPlayers = marketPlayers.filter { player in
+            player.status != 8 && player.status != 16 && player.totalPoints >= 140
+                && !teamPlayerIds.contains(player.id)
+        }
+
+        let hybridLineup = generateHybridLineup(
+            teamPlayers: teamPlayers,
+            marketPlayers: qualityMarketPlayers,
+            formation: formation,
+            maxPlayersPerTeam: league.currentUser.mpst ?? 3
+        )
+
+        let comparison = LineupComparison(
+            teamOnlyLineup: teamOnlyLineup,
+            hybridLineup: hybridLineup
+        )
+
+        print(
+            "✅ Lineup comparison generated - Team only score: \(teamOnlyLineup.totalLineupScore), Hybrid score: \(hybridLineup?.totalLineupScore ?? 0)"
+        )
+
+        return comparison
+    }
+
+    /// Generiert optimale Aufstellung nur mit eigenen Spielern
+    private func generateTeamOnlyLineup(
+        teamPlayers: [TeamPlayer],
+        formation: [Int]
+    ) -> OptimalLineupResult {
+        print("⚽ Generating team-only lineup...")
+
+        var slots: [LineupSlot] = []
+        var slotIndex = 0
+        var totalScore = 0.0
+
+        // Durchgehe jede Position in der Formation
+        for (positionType, count) in formation.enumerated() {
+            let position = positionType + 1  // 1=TW, 2=ABW, 3=MF, 4=ST
+
+            // Hole die besten Spieler für diese Position
+            let playersForPosition = teamPlayers.filter { $0.position == position }
+                .sorted { $0.averagePoints > $1.averagePoints }
+
+            // Erstelle Slots für diese Position
+            for i in 0..<count {
+                if i < playersForPosition.count {
+                    let player = playersForPosition[i]
+                    let slotScore = calculatePlayerScore(player, forPosition: position)
+
+                    slots.append(
+                        LineupSlot(
+                            slotIndex: slotIndex,
+                            positionType: position,
+                            ownedPlayerId: player.id,
+                            recommendedMarketPlayerId: nil,
+                            slotScore: slotScore
+                        ))
+
+                    totalScore += slotScore
+                    slotIndex += 1
+                } else {
+                    // Nicht genug Spieler für diese Position
+                    slots.append(
+                        LineupSlot(
+                            slotIndex: slotIndex,
+                            positionType: position,
+                            ownedPlayerId: nil,
+                            recommendedMarketPlayerId: nil,
+                            slotScore: 0.0
+                        ))
+                    slotIndex += 1
+                }
+            }
+        }
+
+        let avgScore = slots.isEmpty ? 0.0 : totalScore / Double(slots.count)
+
+        return OptimalLineupResult(
+            slots: slots,
+            formationName: formationToString(formation),
+            totalLineupScore: totalScore,
+            isHybridWithMarketPlayers: false,
+            marketPlayersNeeded: [],
+            totalMarketCost: 0,
+            averagePlayerScore: avgScore
+        )
+    }
+
+    /// Generiert optimale Aufstellung mit besten Markt-Spielern wo diese besser sind als eigene
+    private func generateHybridLineup(
+        teamPlayers: [TeamPlayer],
+        marketPlayers: [MarketPlayer],
+        formation: [Int],
+        maxPlayersPerTeam: Int
+    ) -> OptimalLineupResult? {
+        print("🔄 Generating hybrid lineup with market players...")
+
+        var slots: [LineupSlot] = []
+        var slotIndex = 0
+        var totalScore = 0.0
+        var marketPlayersNeeded: [String] = []
+        var totalMarketCost = 0
+        var teamPlayerCounts: [String: Int] = [:]  // Zähle Spieler pro Team
+
+        // Durchgehe jede Position in der Formation
+        for (positionType, count) in formation.enumerated() {
+            let position = positionType + 1  // 1=TW, 2=ABW, 3=MF, 4=ST
+
+            // Hole besten Spieler für diese Position (kombiniert Team und Markt)
+            let ownTeamPlayersForPosition = teamPlayers.filter { $0.position == position }
+                .sorted { $0.averagePoints > $1.averagePoints }
+
+            let marketPlayersForPosition = marketPlayers.filter { $0.position == position }
+                .sorted { $0.averagePoints > $1.averagePoints }
+
+            // Erstelle Slots für diese Position
+            for i in 0..<count {
+                let ownPlayer =
+                    i < ownTeamPlayersForPosition.count ? ownTeamPlayersForPosition[i] : nil
+                let bestMarketPlayer = findBestMarketPlayerForPosition(
+                    position: position,
+                    marketPlayers: marketPlayersForPosition,
+                    alreadyUsedIds: marketPlayersNeeded,
+                    teamPlayerCounts: teamPlayerCounts,
+                    maxPlayersPerTeam: maxPlayersPerTeam
+                )
+
+                // Entscheide: eigener Spieler oder Markt-Spieler?
+                var selectedPlayer: (own: TeamPlayer?, market: MarketPlayer?)
+                var recommendation: String?
+
+                if let marketPlayer = bestMarketPlayer,
+                    let ownPlayer = ownPlayer,
+                    marketPlayer.averagePoints > ownPlayer.averagePoints + 0.5
+                {
+                    // Markt-Spieler ist deutlich besser
+                    selectedPlayer = (nil, marketPlayer)
+                    recommendation = marketPlayer.id
+                    marketPlayersNeeded.append(marketPlayer.id)
+                    totalMarketCost += marketPlayer.price
+
+                    // Aktualisiere Team-Counter
+                    let teamId = marketPlayer.teamId
+                    teamPlayerCounts[teamId, default: 0] += 1
+
+                    print(
+                        String(
+                            format: "   🔄 Position %d Slot %d: Market %@ (%.1f pts)", position, i,
+                            marketPlayer.firstName, marketPlayer.averagePoints)
+                    )
+                } else if let ownPlayer = ownPlayer {
+                    // Eigener Spieler ist besser oder gleich gut
+                    selectedPlayer = (ownPlayer, nil)
+                    print(
+                        String(
+                            format: "   👤 Position %d Slot %d: Team %@ (%.1f pts)", position, i,
+                            ownPlayer.firstName, ownPlayer.averagePoints)
+                    )
+                } else {
+                    // Kein Spieler verfügbar
+                    selectedPlayer = (nil, nil)
+                    print("   ❌ Position \(position) Slot \(i): No player available")
+                }
+
+                let slotScore =
+                    selectedPlayer.own != nil
+                    ? calculatePlayerScore(selectedPlayer.own!, forPosition: position)
+                    : (selectedPlayer.market != nil
+                        ? calculateMarketPlayerScore(selectedPlayer.market!, forPosition: position)
+                        : 0.0)
+
+                slots.append(
+                    LineupSlot(
+                        slotIndex: slotIndex,
+                        positionType: position,
+                        ownedPlayerId: selectedPlayer.own?.id,
+                        recommendedMarketPlayerId: recommendation,
+                        slotScore: slotScore
+                    ))
+
+                totalScore += slotScore
+                slotIndex += 1
+            }
+        }
+
+        let avgScore = slots.isEmpty ? 0.0 : totalScore / Double(slots.count)
+
+        guard marketPlayersNeeded.count > 0 else {
+            print("   ℹ️ No market players needed in hybrid lineup")
+            return nil
+        }
+
+        return OptimalLineupResult(
+            slots: slots,
+            formationName: formationToString(formation),
+            totalLineupScore: totalScore,
+            isHybridWithMarketPlayers: true,
+            marketPlayersNeeded: marketPlayersNeeded,
+            totalMarketCost: totalMarketCost,
+            averagePlayerScore: avgScore
+        )
+    }
+
+    /// Findet den besten verfügbaren Markt-Spieler für eine Position
+    private func findBestMarketPlayerForPosition(
+        position: Int,
+        marketPlayers: [MarketPlayer],
+        alreadyUsedIds: [String],
+        teamPlayerCounts: [String: Int],
+        maxPlayersPerTeam: Int
+    ) -> MarketPlayer? {
+        return marketPlayers.first { player in
+            // Nicht bereits ausgewählt
+            guard !alreadyUsedIds.contains(player.id) else { return false }
+
+            // Team-Limit nicht überschritten
+            let currentTeamCount = teamPlayerCounts[player.teamId, default: 0]
+            guard currentTeamCount < maxPlayersPerTeam else { return false }
+
+            return true
+        }
+    }
+
+    /// Berechnet Score für einen Team-Spieler
+    private func calculatePlayerScore(_ player: TeamPlayer, forPosition position: Int) -> Double {
+        // Basis-Scoring: averagePoints * Gewichtung + formTrend-Bonus
+        var score = player.averagePoints * 2.0
+
+        // Form-Trend-Bonus
+        if player.marketValueTrend > 1_000_000 {
+            score += 2.0  // Gute Form
+        } else if player.marketValueTrend < -1_000_000 {
+            score -= 2.0  // Schlechte Form
+        }
+
+        // Status-Malus
+        if player.status == 1 {
+            score -= 5.0  // Verletzt
+        } else if player.status == 2 {
+            score -= 2.0  // Angeschlagen
+        }
+
+        // Position-spezifische Gewichtung
+        switch position {
+        case 1:  // Torwart
+            score *= 1.2
+        case 4:  // Stürmer
+            score *= 1.15
+        default:
+            break
+        }
+
+        return max(0.0, score)
+    }
+
+    /// Berechnet Score für einen Markt-Spieler
+    private func calculateMarketPlayerScore(_ player: MarketPlayer, forPosition position: Int)
+        -> Double
+    {
+        // Basis-Scoring: averagePoints * Gewichtung
+        var score = player.averagePoints * 2.0
+
+        // Form-Trend-Bonus
+        if player.marketValueTrend > 1_000_000 {
+            score += 2.0  // Gute Form
+        } else if player.marketValueTrend < -1_000_000 {
+            score -= 2.0  // Schlechte Form
+        }
+
+        // Status-Malus
+        if player.status == 1 {
+            score -= 5.0  // Verletzt
+        } else if player.status == 2 {
+            score -= 2.0  // Angeschlagen
+        }
+
+        // Position-spezifische Gewichtung
+        switch position {
+        case 1:  // Torwart
+            score *= 1.2
+        case 4:  // Stürmer
+            score *= 1.15
+        default:
+            break
+        }
+
+        return max(0.0, score)
+    }
+
+    /// Konvertiert Formation Array zu String (z.B. [1,4,4,2] -> "4-2-3-1")
+    private func formationToString(_ formation: [Int]) -> String {
+        // [1, 4, 4, 2] -> "4-4-2-1" oder besser formatiert "4-2-3-1" (ohne Torwart in Standard-Notation)
+        let withoutGoalkeeper = Array(formation.dropFirst())
+        return withoutGoalkeeper.map { String($0) }.joined(separator: "-")
+    }
 }

@@ -7,6 +7,10 @@ struct TeamTab: View {
     @State private var playersForSale: Set<String> = []
     @State private var selectedSaleValue: Int = 0
     @State private var showRecommendations = false
+    @State private var showLineupOptimization = false
+    @State private var lineupComparison: LineupComparison?
+    @State private var isGeneratingLineup = false
+    @State private var lineupGenerationError: String?
 
     enum SortOption: String, CaseIterable {
         case name = "Name"
@@ -34,141 +38,212 @@ struct TeamTab: View {
         selectedSaleValue = total
     }
 
+    private func generateOptimalLineup() {
+        Task {
+            isGeneratingLineup = true
+            lineupGenerationError = nil
+
+            do {
+                guard let league = kickbaseManager.selectedLeague else {
+                    lineupGenerationError = "Keine Liga ausgewählt"
+                    isGeneratingLineup = false
+                    return
+                }
+
+                print("🎯 TeamTab: Starting lineup generation for league: \(league.name)")
+
+                // Verwende den PlayerRecommendationService für die Lineup-Generierung
+                let recommendationService = PlayerRecommendationService(
+                    kickbaseManager: kickbaseManager)
+
+                // Standard-Formation: 4-2-3-1 [1 TW, 4 ABW, 2 MF, 3 MF, 1 ST]
+                // Die API gibt uns die möglichen Formationen, aber für jetzt verwenden wir eine Standard-Formation
+                let formation = [1, 4, 4, 2]  // 4-4-2 als Alternative
+
+                let comparison = await recommendationService.generateOptimalLineupComparison(
+                    for: league,
+                    teamPlayers: kickbaseManager.teamPlayers,
+                    marketPlayers: kickbaseManager.marketPlayers,
+                    formation: formation
+                )
+
+                await MainActor.run {
+                    self.lineupComparison = comparison
+                    self.showLineupOptimization = true
+                    isGeneratingLineup = false
+                    print("✅ Lineup generation completed")
+                }
+            } catch {
+                await MainActor.run {
+                    lineupGenerationError =
+                        "Fehler bei der Aufstellungs-Generierung: \(error.localizedDescription)"
+                    isGeneratingLineup = false
+                }
+            }
+        }
+    }
+
     var body: some View {
         NavigationView {
-            VStack(spacing: 0) {
-                // Tab Toggle
-                Picker("View", selection: $showRecommendations) {
-                    Text("Mein Team").tag(false)
-                    Text("Verkaufs-Tipps").tag(true)
-                }
-                .pickerStyle(.segmented)
-                .padding()
+            ZStack {
+                VStack(spacing: 0) {
+                    // Header mit Buttons
+                    VStack(spacing: 8) {
+                        Picker("View", selection: $showRecommendations) {
+                            Text("Mein Team").tag(false)
+                            Text("Verkaufs-Tipps").tag(true)
+                        }
+                        .pickerStyle(.segmented)
+                        .padding()
 
-                if showRecommendations {
-                    // Verkaufs-Empfehlungen View
-                    SaleRecommendationsView(kickbaseManager: kickbaseManager)
-                } else {
-                    // Original Team View
-                    VStack {
-                        // Budget-Anzeige mit verkaufbaren Spielern
-                        if let stats = kickbaseManager.userStats {
-                            TeamBudgetHeader(
-                                currentBudget: stats.budget,
-                                saleValue: selectedSaleValue
-                            )
+                        if let error = lineupGenerationError {
+                            HStack {
+                                Image(systemName: "exclamationmark.circle.fill")
+                                    .foregroundColor(.red)
+                                Text(error)
+                                    .font(.caption)
+                                    .foregroundColor(.red)
+                            }
+                            .padding(8)
+                            .background(Color.red.opacity(0.1))
+                            .cornerRadius(6)
                             .padding(.horizontal)
                         }
+                    }
 
-                        // Search and Sort Controls
-                        VStack(spacing: 10) {
-                            HStack {
-                                Image(systemName: "magnifyingglass")
-                                    .foregroundColor(.gray)
-                                TextField("Spieler suchen...", text: $searchText)
-                                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                            }
-
-                            HStack {
-                                Text("Sortieren:")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-
-                                Picker("Sortierung", selection: $sortBy) {
-                                    ForEach(SortOption.allCases, id: \.self) { option in
-                                        Text(option.rawValue).tag(option)
-                                    }
-                                }
-                                .pickerStyle(SegmentedPickerStyle())
-                            }
-                        }
-                        .padding(.horizontal)
-
-                        // Players List or Empty State
-                        if kickbaseManager.teamPlayers.isEmpty {
-                            VStack(spacing: 20) {
-                                Spacer()
-
-                                Image(systemName: "person.3.fill")
-                                    .font(.system(size: 60))
-                                    .foregroundColor(.gray)
-
-                                Text("Keine Spieler geladen")
-                                    .font(.headline)
-                                    .foregroundColor(.primary)
-
-                                Text(
-                                    "Ziehe nach unten um zu aktualisieren oder wähle eine Liga aus"
+                    if showRecommendations {
+                        // Verkaufs-Empfehlungen View
+                        SaleRecommendationsView(kickbaseManager: kickbaseManager)
+                    } else {
+                        // Original Team View
+                        VStack {
+                            // Budget-Anzeige mit verkaufbaren Spielern
+                            if let stats = kickbaseManager.userStats {
+                                TeamBudgetHeader(
+                                    currentBudget: stats.budget,
+                                    saleValue: selectedSaleValue
                                 )
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.center)
                                 .padding(.horizontal)
+                            }
 
-                                Button("Team neu laden") {
-                                    Task {
-                                        if let league = kickbaseManager.selectedLeague {
-                                            await kickbaseManager.loadTeamPlayers(for: league)
+                            // Search and Sort Controls
+                            VStack(spacing: 10) {
+                                HStack {
+                                    Image(systemName: "magnifyingglass")
+                                        .foregroundColor(.gray)
+                                    TextField("Spieler suchen...", text: $searchText)
+                                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                                }
+
+                                HStack {
+                                    Text("Sortieren:")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+
+                                    Picker("Sortierung", selection: $sortBy) {
+                                        ForEach(SortOption.allCases, id: \.self) { option in
+                                            Text(option.rawValue).tag(option)
                                         }
                                     }
+                                    .pickerStyle(SegmentedPickerStyle())
                                 }
-                                .buttonStyle(.borderedProminent)
+                            }
+                            .padding(.horizontal)
 
-                                Spacer()
-                            }
-                        } else {
-                            // Players List
-                            List {
-                                ForEach(Array(filteredAndSortedPlayers.enumerated()), id: \.offset)
-                                { index, player in
-                                    TeamPlayerRowWithSale(
-                                        teamPlayer: player,
-                                        isSelectedForSale: playersForSale.contains(player.id),
-                                        onToggleSale: { isSelected in
-                                            print(
-                                                "🔄 TeamTab: Toggle for player \(player.fullName) (ID: \(player.id)) - isSelected: \(isSelected)"
-                                            )
-                                            print("   - Player market value: \(player.marketValue)")
-                                            if isSelected {
-                                                playersForSale.insert(player.id)
-                                                print(
-                                                    "   - Added to playersForSale. New set: \(playersForSale)"
-                                                )
-                                            } else {
-                                                playersForSale.remove(player.id)
-                                                print(
-                                                    "   - Removed from playersForSale. New set: \(playersForSale)"
-                                                )
-                                            }
-                                            // Explizit die Berechnung triggern
-                                            calculateTotalSaleValue()
-                                        }
+                            // Players List or Empty State
+                            if kickbaseManager.teamPlayers.isEmpty {
+                                VStack(spacing: 20) {
+                                    Spacer()
+
+                                    Image(systemName: "person.3.fill")
+                                        .font(.system(size: 60))
+                                        .foregroundColor(.gray)
+
+                                    Text("Keine Spieler geladen")
+                                        .font(.headline)
+                                        .foregroundColor(.primary)
+
+                                    Text(
+                                        "Ziehe nach unten um zu aktualisieren oder wähle eine Liga aus"
                                     )
-                                    .id("\(player.id)-\(index)")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal)
+
+                                    Button("Team neu laden") {
+                                        Task {
+                                            if let league = kickbaseManager.selectedLeague {
+                                                await kickbaseManager.loadTeamPlayers(
+                                                    for: league)
+                                            }
+                                        }
+                                    }
+                                    .buttonStyle(.borderedProminent)
+
+                                    Spacer()
                                 }
-                            }
-                            .refreshable {
-                                if let league = kickbaseManager.selectedLeague {
-                                    await kickbaseManager.loadTeamPlayers(for: league)
+                            } else {
+                                // Players List
+                                List {
+                                    ForEach(
+                                        Array(filteredAndSortedPlayers.enumerated()),
+                                        id: \.offset
+                                    ) { index, player in
+                                        TeamPlayerRowWithSale(
+                                            teamPlayer: player,
+                                            isSelectedForSale: playersForSale.contains(player.id),
+                                            onToggleSale: { isSelected in
+                                                print(
+                                                    "🔄 TeamTab: Toggle for player \(player.fullName) (ID: \(player.id)) - isSelected: \(isSelected)"
+                                                )
+                                                print(
+                                                    "   - Player market value: \(player.marketValue)"
+                                                )
+                                                if isSelected {
+                                                    playersForSale.insert(player.id)
+                                                    print(
+                                                        "   - Added to playersForSale. New set: \(playersForSale)"
+                                                    )
+                                                } else {
+                                                    playersForSale.remove(player.id)
+                                                    print(
+                                                        "   - Removed from playersForSale. New set: \(playersForSale)"
+                                                    )
+                                                }
+                                                // Explizit die Berechnung triggern
+                                                calculateTotalSaleValue()
+                                            }
+                                        )
+                                        .id("\(player.id)-\(index)")
+                                    }
+                                }
+                                .refreshable {
+                                    if let league = kickbaseManager.selectedLeague {
+                                        await kickbaseManager.loadTeamPlayers(for: league)
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
-            .navigationTitle("Mein Team (\(kickbaseManager.teamPlayers.count))")
-            .onAppear {
-                print("🎯 TeamTab appeared - Players count: \(kickbaseManager.teamPlayers.count)")
-                calculateTotalSaleValue()  // Initial berechnen
-                if kickbaseManager.teamPlayers.isEmpty {
-                    print("🔄 TeamTab: No players found, triggering reload...")
-                    Task {
-                        if let league = kickbaseManager.selectedLeague {
-                            await kickbaseManager.loadTeamPlayers(for: league)
-                        }
+        }
+        .navigationTitle("Mein Team (\(kickbaseManager.teamPlayers.count))")
+        .onAppear {
+            print("🎯 TeamTab appeared - Players count: \(kickbaseManager.teamPlayers.count)")
+            calculateTotalSaleValue()  // Initial berechnen
+            if kickbaseManager.teamPlayers.isEmpty {
+                print("🔄 TeamTab: No players found, triggering reload...")
+                Task {
+                    if let league = kickbaseManager.selectedLeague {
+                        await kickbaseManager.loadTeamPlayers(for: league)
                     }
                 }
             }
+        }
+        .sheet(item: $lineupComparison) { comparison in
+            LineupComparisonView(comparison: comparison)
         }
     }
 

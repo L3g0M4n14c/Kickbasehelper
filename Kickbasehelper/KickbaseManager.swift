@@ -149,9 +149,6 @@ class KickbaseManager: ObservableObject {
                 print("⚠️ No market value history returned from player service")
             }
             return history
-        } catch {
-            print("❌ Error loading player market value history: \(error)")
-            return nil
         }
     }
     
@@ -166,9 +163,6 @@ class KickbaseManager: ObservableObject {
                 print("⚠️ No profit value returned from player service")
             }
             return profit
-        } catch {
-            print("❌ Error loading on-demand market value: \(error)")
-            return nil
         }
     }
     

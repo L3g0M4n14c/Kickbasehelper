@@ -2,14 +2,28 @@ import Foundation
 
 // MARK: - Transfer Recommendation Models
 
-struct TransferRecommendation: Identifiable, Codable {
-    let id = UUID()
+struct TransferRecommendation: Identifiable {
+    let id: UUID
     let player: MarketPlayer
     let recommendationScore: Double
     let reasons: [RecommendationReason]
     let analysis: PlayerAnalysis
     let riskLevel: RiskLevel
     let priority: Priority
+
+    init(
+        id: UUID = UUID(), player: MarketPlayer, recommendationScore: Double,
+        reasons: [RecommendationReason], analysis: PlayerAnalysis, riskLevel: RiskLevel,
+        priority: Priority
+    ) {
+        self.id = id
+        self.player = player
+        self.recommendationScore = recommendationScore
+        self.reasons = reasons
+        self.analysis = analysis
+        self.riskLevel = riskLevel
+        self.priority = priority
+    }
 
     enum RiskLevel: String, CaseIterable, Codable {
         case low = "Niedrig"
@@ -40,11 +54,18 @@ struct TransferRecommendation: Identifiable, Codable {
     }
 }
 
-struct RecommendationReason: Identifiable, Codable {
-    let id = UUID()
+struct RecommendationReason: Identifiable {
+    let id: UUID
     let type: ReasonType
     let description: String
     let impact: Double  // 0-10 scale
+
+    init(id: UUID = UUID(), type: ReasonType, description: String, impact: Double) {
+        self.id = id
+        self.type = type
+        self.description = description
+        self.impact = impact
+    }
 
     enum ReasonType: String, CaseIterable, Codable {
         case performance = "Leistung"
@@ -144,25 +165,145 @@ enum SaleRecommendationGoal: String, CaseIterable, Codable {
     }
 }
 
-struct ReplacementSuggestion: Identifiable, Codable {
-    let id = UUID()
+struct ReplacementSuggestion: Identifiable {
+    let id: UUID
     let player: MarketPlayer
     let reasonForSale: String
     let budgetSavings: Int  // Positive Zahl = wir sparen Geld
     let performanceGain: Double  // Punkte pro Spiel Differenz
     let riskReduction: Double  // 0-1, wie viel Risiko reduziert wird
+
+    init(
+        id: UUID = UUID(), player: MarketPlayer, reasonForSale: String, budgetSavings: Int,
+        performanceGain: Double, riskReduction: Double
+    ) {
+        self.id = id
+        self.player = player
+        self.reasonForSale = reasonForSale
+        self.budgetSavings = budgetSavings
+        self.performanceGain = performanceGain
+        self.riskReduction = riskReduction
+    }
 }
 
-struct SaleRecommendation: Identifiable, Codable {
-    let id = UUID()
+struct SaleRecommendation: Identifiable {
+    let id: UUID
     let playerToSell: TeamPlayer
     let replacements: [ReplacementSuggestion]
     let goal: SaleRecommendationGoal
     let explanation: String
     let priority: TransferRecommendation.Priority
 
+    init(
+        id: UUID = UUID(), playerToSell: TeamPlayer, replacements: [ReplacementSuggestion],
+        goal: SaleRecommendationGoal, explanation: String, priority: TransferRecommendation.Priority
+    ) {
+        self.id = id
+        self.playerToSell = playerToSell
+        self.replacements = replacements
+        self.goal = goal
+        self.explanation = explanation
+        self.priority = priority
+    }
+
     var bestReplacement: ReplacementSuggestion? {
         replacements.first
+    }
+}
+
+// MARK: - Lineup Models
+
+struct LineupSlot: Identifiable {
+    let id: UUID
+    let slotIndex: Int  // 0-10 oder je nach Formation
+    let positionType: Int  // 1=TW, 2=ABW, 3=MF, 4=ST
+    let ownedPlayerId: String?  // ID des eigenen Spielers an dieser Position
+    let recommendedMarketPlayerId: String?  // ID des Markt-Spielers falls besser
+    let slotScore: Double  // Bewertung für diese Position (nur dieser Spieler)
+
+    init(
+        slotIndex: Int,
+        positionType: Int,
+        ownedPlayerId: String? = nil,
+        recommendedMarketPlayerId: String? = nil,
+        slotScore: Double
+    ) {
+        self.id = UUID()
+        self.slotIndex = slotIndex
+        self.positionType = positionType
+        self.ownedPlayerId = ownedPlayerId
+        self.recommendedMarketPlayerId = recommendedMarketPlayerId
+        self.slotScore = slotScore
+    }
+
+    var hasBetterMarketOption: Bool {
+        return recommendedMarketPlayerId != nil && ownedPlayerId != recommendedMarketPlayerId
+    }
+}
+
+struct OptimalLineupResult: Identifiable {
+    let id: UUID
+    let slots: [LineupSlot]
+    let formationName: String
+    let totalLineupScore: Double
+    let isHybridWithMarketPlayers: Bool
+    let marketPlayersNeeded: [String]  // IDs der Markt-Spieler die gekauft werden müssten
+    let totalMarketCost: Int  // Summe der Preise aller benötigten Markt-Spieler
+    let averagePlayerScore: Double  // Durchschnittliche Spielerbewertung
+
+    init(
+        slots: [LineupSlot],
+        formationName: String,
+        totalLineupScore: Double,
+        isHybridWithMarketPlayers: Bool,
+        marketPlayersNeeded: [String] = [],
+        totalMarketCost: Int = 0,
+        averagePlayerScore: Double
+    ) {
+        self.id = UUID()
+        self.slots = slots
+        self.formationName = formationName
+        self.totalLineupScore = totalLineupScore
+        self.isHybridWithMarketPlayers = isHybridWithMarketPlayers
+        self.marketPlayersNeeded = marketPlayersNeeded
+        self.totalMarketCost = totalMarketCost
+        self.averagePlayerScore = averagePlayerScore
+    }
+
+    var ownedPlayerCount: Int {
+        slots.filter { $0.ownedPlayerId != nil && !$0.hasBetterMarketOption }.count
+    }
+
+    var marketPlayerCount: Int {
+        slots.filter { $0.hasBetterMarketOption }.count
+    }
+}
+
+struct LineupComparison: Identifiable {
+    let id: UUID
+    let teamOnlyLineup: OptimalLineupResult
+    let hybridLineup: OptimalLineupResult?
+
+    init(
+        teamOnlyLineup: OptimalLineupResult,
+        hybridLineup: OptimalLineupResult? = nil
+    ) {
+        self.id = UUID()
+        self.teamOnlyLineup = teamOnlyLineup
+        self.hybridLineup = hybridLineup
+    }
+
+    var performanceGainWithHybrid: Double {
+        guard let hybrid = hybridLineup else { return 0 }
+        return hybrid.averagePlayerScore - teamOnlyLineup.averagePlayerScore
+    }
+
+    var shouldShowHybrid: Bool {
+        return hybridLineup != nil && (hybridLineup?.marketPlayerCount ?? 0) > 0
+    }
+
+    var totalInvestmentNeeded: Int {
+        return hybridLineup?.totalMarketCost ?? 0
     }
 }
 

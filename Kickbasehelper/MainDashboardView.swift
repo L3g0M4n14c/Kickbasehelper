@@ -1856,6 +1856,9 @@ struct SalesRecommendationRow: View {
 struct LineupOptimizerView: View {
     @EnvironmentObject var kickbaseManager: KickbaseManager
     @State private var selectedOptimization: OptimizationType = .averagePoints
+    @State private var lineupComparison: LineupComparison?
+    @State private var showOptimalComparison = false
+    @State private var isGeneratingComparison = false
 
     enum OptimizationType: String, CaseIterable {
         case averagePoints = "Durchschnittspunkte"
@@ -1905,6 +1908,27 @@ struct LineupOptimizerView: View {
                     }
                 }
                 .pickerStyle(SegmentedPickerStyle())
+
+                // Button für optimale Aufstellung mit Marktspieler
+                Button(action: generateOptimalLineupComparison) {
+                    HStack {
+                        Image(systemName: "sparkles")
+                        Text("Mit Marktspieler")
+                        Spacer()
+                        if isGeneratingComparison {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                        }
+                    }
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white)
+                    .padding(.vertical, 10)
+                    .padding(.horizontal)
+                    .background(Color.blue)
+                    .cornerRadius(8)
+                }
+                .disabled(isGeneratingComparison || kickbaseManager.teamPlayers.isEmpty)
             }
             .padding()
             .background(Color(.systemGray6))
@@ -1975,6 +1999,85 @@ struct LineupOptimizerView: View {
                 await kickbaseManager.loadTeamPlayers(for: league)
             }
         }
+        .sheet(item: $lineupComparison) { comparison in
+            LineupComparisonView(comparison: comparison)
+                .environmentObject(kickbaseManager)
+        }
+    }
+
+    private func generateOptimalLineupComparison() {
+        Task {
+            isGeneratingComparison = true
+            defer { isGeneratingComparison = false }
+
+            do {
+                guard let league = kickbaseManager.selectedLeague else {
+                    return
+                }
+
+                let recommendationService = PlayerRecommendationService(
+                    kickbaseManager: kickbaseManager
+                )
+
+                // Finde die beste Formation basierend auf verfügbaren Spielern
+                let bestFormation = findBestFormation()
+
+                let comparison = await recommendationService.generateOptimalLineupComparison(
+                    for: league,
+                    teamPlayers: kickbaseManager.teamPlayers,
+                    marketPlayers: kickbaseManager.marketPlayers,
+                    formation: bestFormation
+                )
+
+                await MainActor.run {
+                    self.lineupComparison = comparison
+                }
+            }
+        }
+    }
+
+    private func findBestFormation() -> [Int] {
+        let availablePlayers = kickbaseManager.teamPlayers.filter {
+            $0.status != 1 && $0.status != 4 && $0.status != 8
+        }
+
+        let goalkeepers = availablePlayers.filter { $0.position == 1 }
+        let defenders = availablePlayers.filter { $0.position == 2 }
+        let midfielders = availablePlayers.filter { $0.position == 3 }
+        let forwards = availablePlayers.filter { $0.position == 4 }
+
+        // Muss mindestens einen Torwart haben
+        guard !goalkeepers.isEmpty else {
+            return [1, 4, 4, 2]  // Fallback
+        }
+
+        // Finde die beste mögliche Formation basierend auf verfügbaren Spielern
+        var bestFormation: [Int]?
+        var bestScore: Double = 0
+
+        for formation in LineupOptimizerView.Formation.allCases {
+            let positions = formation.positions
+
+            // Prüfe ob genügend Spieler für diese Formation vorhanden sind
+            if defenders.count >= positions.defenders && midfielders.count >= positions.midfielders
+                && forwards.count >= positions.forwards
+            {
+                // Berechne Score für diese Formation
+                let score = Double(defenders.count + midfielders.count + forwards.count)
+
+                if score > bestScore {
+                    bestScore = score
+                    bestFormation = formationToArray(formation)
+                }
+            }
+        }
+
+        return bestFormation ?? [1, 4, 4, 2]  // Fallback
+    }
+
+    private func formationToArray(_ formation: LineupOptimizerView.Formation) -> [Int] {
+        let positions = formation.positions
+        return [1, positions.defenders, positions.midfielders, positions.forwards]
     }
 
     private func getBestPossibleLineup() -> (lineup: OptimalLineup, formation: Formation) {
