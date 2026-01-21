@@ -1,3 +1,4 @@
+import KickbaseCore
 import SwiftUI
 
 struct LineupComparisonView: View {
@@ -240,7 +241,8 @@ struct LineupSlotRowView: View {
                                 // Ligainsider Status Icon
                                 if !ligainsiderService.matches.isEmpty {
                                     let status = ligainsiderService.getPlayerStatus(
-                                        firstName: ownPlayer.firstName, lastName: ownPlayer.lastName)
+                                        firstName: ownPlayer.firstName, lastName: ownPlayer.lastName
+                                    )
                                     if status != .out {
                                         Image(systemName: ligainsiderService.getIcon(for: status))
                                             .foregroundColor(

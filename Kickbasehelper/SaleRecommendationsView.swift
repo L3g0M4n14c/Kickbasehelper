@@ -1,3 +1,4 @@
+import KickbaseCore
 import SwiftUI
 
 struct SaleRecommendationsView: View {

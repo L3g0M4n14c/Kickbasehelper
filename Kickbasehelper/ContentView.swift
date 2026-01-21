@@ -5,8 +5,9 @@
 //  Created by Marco Corro on 27.08.25.
 //
 
-import SwiftUI
+import KickbaseCore
 import SwiftData
+import SwiftUI
 
 struct ContentView: View {
     @StateObject private var authManager = AuthenticationManager()

@@ -1,9 +1,10 @@
+import KickbaseCore
 import SwiftUI
 
 struct LigainsiderView: View {
     // Verwende jetzt den globalen Service
     @EnvironmentObject var service: LigainsiderService
-    
+
     var body: some View {
         List {
             if service.isLoading {
@@ -15,9 +16,11 @@ struct LigainsiderView: View {
                     service.fetchLineups()
                 }
             } else if service.matches.isEmpty {
-                Text("Keine Aufstellungen gefunden. Überprüfe die Internetverbindung oder ziehe zum Aktualisieren.")
-                    .multilineTextAlignment(.center)
-                    .padding()
+                Text(
+                    "Keine Aufstellungen gefunden. Überprüfe die Internetverbindung oder ziehe zum Aktualisieren."
+                )
+                .multilineTextAlignment(.center)
+                .padding()
                 Button("Laden") {
                     service.fetchLineups()
                 }
@@ -46,7 +49,7 @@ struct LigainsiderView: View {
 struct LigainsiderMatchRow: View {
     let match: LigainsiderMatch
     @State private var isExpanded = false
-    
+
     var body: some View {
         VStack(spacing: 0) {
             // Header: Team vs Team
@@ -55,22 +58,22 @@ struct LigainsiderMatchRow: View {
                     Text(match.homeTeam)
                         .font(.headline)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    
+
                     Text("vs")
                         .foregroundColor(.gray)
                         .font(.caption)
-                    
+
                     Text(match.awayTeam)
                         .font(.headline)
                         .frame(maxWidth: .infinity, alignment: .trailing)
-                    
+
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                         .foregroundColor(.gray)
                 }
                 .padding(.vertical, 8)
             }
             .buttonStyle(PlainButtonStyle())
-            
+
             if isExpanded {
                 Divider()
                 // Pitch Views für beide Teams
@@ -82,9 +85,9 @@ struct LigainsiderMatchRow: View {
                             .padding(.top, 8)
                         PitchView(rows: match.homeLineup)
                     }
-                    
+
                     Divider()
-                    
+
                     // Gast
                     VStack(alignment: .leading) {
                         Text("Gast: \(match.awayTeam)")
@@ -102,13 +105,16 @@ struct LigainsiderMatchRow: View {
 
 struct PitchView: View {
     let rows: [[LigainsiderPlayer]]
-    
+
     var body: some View {
         ZStack {
             // Background (Spielfeldrasen Optik)
             RoundedRectangle(cornerRadius: 12)
                 .fill(
-                    LinearGradient(gradient: Gradient(colors: [Color.green.opacity(0.8), Color.green.opacity(0.6)]), startPoint: .top, endPoint: .bottom)
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            Color.green.opacity(0.8), Color.green.opacity(0.6),
+                        ]), startPoint: .top, endPoint: .bottom)
                 )
                 .overlay(
                     // Spielfeld Linien Andeutung
@@ -122,7 +128,7 @@ struct PitchView: View {
                     }
                     .padding()
                 )
-            
+
             // Spieler Positionen
             VStack(spacing: 12) {
                 // Wir gehen durch die Reihen (GK bis ST)
@@ -137,7 +143,7 @@ struct PitchView: View {
             }
             .padding(.vertical, 20)
         }
-        .frame(minHeight: 250) // Mindesthöhe für das Spielfeld
+        .frame(minHeight: 250)  // Mindesthöhe für das Spielfeld
     }
 }
 
@@ -145,7 +151,7 @@ struct PitchView: View {
 
 struct PlayerPillView: View {
     let player: LigainsiderPlayer
-    
+
     var body: some View {
         VStack(spacing: 4) {
             // Spieler Icon / Kreis
@@ -153,12 +159,12 @@ struct PlayerPillView: View {
                 Circle()
                     .fill(Color.white)
                     .frame(width: 30, height: 30)
-                
+
                 Text(String(player.name.prefix(1)))
                     .font(.caption).bold()
                     .foregroundColor(.black)
             }
-            
+
             // Name
             Text(player.name)
                 .font(.system(size: 10, weight: .semibold))
@@ -168,7 +174,7 @@ struct PlayerPillView: View {
                 .padding(.horizontal, 4)
                 .background(Color.black.opacity(0.4))
                 .cornerRadius(4)
-            
+
             // Alternative anzeigen falls unsicher
             if let alt = player.alternative {
                 HStack(spacing: 2) {

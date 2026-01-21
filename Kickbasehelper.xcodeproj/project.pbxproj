@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		76CC31522F21355D00F1507F /* KickbaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 76CC31512F21355D00F1507F /* KickbaseCore */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		764B95D52E5F54980054DB00 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -27,6 +31,7 @@
 		764B95C32E5F54970054DB00 /* Kickbasehelper.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Kickbasehelper.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		764B95D42E5F54980054DB00 /* KickbasehelperTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KickbasehelperTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		764B95DE2E5F54980054DB00 /* KickbasehelperUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KickbasehelperUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		76CC314F2F212D9E00F1507F /* KickbaseCore */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = KickbaseCore; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -65,6 +70,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				76CC31522F21355D00F1507F /* KickbaseCore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -92,6 +98,8 @@
 				764B95D72E5F54980054DB00 /* KickbasehelperTests */,
 				764B95E12E5F54980054DB00 /* KickbasehelperUITests */,
 				764B95C42E5F54970054DB00 /* Products */,
+				76CC314F2F212D9E00F1507F /* KickbaseCore */,
+				76CC31502F21355D00F1507F /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -103,6 +111,13 @@
 				764B95DE2E5F54980054DB00 /* KickbasehelperUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		76CC31502F21355D00F1507F /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -125,6 +140,7 @@
 			);
 			name = Kickbasehelper;
 			packageProductDependencies = (
+				76CC31512F21355D00F1507F /* KickbaseCore */,
 			);
 			productName = Kickbasehelper;
 			productReference = 764B95C32E5F54970054DB00 /* Kickbasehelper.app */;
@@ -577,6 +593,13 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		76CC31512F21355D00F1507F /* KickbaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = KickbaseCore;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 764B95BB2E5F54970054DB00 /* Project object */;
 }

@@ -1,4 +1,5 @@
 import Foundation
+import KickbaseCore
 
 // Erweiterte Parser-Methode für Marktspielerdaten
 // Diese Datei enthält die verbesserte parseMarketPlayersFromResponse Methode

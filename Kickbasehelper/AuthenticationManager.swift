@@ -1,4 +1,5 @@
 import Foundation
+import KickbaseCore
 import SwiftUI
 
 @MainActor

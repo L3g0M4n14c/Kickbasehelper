@@ -5,14 +5,15 @@
 //  Created by Marco Corro on 27.08.25.
 //
 
-import SwiftUI
+import KickbaseCore
 import SwiftData
+import SwiftUI
 
 @main
 struct KickbasehelperApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
+            Item.self
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
@@ -22,14 +23,14 @@ struct KickbasehelperApp: App {
             fatalError("Could not create ModelContainer: \(error)")
         }
     }()
-    
+
     // Globaler Service für Ligainsider
     @StateObject private var ligainsiderService = LigainsiderService()
 
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .environmentObject(ligainsiderService) // Inject into environment
+                .environmentObject(ligainsiderService)  // Inject into environment
         }
         .modelContainer(sharedModelContainer)
     }

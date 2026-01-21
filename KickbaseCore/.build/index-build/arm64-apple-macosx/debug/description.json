@@ -1,0 +1,364 @@
+{
+  "builtTestProducts" : [
+
+  ],
+  "copyCommands" : {
+
+  },
+  "explicitTargetDependencyImportCheckingMode" : {
+    "none" : {
+
+    }
+  },
+  "generatedSourceTargetSet" : [
+
+  ],
+  "pluginDescriptions" : [
+
+  ],
+  "swiftCommands" : {
+    "C.KickbaseCore-arm64-apple-macosx15.0-debug.module" : {
+      "executable" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "fileList" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/index-build/arm64-apple-macosx/debug/KickbaseCore.build/sources",
+      "importPath" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/index-build/arm64-apple-macosx/debug/Modules",
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/KickbaseManager.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Models.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/RecommendationModels.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIClient.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseDataParser.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseLeagueService.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbasePlayerService.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseUserStatsService.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/LigainsiderService.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/PlayerRecommendationService.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Utilities/ScalingUtility.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/index-build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/index-build/arm64-apple-macosx/debug/KickbaseCore.build/sources"
+        }
+      ],
+      "isLibrary" : true,
+      "moduleName" : "KickbaseCore",
+      "moduleOutputPath" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/index-build/arm64-apple-macosx/debug/Modules/KickbaseCore.swiftmodule",
+      "objects" : [
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/index-build/arm64-apple-macosx/debug/KickbaseCore.build/KickbaseManager.swift.o",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/index-build/arm64-apple-macosx/debug/KickbaseCore.build/Models.swift.o",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/index-build/arm64-apple-macosx/debug/KickbaseCore.build/RecommendationModels.swift.o",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/index-build/arm64-apple-macosx/debug/KickbaseCore.build/KickbaseAPIClient.swift.o",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/index-build/arm64-apple-macosx/debug/KickbaseCore.build/KickbaseAPIService.swift.o",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/index-build/arm64-apple-macosx/debug/KickbaseCore.build/KickbaseDataParser.swift.o",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/index-build/arm64-apple-macosx/debug/KickbaseCore.build/KickbaseLeagueService.swift.o",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/index-build/arm64-apple-macosx/debug/KickbaseCore.build/KickbasePlayerService.swift.o",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/index-build/arm64-apple-macosx/debug/KickbaseCore.build/KickbaseUserStatsService.swift.o",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/index-build/arm64-apple-macosx/debug/KickbaseCore.build/LigainsiderService.swift.o",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/index-build/arm64-apple-macosx/debug/KickbaseCore.build/PlayerRecommendationService.swift.o",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/index-build/arm64-apple-macosx/debug/KickbaseCore.build/ScalingUtility.swift.o"
+      ],
+      "otherArguments" : [
+        "-target",
+        "arm64-apple-macosx14.0",
+        "-incremental",
+        "-enable-batch-mode",
+        "-serialize-diagnostics",
+        "-Onone",
+        "-enable-testing",
+        "-j8",
+        "-DSWIFT_PACKAGE",
+        "-DDEBUG",
+        "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+        "-module-cache-path",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/index-build/arm64-apple-macosx/debug/ModuleCache",
+        "-parseable-output",
+        "-parse-as-library",
+        "-emit-objc-header",
+        "-emit-objc-header-path",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/index-build/arm64-apple-macosx/debug/KickbaseCore.build/include/KickbaseCore-Swift.h",
+        "-swift-version",
+        "5",
+        "-Xfrontend",
+        "-experimental-lazy-typecheck",
+        "-Xfrontend",
+        "-experimental-skip-all-function-bodies",
+        "-Xfrontend",
+        "-experimental-allow-module-with-compiler-errors",
+        "-Xfrontend",
+        "-empty-abi-descriptor",
+        "-plugin-path",
+        "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+        "-sdk",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.0.sdk",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+        "-I",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-L",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-g",
+        "-Xcc",
+        "-isysroot",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.0.sdk",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+        "-Xcc",
+        "-fPIC",
+        "-Xcc",
+        "-g",
+        "-package-name",
+        "kickbasecore"
+      ],
+      "outputFileMapPath" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/index-build/arm64-apple-macosx/debug/KickbaseCore.build/output-file-map.json",
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/index-build/arm64-apple-macosx/debug/Modules/KickbaseCore.swiftmodule"
+        }
+      ],
+      "prepareForIndexing" : true,
+      "sources" : [
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/KickbaseManager.swift",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Models.swift",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/RecommendationModels.swift",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIClient.swift",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseDataParser.swift",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseLeagueService.swift",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbasePlayerService.swift",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseUserStatsService.swift",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/LigainsiderService.swift",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/PlayerRecommendationService.swift",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Utilities/ScalingUtility.swift"
+      ],
+      "tempsPath" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/index-build/arm64-apple-macosx/debug/KickbaseCore.build",
+      "wholeModuleOptimization" : false
+    }
+  },
+  "swiftFrontendCommands" : {
+
+  },
+  "swiftTargetScanArgs" : {
+    "KickbaseCore" : [
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "-module-name",
+      "KickbaseCore",
+      "-package-name",
+      "kickbasecore",
+      "-c",
+      "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/KickbaseManager.swift",
+      "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Models.swift",
+      "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/RecommendationModels.swift",
+      "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIClient.swift",
+      "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift",
+      "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseDataParser.swift",
+      "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseLeagueService.swift",
+      "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbasePlayerService.swift",
+      "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseUserStatsService.swift",
+      "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/LigainsiderService.swift",
+      "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/PlayerRecommendationService.swift",
+      "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Utilities/ScalingUtility.swift",
+      "-I",
+      "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/index-build/arm64-apple-macosx/debug/Modules",
+      "-target",
+      "arm64-apple-macosx14.0",
+      "-incremental",
+      "-enable-batch-mode",
+      "-serialize-diagnostics",
+      "-Onone",
+      "-enable-testing",
+      "-j8",
+      "-DSWIFT_PACKAGE",
+      "-DDEBUG",
+      "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+      "-module-cache-path",
+      "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/index-build/arm64-apple-macosx/debug/ModuleCache",
+      "-parseable-output",
+      "-parse-as-library",
+      "-emit-objc-header",
+      "-emit-objc-header-path",
+      "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/index-build/arm64-apple-macosx/debug/KickbaseCore.build/include/KickbaseCore-Swift.h",
+      "-swift-version",
+      "5",
+      "-Xfrontend",
+      "-experimental-lazy-typecheck",
+      "-Xfrontend",
+      "-experimental-skip-all-function-bodies",
+      "-Xfrontend",
+      "-experimental-allow-module-with-compiler-errors",
+      "-Xfrontend",
+      "-empty-abi-descriptor",
+      "-plugin-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.0.sdk",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+      "-I",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-L",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-g",
+      "-Xcc",
+      "-isysroot",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.0.sdk",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+      "-Xcc",
+      "-fPIC",
+      "-Xcc",
+      "-g",
+      "-package-name",
+      "kickbasecore",
+      "-driver-use-frontend-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+    ]
+  },
+  "targetDependencyMap" : {
+    "KickbaseCore" : [
+
+    ]
+  },
+  "testDiscoveryCommands" : {
+
+  },
+  "testEntryPointCommands" : {
+
+  },
+  "traitConfiguration" : {
+    "default" : {
+
+    }
+  },
+  "writeCommands" : {
+    "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/index-build/arm64-apple-macosx/debug/KickbaseCore.build/sources" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<sources-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/KickbaseManager.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Models.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/RecommendationModels.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIClient.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseDataParser.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseLeagueService.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbasePlayerService.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseUserStatsService.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/LigainsiderService.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/PlayerRecommendationService.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Utilities/ScalingUtility.swift"
+        }
+      ],
+      "outputFilePath" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/index-build/arm64-apple-macosx/debug/KickbaseCore.build/sources"
+    },
+    "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/index-build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt" : {
+      "alwaysOutOfDate" : true,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<swift-get-version>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+        }
+      ],
+      "outputFilePath" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/index-build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"
+    }
+  }
+}

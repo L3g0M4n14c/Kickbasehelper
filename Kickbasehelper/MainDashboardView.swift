@@ -1,3 +1,4 @@
+import KickbaseCore
 import SwiftUI
 
 struct MainDashboardView: View {
@@ -383,7 +384,9 @@ struct PlayerRowView: View {
                                 firstName: player.firstName, lastName: player.lastName)
                             if status != .out {
                                 Image(systemName: ligainsiderService.getIcon(for: status))
-                                    .foregroundColor(Color(ligainsiderService.getColor(for: status)))
+                                    .foregroundColor(
+                                        Color(ligainsiderService.getColor(for: status))
+                                    )
                                     .font(.caption)
                             }
                         }
@@ -859,7 +862,9 @@ struct MarketPlayerRowView: View {
                                 firstName: player.firstName, lastName: player.lastName)
                             if status != .out {
                                 Image(systemName: ligainsiderService.getIcon(for: status))
-                                    .foregroundColor(Color(ligainsiderService.getColor(for: status)))
+                                    .foregroundColor(
+                                        Color(ligainsiderService.getColor(for: status))
+                                    )
                                     .font(.caption)
                             }
                         }
@@ -2561,14 +2566,15 @@ struct LineupPlayerCard: View {
                             .foregroundColor(.orange)
                             .font(.system(size: fontSizes.status))
                     }
-                    
+
                     // Ligainsider Icon (wenn verfügbar)
                     if !ligainsiderService.matches.isEmpty {
-                        let status = ligainsiderService.getPlayerStatus(firstName: player.firstName, lastName: player.lastName)
+                        let status = ligainsiderService.getPlayerStatus(
+                            firstName: player.firstName, lastName: player.lastName)
                         if status != .out {
-                           Image(systemName: ligainsiderService.getIcon(for: status))
-                               .foregroundColor(Color(ligainsiderService.getColor(for: status)))
-                               .font(.system(size: fontSizes.status))
+                            Image(systemName: ligainsiderService.getIcon(for: status))
+                                .foregroundColor(Color(ligainsiderService.getColor(for: status)))
+                                .font(.system(size: fontSizes.status))
                         }
                     }
                 }
@@ -2858,7 +2864,9 @@ struct ReservePlayerRow: View {
                                 firstName: player.firstName, lastName: player.lastName)
                             if status != .out {
                                 Image(systemName: ligainsiderService.getIcon(for: status))
-                                    .foregroundColor(Color(ligainsiderService.getColor(for: status)))
+                                    .foregroundColor(
+                                        Color(ligainsiderService.getColor(for: status))
+                                    )
                                     .font(.system(size: 8))
                             }
                         }

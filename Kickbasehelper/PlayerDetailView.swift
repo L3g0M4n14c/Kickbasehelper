@@ -1,3 +1,4 @@
+import KickbaseCore
 import SwiftUI
 
 struct PlayerDetailView: View {
@@ -152,20 +153,26 @@ struct PlayerHeroHeader: View {
                     .padding(.vertical, 6)
                     .background(getStatusColor(player.status).opacity(0.15))
                     .cornerRadius(16)
-                    
+
                     // Ligainsider Status Badge
                     if !ligainsiderService.matches.isEmpty {
-                        let liStatus = ligainsiderService.getPlayerStatus(firstName: player.firstName, lastName: player.lastName)
+                        let liStatus = ligainsiderService.getPlayerStatus(
+                            firstName: player.firstName, lastName: player.lastName)
                         let colorString = ligainsiderService.getColor(for: liStatus)
-                        let color = (colorString == "green") ? Color.green : (colorString == "orange" ? Color.orange : Color.red)
-                        
+                        let color =
+                            (colorString == "green")
+                            ? Color.green : (colorString == "orange" ? Color.orange : Color.red)
+
                         HStack(spacing: 6) {
                             Image(systemName: ligainsiderService.getIcon(for: liStatus))
                                 .foregroundColor(color)
-                            Text(liStatus == .likelyStart ? "S11" : (liStatus == .possibleStart ? "Möglich" : "Bank/Out"))
-                                .font(.caption)
-                                .fontWeight(.medium)
-                                .foregroundColor(color)
+                            Text(
+                                liStatus == .likelyStart
+                                    ? "S11" : (liStatus == .possibleStart ? "Möglich" : "Bank/Out")
+                            )
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .foregroundColor(color)
                         }
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)

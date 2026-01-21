@@ -1,3 +1,4 @@
+import KickbaseCore
 import SwiftUI
 
 struct TeamTab: View {
@@ -290,11 +291,12 @@ struct TeamPlayerRow: View {
         }) {
             HStack(spacing: 12) {
                 // Ligainsider Status Icon
-                let status = ligainsiderService.getPlayerStatus(firstName: teamPlayer.firstName, lastName: teamPlayer.lastName)
+                let status = ligainsiderService.getPlayerStatus(
+                    firstName: teamPlayer.firstName, lastName: teamPlayer.lastName)
                 if status != .out {
-                   Image(systemName: ligainsiderService.getIcon(for: status))
-                       .foregroundColor(Color(ligainsiderService.getColor(for: status)))
-                       .font(.caption)
+                    Image(systemName: ligainsiderService.getIcon(for: status))
+                        .foregroundColor(Color(ligainsiderService.getColor(for: status)))
+                        .font(.caption)
                 }
 
                 // Position indicator
@@ -440,7 +442,9 @@ struct TeamPlayerRowWithSale: View {
                                 firstName: teamPlayer.firstName, lastName: teamPlayer.lastName)
                             if status != .out {
                                 Image(systemName: ligainsiderService.getIcon(for: status))
-                                    .foregroundColor(Color(ligainsiderService.getColor(for: status)))
+                                    .foregroundColor(
+                                        Color(ligainsiderService.getColor(for: status))
+                                    )
                                     .font(.caption)
                             }
                         }
