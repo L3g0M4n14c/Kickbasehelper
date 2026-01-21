@@ -1,0 +1,35 @@
+# Skip Configuration for KickbaseCore
+# This file configures how Skip transpiles Swift code to Kotlin
+
+# Module configuration
+module: KickbaseCore
+
+# Transpilation settings
+transpile:
+  # Include all Swift files
+  - "**/*.swift"
+
+# Skip-specific options
+options:
+  # Enable automatic bridging of common types
+  autoBridge: true
+  
+  # Generate Android-compatible code
+  platform: android
+  
+# Dependencies that should be available in Kotlin
+dependencies:
+  - SkipUI
+  - SkipFoundation
+
+# Export configuration for consuming modules
+export:
+  # Make these types available to other modules
+  types:
+    - KickbaseManager
+    - League
+    - TeamPlayer
+    - MarketPlayer
+    - User
+    - UserStats
+    - Player

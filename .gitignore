@@ -1,0 +1,66 @@
+# macOS
+.DS_Store
+
+# Xcode
+build/
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata/
+*.xccheckout
+*.moved-aside
+DerivedData/
+*.hmap
+*.ipa
+*.xcuserstate
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# Android / Gradle
+.gradle/
+local.properties
+.idea/
+*.iml
+.navigation/
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.ap_
+*.aab
+
+# Android Build Directories
+Android/build/
+Android/app/build/
+KickbaseCore/build/
+KickbaseCore/.build/
+
+# Firebase
+Android/app/google-services.json
+
+# Skip / Transpilation Artifacts
+# Skip uses .build (SPM) and build (Gradle) which are covered above.
+# Temporary files generated during build
+resource_bundle_accessor*
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Temporary Debug/Dump files
+*.html
+dummy_trigger.txt
+test_skip_setup.sh
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
