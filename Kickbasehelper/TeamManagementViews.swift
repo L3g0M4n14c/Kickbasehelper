@@ -2,6 +2,7 @@ import SwiftUI
 
 struct TeamTab: View {
     @EnvironmentObject var kickbaseManager: KickbaseManager
+    @EnvironmentObject var ligainsiderService: LigainsiderService
     @State private var sortBy: SortOption = .marketValue
     @State private var searchText = ""
     @State private var playersForSale: Set<String> = []
@@ -244,6 +245,8 @@ struct TeamTab: View {
         }
         .sheet(item: $lineupComparison) { comparison in
             LineupComparisonView(comparison: comparison)
+                .environmentObject(kickbaseManager)
+                .environmentObject(ligainsiderService)
         }
     }
 
@@ -278,6 +281,7 @@ struct TeamPlayerRow: View {
     let teamPlayer: TeamPlayer
     @State private var showingPlayerDetail = false
     @EnvironmentObject var kickbaseManager: KickbaseManager
+    @EnvironmentObject var ligainsiderService: LigainsiderService
 
     var body: some View {
         Button(action: {
@@ -285,6 +289,14 @@ struct TeamPlayerRow: View {
             showingPlayerDetail = true
         }) {
             HStack(spacing: 12) {
+                // Ligainsider Status Icon
+                let status = ligainsiderService.getPlayerStatus(firstName: teamPlayer.firstName, lastName: teamPlayer.lastName)
+                if status != .out {
+                   Image(systemName: ligainsiderService.getIcon(for: status))
+                       .foregroundColor(Color(ligainsiderService.getColor(for: status)))
+                       .font(.caption)
+                }
+
                 // Position indicator
                 VStack {
                     Text(positionAbbreviation(teamPlayer.position))
@@ -376,6 +388,8 @@ struct TeamPlayerRow: View {
         .sheet(isPresented: $showingPlayerDetail) {
             if let league = kickbaseManager.selectedLeague {
                 PlayerDetailView(player: teamPlayer)
+                    .environmentObject(kickbaseManager)
+                    .environmentObject(ligainsiderService)
             }
         }
     }
@@ -388,6 +402,7 @@ struct TeamPlayerRowWithSale: View {
     @State private var showingPlayerDetail = false
 
     @EnvironmentObject var kickbaseManager: KickbaseManager
+    @EnvironmentObject var ligainsiderService: LigainsiderService
 
     var body: some View {
         Button(action: {
@@ -418,6 +433,17 @@ struct TeamPlayerRowWithSale: View {
                         Text(teamPlayer.fullName)
                             .font(.headline)
                             .lineLimit(2)  // Erlaubt 2 Zeilen für längere Namen
+
+                        // Ligainsider Status Icon
+                        if !ligainsiderService.matches.isEmpty {
+                            let status = ligainsiderService.getPlayerStatus(
+                                firstName: teamPlayer.firstName, lastName: teamPlayer.lastName)
+                            if status != .out {
+                                Image(systemName: ligainsiderService.getIcon(for: status))
+                                    .foregroundColor(Color(ligainsiderService.getColor(for: status)))
+                                    .font(.caption)
+                            }
+                        }
 
                         // Status-Icons basierend auf st-Feld aus API-Daten anzeigen
                         if teamPlayer.status == 1 {
@@ -499,6 +525,8 @@ struct TeamPlayerRowWithSale: View {
         .sheet(isPresented: $showingPlayerDetail) {
             if let league = kickbaseManager.selectedLeague {
                 PlayerDetailView(player: teamPlayer)
+                    .environmentObject(kickbaseManager)
+                    .environmentObject(ligainsiderService)
             }
         }
     }
@@ -750,6 +778,7 @@ struct MarketTab: View {
 struct MarketPlayerRow: View {
     let marketPlayer: MarketPlayer
     @State private var showingPlayerDetail = false
+    @EnvironmentObject var ligainsiderService: LigainsiderService
 
     var body: some View {
         Button(action: {
@@ -776,6 +805,20 @@ struct MarketPlayerRow: View {
                         Text(marketPlayer.fullName)
                             .font(.headline)
                             .lineLimit(2)  // Erlaubt 2 Zeilen für längere Namen
+
+                        // Ligainsider Status Icon
+                        if !ligainsiderService.matches.isEmpty {
+                            let status = ligainsiderService.getPlayerStatus(
+                                firstName: marketPlayer.firstName,
+                                lastName: marketPlayer.lastName)
+                            if status != .out {
+                                Image(systemName: ligainsiderService.getIcon(for: status))
+                                    .foregroundColor(
+                                        Color(ligainsiderService.getColor(for: status))
+                                    )
+                                    .font(.caption)
+                            }
+                        }
 
                         // Status-Icons basierend auf status-Feld aus API-Daten anzeigen
                         if marketPlayer.status == 1 {
@@ -842,6 +885,7 @@ struct MarketPlayerRow: View {
         .buttonStyle(PlainButtonStyle())
         .sheet(isPresented: $showingPlayerDetail) {
             MarketPlayerDetailView(player: marketPlayer)
+                .environmentObject(ligainsiderService)
         }
     }
 }

@@ -4,6 +4,7 @@ struct PlayerDetailView: View {
     let player: TeamPlayer
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var kickbaseManager: KickbaseManager
+    @EnvironmentObject var ligainsiderService: LigainsiderService
 
     var body: some View {
         NavigationView {
@@ -11,6 +12,7 @@ struct PlayerDetailView: View {
                 VStack(spacing: 20) {
                     // Hero Header mit Spielerfoto und allen Grundinformationen
                     PlayerHeroHeader(player: player)
+                        .environmentObject(ligainsiderService)
 
                     // Punktzahl-Performance
                     PlayerPointsSection(player: player)
@@ -57,6 +59,7 @@ struct PlayerDetailView: View {
 // MARK: - Hero Header (erweitert mit allen Grunddaten)
 struct PlayerHeroHeader: View {
     let player: TeamPlayer
+    @EnvironmentObject var ligainsiderService: LigainsiderService
 
     var body: some View {
         VStack(spacing: 20) {
@@ -134,19 +137,42 @@ struct PlayerHeroHeader: View {
                         .fontWeight(.medium)
                 }
 
-                // Fit-Status Badge (für alle Status-Zustände)
-                HStack(spacing: 6) {
-                    Image(systemName: getStatusIcon(player.status))
-                        .foregroundColor(getStatusColor(player.status))
-                    Text("\(getPlayerStatusText(player.status))")
-                        .font(.caption)
-                        .fontWeight(.medium)
-                        .foregroundColor(getStatusColor(player.status))
+                // Statusbereich (Verletzung + Ligainsider)
+                HStack(spacing: 15) {
+                    // Fit-Status Badge
+                    HStack(spacing: 6) {
+                        Image(systemName: getStatusIcon(player.status))
+                            .foregroundColor(getStatusColor(player.status))
+                        Text("\(getPlayerStatusText(player.status))")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .foregroundColor(getStatusColor(player.status))
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(getStatusColor(player.status).opacity(0.15))
+                    .cornerRadius(16)
+                    
+                    // Ligainsider Status Badge
+                    if !ligainsiderService.matches.isEmpty {
+                        let liStatus = ligainsiderService.getPlayerStatus(firstName: player.firstName, lastName: player.lastName)
+                        let colorString = ligainsiderService.getColor(for: liStatus)
+                        let color = (colorString == "green") ? Color.green : (colorString == "orange" ? Color.orange : Color.red)
+                        
+                        HStack(spacing: 6) {
+                            Image(systemName: ligainsiderService.getIcon(for: liStatus))
+                                .foregroundColor(color)
+                            Text(liStatus == .likelyStart ? "S11" : (liStatus == .possibleStart ? "Möglich" : "Bank/Out"))
+                                .font(.caption)
+                                .fontWeight(.medium)
+                                .foregroundColor(color)
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(color.opacity(0.15))
+                        .cornerRadius(16)
+                    }
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(getStatusColor(player.status).opacity(0.15))
-                .cornerRadius(16)
             }
         }
         .padding()

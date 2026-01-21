@@ -152,6 +152,7 @@ struct LineupSlotRowView: View {
     let slot: LineupSlot
     let teamPlayers: [TeamPlayer]
     let marketPlayers: [MarketPlayer]
+    @EnvironmentObject var ligainsiderService: LigainsiderService
 
     var body: some View {
         HStack(spacing: 12) {
@@ -174,9 +175,25 @@ struct LineupSlotRowView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(marketPlayer.fullName)
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
+                            HStack(spacing: 4) {
+                                Text(marketPlayer.fullName)
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+
+                                // Ligainsider Status Icon
+                                if !ligainsiderService.matches.isEmpty {
+                                    let status = ligainsiderService.getPlayerStatus(
+                                        firstName: marketPlayer.firstName,
+                                        lastName: marketPlayer.lastName)
+                                    if status != .out {
+                                        Image(systemName: ligainsiderService.getIcon(for: status))
+                                            .foregroundColor(
+                                                Color(ligainsiderService.getColor(for: status))
+                                            )
+                                            .font(.caption2)
+                                    }
+                                }
+                            }
 
                             Text(marketPlayer.fullTeamName)
                                 .font(.caption)
@@ -215,9 +232,24 @@ struct LineupSlotRowView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(ownPlayer.fullName)
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
+                            HStack(spacing: 4) {
+                                Text(ownPlayer.fullName)
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+
+                                // Ligainsider Status Icon
+                                if !ligainsiderService.matches.isEmpty {
+                                    let status = ligainsiderService.getPlayerStatus(
+                                        firstName: ownPlayer.firstName, lastName: ownPlayer.lastName)
+                                    if status != .out {
+                                        Image(systemName: ligainsiderService.getIcon(for: status))
+                                            .foregroundColor(
+                                                Color(ligainsiderService.getColor(for: status))
+                                            )
+                                            .font(.caption2)
+                                    }
+                                }
+                            }
 
                             Text(ownPlayer.fullTeamName)
                                 .font(.caption)

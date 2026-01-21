@@ -22,10 +22,14 @@ struct KickbasehelperApp: App {
             fatalError("Could not create ModelContainer: \(error)")
         }
     }()
+    
+    // Globaler Service für Ligainsider
+    @StateObject private var ligainsiderService = LigainsiderService()
 
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(ligainsiderService) // Inject into environment
         }
         .modelContainer(sharedModelContainer)
     }

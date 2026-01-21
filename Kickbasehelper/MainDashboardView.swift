@@ -67,6 +67,11 @@ struct MainDashboardView: View {
                     Label("Transfer-Tipps", systemImage: "person.crop.circle.badge.plus")
                 }
                 .tag(4)
+
+                NavigationLink(value: 5) {
+                    Label("Ligainsider", systemImage: "list.bullet.clipboard")
+                }
+                .tag(5)
             }
             .navigationTitle("Kickbase Helper")
             .navigationBarTitleDisplayMode(.large)
@@ -98,6 +103,8 @@ struct MainDashboardView: View {
                     LineupOptimizerView()
                 case 4:
                     TransferRecommendationsView(kickbaseManager: kickbaseManager)
+                case 5:
+                    LigainsiderView()
                 default:
                     TeamView()
                 }
@@ -150,6 +157,14 @@ struct MainDashboardView: View {
                         Text("Transfer-Tipps")
                     }
                     .tag(4)
+
+                // Ligainsider Tab
+                LigainsiderView()
+                    .tabItem {
+                        Image(systemName: "list.bullet.clipboard")
+                        Text("Ligainsider")
+                    }
+                    .tag(5)
             }
             .navigationTitle(kickbaseManager.selectedLeague?.name ?? "Kickbase Helper")
             .navigationBarTitleDisplayMode(.inline)
@@ -344,6 +359,7 @@ struct PlayerRowView: View {
     @State private var showingPlayerDetail = false
 
     @EnvironmentObject var kickbaseManager: KickbaseManager
+    @EnvironmentObject var ligainsiderService: LigainsiderService
 
     var body: some View {
         Button(action: {
@@ -360,6 +376,17 @@ struct PlayerRowView: View {
                         Text(player.fullName)
                             .font(.subheadline)
                             .fontWeight(.medium)
+
+                        // Ligainsider Status Icon
+                        if !ligainsiderService.matches.isEmpty {
+                            let status = ligainsiderService.getPlayerStatus(
+                                firstName: player.firstName, lastName: player.lastName)
+                            if status != .out {
+                                Image(systemName: ligainsiderService.getIcon(for: status))
+                                    .foregroundColor(Color(ligainsiderService.getColor(for: status)))
+                                    .font(.caption)
+                            }
+                        }
 
                         // Status-Icons basierend auf st-Feld aus API-Daten anzeigen
                         if player.status == 1 {
@@ -459,7 +486,8 @@ struct PlayerRowView: View {
         .buttonStyle(PlainButtonStyle())
         .sheet(isPresented: $showingPlayerDetail) {
             PlayerDetailView(player: player)
-
+                .environmentObject(kickbaseManager)
+                .environmentObject(ligainsiderService)
         }
     }
 }
@@ -472,6 +500,7 @@ struct PlayerRowViewWithSale: View {
 
     @State private var showingPlayerDetail = false
     @EnvironmentObject var kickbaseManager: KickbaseManager
+    @EnvironmentObject var ligainsiderService: LigainsiderService
 
     var body: some View {
         HStack(spacing: 12) {
@@ -489,6 +518,19 @@ struct PlayerRowViewWithSale: View {
                             Text(player.fullName)
                                 .font(.subheadline)
                                 .fontWeight(.medium)
+
+                            // Ligainsider Status Icon
+                            if !ligainsiderService.matches.isEmpty {
+                                let status = ligainsiderService.getPlayerStatus(
+                                    firstName: player.firstName, lastName: player.lastName)
+                                if status != .out {
+                                    Image(systemName: ligainsiderService.getIcon(for: status))
+                                        .foregroundColor(
+                                            Color(ligainsiderService.getColor(for: status))
+                                        )
+                                        .font(.caption)
+                                }
+                            }
 
                             // Status-Icons basierend auf st-Feld aus API-Daten anzeigen
                             if player.status == 1 {
@@ -584,6 +626,8 @@ struct PlayerRowViewWithSale: View {
             .buttonStyle(PlainButtonStyle())
             .sheet(isPresented: $showingPlayerDetail) {
                 PlayerDetailView(player: player)
+                    .environmentObject(kickbaseManager)
+                    .environmentObject(ligainsiderService)
             }
 
             // Toggle für Verkauf (separater Bereich)
@@ -791,6 +835,7 @@ struct MarketPlayerRowView: View {
     let player: MarketPlayer
     @State private var showingPlayerDetail = false
     @EnvironmentObject var kickbaseManager: KickbaseManager
+    @EnvironmentObject var ligainsiderService: LigainsiderService
 
     var body: some View {
         Button(action: {
@@ -807,6 +852,17 @@ struct MarketPlayerRowView: View {
                         Text(player.fullName)
                             .font(.headline)
                             .fontWeight(.medium)
+
+                        // Ligainsider Status Icon
+                        if !ligainsiderService.matches.isEmpty {
+                            let status = ligainsiderService.getPlayerStatus(
+                                firstName: player.firstName, lastName: player.lastName)
+                            if status != .out {
+                                Image(systemName: ligainsiderService.getIcon(for: status))
+                                    .foregroundColor(Color(ligainsiderService.getColor(for: status)))
+                                    .font(.caption)
+                            }
+                        }
 
                         // Status-Icons basierend auf status-Feld aus API-Daten anzeigen
                         if player.status == 1 {
@@ -924,6 +980,8 @@ struct MarketPlayerRowView: View {
         .buttonStyle(PlainButtonStyle())
         .sheet(isPresented: $showingPlayerDetail) {
             PlayerDetailView(player: convertMarketPlayerToTeamPlayer(player))
+                .environmentObject(kickbaseManager)
+                .environmentObject(ligainsiderService)
         }
     }
 }
@@ -1739,6 +1797,7 @@ struct SalesRecommendationRow: View {
 
     @State private var showingPlayerDetail = false
     @EnvironmentObject var kickbaseManager: KickbaseManager
+    @EnvironmentObject var ligainsiderService: LigainsiderService
 
     var body: some View {
         HStack(spacing: 12) {
@@ -1756,6 +1815,20 @@ struct SalesRecommendationRow: View {
                             Text(recommendation.player.fullName)
                                 .font(.headline)
                                 .fontWeight(.medium)
+
+                            // Ligainsider Status Icon
+                            if !ligainsiderService.matches.isEmpty {
+                                let status = ligainsiderService.getPlayerStatus(
+                                    firstName: recommendation.player.firstName,
+                                    lastName: recommendation.player.lastName)
+                                if status != .out {
+                                    Image(systemName: ligainsiderService.getIcon(for: status))
+                                        .foregroundColor(
+                                            Color(ligainsiderService.getColor(for: status))
+                                        )
+                                        .font(.caption)
+                                }
+                            }
 
                             // Status-Icons
                             if recommendation.player.status == 2 {
@@ -1840,6 +1913,8 @@ struct SalesRecommendationRow: View {
         .padding(.vertical, 8)
         .sheet(isPresented: $showingPlayerDetail) {
             PlayerDetailView(player: recommendation.player)
+                .environmentObject(kickbaseManager)
+                .environmentObject(ligainsiderService)
         }
     }
 
@@ -1855,6 +1930,7 @@ struct SalesRecommendationRow: View {
 // MARK: - Lineup Optimizer View
 struct LineupOptimizerView: View {
     @EnvironmentObject var kickbaseManager: KickbaseManager
+    @EnvironmentObject var ligainsiderService: LigainsiderService
     @State private var selectedOptimization: OptimizationType = .averagePoints
     @State private var lineupComparison: LineupComparison?
     @State private var showOptimalComparison = false
@@ -2002,6 +2078,7 @@ struct LineupOptimizerView: View {
         .sheet(item: $lineupComparison) { comparison in
             LineupComparisonView(comparison: comparison)
                 .environmentObject(kickbaseManager)
+                .environmentObject(ligainsiderService)
         }
     }
 
@@ -2418,6 +2495,7 @@ struct LineupPlayerCard: View {
     let player: TeamPlayer
     @State private var showingPlayerDetail = false
     @EnvironmentObject var kickbaseManager: KickbaseManager
+    @EnvironmentObject var ligainsiderService: LigainsiderService
 
     // Plattformspezifische Größen
     private var cardSize: (width: CGFloat, height: CGFloat) {
@@ -2476,11 +2554,23 @@ struct LineupPlayerCard: View {
                         .foregroundColor(.secondary)
                 }
 
-                // Status indicator - größer
-                if player.status == 2 {
-                    Image(systemName: "pills.fill")
-                        .foregroundColor(.orange)
-                        .font(.system(size: fontSizes.status))
+                // Status indicator
+                HStack(spacing: 2) {
+                    if player.status == 2 {
+                        Image(systemName: "pills.fill")
+                            .foregroundColor(.orange)
+                            .font(.system(size: fontSizes.status))
+                    }
+                    
+                    // Ligainsider Icon (wenn verfügbar)
+                    if !ligainsiderService.matches.isEmpty {
+                        let status = ligainsiderService.getPlayerStatus(firstName: player.firstName, lastName: player.lastName)
+                        if status != .out {
+                           Image(systemName: ligainsiderService.getIcon(for: status))
+                               .foregroundColor(Color(ligainsiderService.getColor(for: status)))
+                               .font(.system(size: fontSizes.status))
+                        }
+                    }
                 }
             }
             .frame(
@@ -2731,6 +2821,7 @@ struct ReservePlayerRow: View {
     @State private var showingPlayerDetail = false
 
     @EnvironmentObject var kickbaseManager: KickbaseManager
+    @EnvironmentObject var ligainsiderService: LigainsiderService
 
     init(player: TeamPlayer, showPosition: Bool = true) {
         self.player = player
@@ -2760,6 +2851,17 @@ struct ReservePlayerRow: View {
                             .font(.caption)
                             .fontWeight(.medium)
                             .lineLimit(1)
+
+                        // Ligainsider Status Icon
+                        if !ligainsiderService.matches.isEmpty {
+                            let status = ligainsiderService.getPlayerStatus(
+                                firstName: player.firstName, lastName: player.lastName)
+                            if status != .out {
+                                Image(systemName: ligainsiderService.getIcon(for: status))
+                                    .foregroundColor(Color(ligainsiderService.getColor(for: status)))
+                                    .font(.system(size: 8))
+                            }
+                        }
 
                         // Status indicator
                         if player.status == 2 {
@@ -2802,6 +2904,8 @@ struct ReservePlayerRow: View {
         .buttonStyle(PlainButtonStyle())
         .sheet(isPresented: $showingPlayerDetail) {
             PlayerDetailView(player: player)
+                .environmentObject(kickbaseManager)
+                .environmentObject(ligainsiderService)
         }
     }
 
@@ -3168,6 +3272,7 @@ struct AllPlayersRow: View {
     let isRecommended: Bool
     let onToggle: (Bool) -> Void
     @EnvironmentObject var kickbaseManager: KickbaseManager
+    @EnvironmentObject var ligainsiderService: LigainsiderService
     @State private var showingPlayerDetail = false
 
     var body: some View {
@@ -3186,6 +3291,19 @@ struct AllPlayersRow: View {
                             Text(player.fullName)
                                 .font(.headline)
                                 .fontWeight(.medium)
+
+                            // Ligainsider Status Icon
+                            if !ligainsiderService.matches.isEmpty {
+                                let status = ligainsiderService.getPlayerStatus(
+                                    firstName: player.firstName, lastName: player.lastName)
+                                if status != .out {
+                                    Image(systemName: ligainsiderService.getIcon(for: status))
+                                        .foregroundColor(
+                                            Color(ligainsiderService.getColor(for: status))
+                                        )
+                                        .font(.caption)
+                                }
+                            }
 
                             // Empfehlungsindikator
                             if isRecommended {
@@ -3271,6 +3389,8 @@ struct AllPlayersRow: View {
         .cornerRadius(8)
         .sheet(isPresented: $showingPlayerDetail) {
             PlayerDetailView(player: player)
+                .environmentObject(kickbaseManager)
+                .environmentObject(ligainsiderService)
         }
     }
 }
