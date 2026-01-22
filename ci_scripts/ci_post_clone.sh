@@ -70,20 +70,28 @@ fi
 
 # 2. Locate DerivedData
 echo "🔍 Locating DerivedData path..."
-BUILD_SETTINGS=$(xcodebuild -project "$PROJECT_PATH" -scheme "$SCHEME_NAME" -showBuildSettings -skipUnavailableActions 2>/dev/null)
-BUILD_DIR=$(echo "$BUILD_SETTINGS" | grep "\bBUILD_DIR =" | awk -F ' = ' '{print $2}' | xargs)
 
-if [ -z "$BUILD_DIR" ]; then
-    echo "❌ Error: Could not determine BUILD_DIR."
-    echo "⚠️ Falling back to searching standard DerivedData location..."
-    DD_ROOT="$HOME/Library/Developer/Xcode/DerivedData"
-    # Find the most recently modified Kickbasehelper directory?
-    # We'll try to find the one containing SourcePackages/checkouts/skip
-    SKIP_DIR=$(find "$DD_ROOT" -type d -path "*/SourcePackages/checkouts/skip" -print -quit)
-else
-    # BUILD_DIR is .../DerivedData/Kickbasehelper-hash/Build/Products
-    DERIVED_DATA_ROOT=$(dirname "$(dirname "$BUILD_DIR")")
+# Prioritize CI_DERIVED_DATA_PATH if available (Standard in Xcode Cloud)
+if [ -n "$CI_DERIVED_DATA_PATH" ]; then
+    echo "ℹ️  Using CI_DERIVED_DATA_PATH: $CI_DERIVED_DATA_PATH"
+    DERIVED_DATA_ROOT="$CI_DERIVED_DATA_PATH"
     SKIP_DIR="$DERIVED_DATA_ROOT/SourcePackages/checkouts/skip"
+else
+    # Fallback to xcodebuild detection
+    BUILD_SETTINGS=$(xcodebuild -project "$PROJECT_PATH" -scheme "$SCHEME_NAME" -showBuildSettings -skipUnavailableActions 2>/dev/null)
+    BUILD_DIR=$(echo "$BUILD_SETTINGS" | grep "\bBUILD_DIR =" | awk -F ' = ' '{print $2}' | xargs)
+
+    if [ -n "$BUILD_DIR" ]; then
+        # BUILD_DIR is .../DerivedData/Kickbasehelper-hash/Build/Products
+        DERIVED_DATA_ROOT=$(dirname "$(dirname "$BUILD_DIR")")
+        SKIP_DIR="$DERIVED_DATA_ROOT/SourcePackages/checkouts/skip"
+    else
+        echo "❌ Error: Could not determine BUILD_DIR."
+        echo "⚠️ Falling back to searching standard DerivedData location..."
+        DD_ROOT="$HOME/Library/Developer/Xcode/DerivedData"
+        # Find the most recently modified Kickbasehelper directory or the one with skip
+        SKIP_DIR=$(find "$DD_ROOT" -type d -path "*/SourcePackages/checkouts/skip" -print -quit)
+    fi
 fi
 
 echo "📂 Target Skip Directory: $SKIP_DIR"
@@ -139,9 +147,8 @@ let package = Package(
         
         // MODIFIED: 'SkipDrive' originally depended on "skipstone". We remove that dependency.
         // Original: .target(name: "SkipDrive", dependencies: ["skipstone", .target(name: "skip")]),
-        .target(name: "SkipDrive", dependencies: [
-            .target(name: "skip")
-        ]),
+        // MODIFIED 2: We also remove dependency on 'skip' binary target to avoid download/TLS errors
+        .target(name: "SkipDrive", dependencies: []),
         
         .target(name: "SkipTest", dependencies: [
              .target(name: "SkipDrive", condition: .when(platforms: [.macOS, .linux]))
@@ -150,8 +157,8 @@ let package = Package(
         .testTarget(name: "SkipTestTests", dependencies: ["SkipTest"]),
         .testTarget(name: "SkipDriveTests", dependencies: ["SkipDrive"]),
         
-        // UNCHANGED: Binary target (macOS)
-        .binaryTarget(name: "skip", url: "https://source.skip.tools/skip/releases/download/1.7.0/skip-macos.zip", checksum: "b4e5a62b3cc436824dc9555bf71938d9e9aebcbd992c77ca96c7165dddb3b836")
+        // REMOVED: Binary target (macOS) - CAUSES TLS/DOWNLOAD ERRORS
+        // .binaryTarget(name: "skip", url: "...", checksum: "...")
     ]
 )
 EOF
