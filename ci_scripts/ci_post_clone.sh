@@ -27,4 +27,8 @@ defaults read com.apple.dt.xcodebuild IDESkipPackagePluginFingerprintValidation
 defaults read com.apple.dt.Xcode IDESkipMacroFingerprintValidation
 defaults read com.apple.dt.xcodebuild IDESkipMacroFingerprintValidation
 
+# Pre-resolve dependencies to ensure plugins are loaded with validation skipped
+echo "📦 Resolving package dependencies..."
+xcodebuild -resolvePackageDependencies -project Kickbasehelper.xcodeproj -skipPackagePluginValidation || true
+
 echo "✅ Deployment preparation complete."
