@@ -13,9 +13,18 @@ echo "🔧 Configuring Xcode Cloud specific settings..."
 defaults write com.apple.dt.Xcode IDESkipPackagePluginFingerprintValidation -bool YES
 defaults write com.apple.dt.xcodebuild IDESkipPackagePluginFingerprintValidation -bool YES
 
+# Disable macro validation as well, as Skip uses macros
+defaults write com.apple.dt.Xcode IDESkipMacroFingerprintValidation -bool YES
+defaults write com.apple.dt.xcodebuild IDESkipMacroFingerprintValidation -bool YES
+
+# Force preferences to flush/reload
+killall cfprefsd || true
+
 # Verify the settings
 echo "IDE settings updated:"
 defaults read com.apple.dt.Xcode IDESkipPackagePluginFingerprintValidation
 defaults read com.apple.dt.xcodebuild IDESkipPackagePluginFingerprintValidation
+defaults read com.apple.dt.Xcode IDESkipMacroFingerprintValidation
+defaults read com.apple.dt.xcodebuild IDESkipMacroFingerprintValidation
 
 echo "✅ Deployment preparation complete."

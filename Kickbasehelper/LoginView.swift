@@ -11,11 +11,11 @@ struct LoginView: View {
     var body: some View {
         ZStack {
             Color.white.ignoresSafeArea()
-
+            
             if horizontalSizeClass == .regular {
-                iPadLayout
+                 iPadLayout
             } else {
-                iPhoneLayout
+                 iPhoneLayout
             }
         }
     }
@@ -100,9 +100,8 @@ struct LoginView: View {
                 .aspectRatio(contentMode: .fit)
                 .frame(
                     width: horizontalSizeClass == .regular ? 160 : 120,
-                    height: horizontalSizeClass == .regular ? 160 : 120
-                )
-                .foregroundColor(.green)
+                    height: horizontalSizeClass == .regular ? 160 : 120)
+                .foregroundColor(.green
             Text("Kickbase Helper")
                 .font(horizontalSizeClass == .regular ? .largeTitle : .title)
                 .fontWeight(.bold)
