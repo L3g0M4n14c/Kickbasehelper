@@ -1,4 +1,3 @@
-import KickbaseCore
 import SwiftUI
 
 struct LineupComparisonView: View {
@@ -107,7 +106,16 @@ struct LineupDetailView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 // Gruppiere Slots nach Position
-                let slotsByPosition = Dictionary(grouping: lineup.slots) { $0.positionType }
+                #if !SKIP
+                    let slotsByPosition = Dictionary(grouping: lineup.slots) { $0.positionType }
+                #else
+                    var slotsByPosition: [Int: [LineupSlot]] = [:]
+                    for slot in lineup.slots {
+                        var list = slotsByPosition[slot.positionType] ?? []
+                        list.append(slot)
+                        slotsByPosition[slot.positionType] = list
+                    }
+                #endif
                 let positions = [1, 2, 3, 4].filter { slotsByPosition[$0] != nil }
 
                 ForEach(positions, id: \.self) { position in

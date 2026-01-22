@@ -1,4 +1,3 @@
-import KickbaseCore
 import SwiftUI
 
 struct SaleRecommendationsView: View {
@@ -423,7 +422,7 @@ struct SaleRecommendationCard: View {
 
                     // Toggle für mehr Optionen
                     if recommendation.replacements.count > 1 {
-                        Button(action: { expandedReplacements.toggle() }) {
+                        Button(action: { expandedReplacements = !expandedReplacements }) {
                             HStack {
                                 Image(
                                     systemName: expandedReplacements ? "chevron.up" : "chevron.down"

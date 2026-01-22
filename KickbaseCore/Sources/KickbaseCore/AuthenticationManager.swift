@@ -1,22 +1,21 @@
 import Foundation
-import KickbaseCore
 import SwiftUI
 
 @MainActor
-class AuthenticationManager: ObservableObject {
-    @Published var isAuthenticated = false
-    @Published var isLoading = false
-    @Published var errorMessage: String?
-    @Published var currentUser: User?
+public class AuthenticationManager: ObservableObject {
+    @Published public var isAuthenticated = false
+    @Published public var isLoading = false
+    @Published public var errorMessage: String?
+    @Published public var currentUser: User?
 
-    private(set) var accessToken: String?
+    public private(set) var accessToken: String?
     private let apiService = KickbaseAPIService()
 
-    init() {
+    public init() {
         loadStoredToken()
     }
 
-    func login(email: String, password: String) async {
+    public func login(email: String, password: String) async {
         isLoading = true
         errorMessage = nil
 

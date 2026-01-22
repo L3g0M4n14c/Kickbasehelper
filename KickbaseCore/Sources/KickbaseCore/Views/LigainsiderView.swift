@@ -1,4 +1,3 @@
-import KickbaseCore
 import SwiftUI
 
 struct LigainsiderView: View {
@@ -53,31 +52,41 @@ struct LigainsiderMatchRow: View {
     var body: some View {
         VStack(spacing: 0) {
             // Header: Team vs Team
-            Button(action: { withAnimation { isExpanded.toggle() } }) {
+            Button(action: {
+                isExpanded = !isExpanded
+            }) {
                 HStack {
                     // Home Team
                     HStack(spacing: 8) {
                         if let logo = match.homeLogo, let url = URL(string: logo) {
-                            AsyncImage(url: url) { phase in
-                                switch phase {
-                                case .empty:
-                                    ProgressView()
-                                        .frame(width: 30, height: 30)
-                                case .success(let image):
-                                    image
-                                        .resizable()
-                                        .scaledToFit()
-                                        .frame(width: 30, height: 30)
-                                case .failure:
-                                    Image(systemName: "shield")
-                                        .resizable()
-                                        .scaledToFit()
-                                        .frame(width: 30, height: 30)
-                                        .foregroundColor(.gray)
-                                @unknown default:
-                                    EmptyView()
+                            #if !SKIP
+                                AsyncImage(url: url) { phase in
+                                    switch phase {
+                                    case .empty:
+                                        ProgressView()
+                                            .frame(width: 30, height: 30)
+                                    case .success(let image):
+                                        image
+                                            .resizable()
+                                            .scaledToFit()
+                                            .frame(width: 30, height: 30)
+                                    case .failure:
+                                        Image(systemName: "shield")
+                                            .resizable()
+                                            .scaledToFit()
+                                            .frame(width: 30, height: 30)
+                                            .foregroundColor(.gray)
+                                    @unknown default:
+                                        EmptyView()
+                                    }
                                 }
-                            }
+                            #else
+                                Image(systemName: "shield")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 30, height: 30)
+                                    .foregroundColor(.gray)
+                            #endif
                         }
                         Text(match.homeTeam)
                             .font(.headline)
@@ -95,26 +104,34 @@ struct LigainsiderMatchRow: View {
                             .multilineTextAlignment(.trailing)
 
                         if let logo = match.awayLogo, let url = URL(string: logo) {
-                            AsyncImage(url: url) { phase in
-                                switch phase {
-                                case .empty:
-                                    ProgressView()
-                                        .frame(width: 30, height: 30)
-                                case .success(let image):
-                                    image
-                                        .resizable()
-                                        .scaledToFit()
-                                        .frame(width: 30, height: 30)
-                                case .failure:
-                                    Image(systemName: "shield")
-                                        .resizable()
-                                        .scaledToFit()
-                                        .frame(width: 30, height: 30)
-                                        .foregroundColor(.gray)
-                                @unknown default:
-                                    EmptyView()
+                            #if !SKIP
+                                AsyncImage(url: url) { phase in
+                                    switch phase {
+                                    case .empty:
+                                        ProgressView()
+                                            .frame(width: 30, height: 30)
+                                    case .success(let image):
+                                        image
+                                            .resizable()
+                                            .scaledToFit()
+                                            .frame(width: 30, height: 30)
+                                    case .failure:
+                                        Image(systemName: "shield")
+                                            .resizable()
+                                            .scaledToFit()
+                                            .frame(width: 30, height: 30)
+                                            .foregroundColor(.gray)
+                                    @unknown default:
+                                        EmptyView()
+                                    }
                                 }
-                            }
+                            #else
+                                Image(systemName: "shield")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 30, height: 30)
+                                    .foregroundColor(.gray)
+                            #endif
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .trailing)
@@ -124,7 +141,9 @@ struct LigainsiderMatchRow: View {
                 }
                 .padding(.vertical, 8)
             }
-            .buttonStyle(PlainButtonStyle())
+            #if !SKIP
+                .buttonStyle(PlainButtonStyle())
+            #endif
 
             if isExpanded {
                 Divider()
@@ -235,10 +254,10 @@ struct PlayerPillView: View {
             // ABER: LigainsiderStatus Logik in Service nutzt Cache.
             // Checken wir den Status via Service? PitchView hat keinen Service access direkt, aber LigainsiderView hat environment.
             // Wir fügen EnvironmentObject zu PitchView/PillView hinzu?
-            
+
             if let alt = player.alternative {
                 HStack(spacing: 2) {
-                    Image(systemName: "1.circle.fill") // 1. Option (Wackelkandidat)
+                    Image(systemName: "1.circle.fill")  // 1. Option (Wackelkandidat)
                         .font(.system(size: 8))
                         .foregroundColor(.orange)
                     Text(alt)
@@ -247,7 +266,7 @@ struct PlayerPillView: View {
                 }
                 .foregroundColor(.white)
                 .padding(2)
-                .background(Color.black.opacity(0.5)) // Neutralerer Hintergrund
+                .background(Color.black.opacity(0.5))  // Neutralerer Hintergrund
                 .cornerRadius(4)
             }
         }

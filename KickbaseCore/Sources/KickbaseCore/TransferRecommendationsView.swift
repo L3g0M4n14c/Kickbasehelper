@@ -1,4 +1,3 @@
-import KickbaseCore
 import SwiftUI
 
 struct TransferRecommendationsView: View {
@@ -14,7 +13,9 @@ struct TransferRecommendationsView: View {
     @State private var sortOption: SortOption = .recommendationScore
     @State private var showFilterSheet = false
     @State private var selectedRecommendation: TransferRecommendation?
-    @State private var columnVisibility = NavigationSplitViewVisibility.all
+    #if !SKIP
+        @State private var columnVisibility = NavigationSplitViewVisibility.all
+    #endif
 
     init(kickbaseManager: KickbaseManager) {
         self.kickbaseManager = kickbaseManager
@@ -23,24 +24,36 @@ struct TransferRecommendationsView: View {
     }
 
     var body: some View {
-        if UIDevice.current.userInterfaceIdiom == .pad
-            || UIDevice.current.userInterfaceIdiom == .mac
-        {
-            // iPad/macOS Version mit NavigationSplitView
-            NavigationSplitView(columnVisibility: $columnVisibility) {
-                // Sidebar Content
-                sidebarContent
-            } detail: {
-                // Detail Content
-                if let selectedRecommendation = selectedRecommendation {
-                    RecommendationPlayerDetailView(recommendation: selectedRecommendation)
-                } else {
-                    defaultDetailView
+        #if !SKIP
+            if UIDevice.current.userInterfaceIdiom == .pad
+                || UIDevice.current.userInterfaceIdiom == .mac
+            {
+                // iPad/macOS Version mit NavigationSplitView
+                NavigationSplitView(columnVisibility: $columnVisibility) {
+                    // Sidebar Content
+                    sidebarContent
+                } detail: {
+                    // Detail Content
+                    if let selectedRecommendation = selectedRecommendation {
+                        RecommendationPlayerDetailView(recommendation: selectedRecommendation)
+                    } else {
+                        defaultDetailView
+                    }
+                }
+                .navigationSplitViewStyle(.balanced)
+            } else {
+                // iPhone Version mit NavigationView (Original Verhalten)
+                NavigationView {
+                    mainContent
+                }
+                .sheet(isPresented: $showFilterSheet) {
+                    FilterSheet(filters: $filters)
+                }
+                .sheet(item: $selectedRecommendation) { recommendation in
+                    PlayerDetailSheet(recommendation: recommendation)
                 }
             }
-            .navigationSplitViewStyle(.balanced)
-        } else {
-            // iPhone Version mit NavigationView (Original Verhalten)
+        #else
             NavigationView {
                 mainContent
             }
@@ -50,7 +63,7 @@ struct TransferRecommendationsView: View {
             .sheet(item: $selectedRecommendation) { recommendation in
                 PlayerDetailSheet(recommendation: recommendation)
             }
-        }
+        #endif
     }
 
     private var sidebarContent: some View {
@@ -657,7 +670,9 @@ struct EnhancedRecommendationCard: View {
                         .foregroundColor(.primary)
                 }
             }
-            .contentShape(Rectangle())
+            #if !SKIP
+                .contentShape(Rectangle())
+            #endif
             .onTapGesture(perform: onTap)
 
             // Enhanced Stats Section
@@ -1268,7 +1283,7 @@ struct FilterChip: View {
 
 struct FilterSheet: View {
     @Binding var filters: RecommendationFilters
-    @Environment(\.presentationMode) var presentationMode
+    @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
 
     var body: some View {
         NavigationView {
@@ -1283,7 +1298,9 @@ struct FilterSheet: View {
                                     .foregroundColor(.blue)
                             }
                         }
-                        .contentShape(Rectangle())
+                        #if !SKIP
+                            .contentShape(Rectangle())
+                        #endif
                         .onTapGesture {
                             if filters.positions.contains(position) {
                                 filters.positions.remove(position)
@@ -1367,7 +1384,7 @@ struct FilterSheet: View {
 struct PlayerDetailSheet: View {
     let recommendation: TransferRecommendation
     @EnvironmentObject var kickbaseManager: KickbaseManager
-    @Environment(\.presentationMode) var presentationMode
+    @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
     @State private var marketValueHistory: MarketValueChange?
     @State private var isLoadingHistory = false
 

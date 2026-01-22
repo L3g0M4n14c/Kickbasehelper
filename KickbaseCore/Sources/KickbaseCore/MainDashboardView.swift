@@ -1,4 +1,3 @@
-import KickbaseCore
 import SwiftUI
 
 struct MainDashboardView: View {
@@ -192,16 +191,18 @@ struct MainDashboardView: View {
                 }
             }
             .onAppear {
-                // Konfiguriere Navigation Bar Appearance für iPhone (nicht transparent)
-                let appearance = UINavigationBarAppearance()
-                appearance.configureWithOpaqueBackground()
-                appearance.backgroundColor = UIColor.systemBackground
-                appearance.titleTextAttributes = [.foregroundColor: UIColor.label]
-                appearance.largeTitleTextAttributes = [.foregroundColor: UIColor.label]
+                #if !SKIP
+                    // Konfiguriere Navigation Bar Appearance für iPhone (nicht transparent)
+                    let appearance = UINavigationBarAppearance()
+                    appearance.configureWithOpaqueBackground()
+                    appearance.backgroundColor = UIColor.systemBackground
+                    appearance.titleTextAttributes = [.foregroundColor: UIColor.label]
+                    appearance.largeTitleTextAttributes = [.foregroundColor: UIColor.label]
 
-                UINavigationBar.appearance().standardAppearance = appearance
-                UINavigationBar.appearance().scrollEdgeAppearance = appearance
-                UINavigationBar.appearance().compactAppearance = appearance
+                    UINavigationBar.appearance().standardAppearance = appearance
+                    UINavigationBar.appearance().scrollEdgeAppearance = appearance
+                    UINavigationBar.appearance().compactAppearance = appearance
+                #endif
             }
         }
     }
@@ -648,7 +649,7 @@ struct PlayerRowViewWithSale: View {
             ) {
                 Text("")
             }
-            .toggleStyle(SwitchToggleStyle(tint: .blue))
+            .toggleStyle(SwitchToggleStyle(tint: Color.blue))
             .frame(width: 50, height: 30)
         }
         .padding(.vertical, 8)
@@ -1912,7 +1913,7 @@ struct SalesRecommendationRow: View {
             ) {
                 Text("")
             }
-            .toggleStyle(SwitchToggleStyle(tint: .blue))
+            .toggleStyle(SwitchToggleStyle(tint: Color.blue))
             .frame(width: 50, height: 30)
         }
         .padding(.vertical, 8)
@@ -2277,18 +2278,17 @@ struct LineupOptimizerView: View {
 
         // Finde eine passende Formation
         let customFormation: Formation
-        switch (maxDefenders, maxMidfielders, maxForwards) {
-        case (let d, let m, let f) where d >= 4 && m >= 4 && f >= 2:
+        if maxDefenders >= 4 && maxMidfielders >= 4 && maxForwards >= 2 {
             customFormation = .formation442
-        case (let d, let m, let f) where d >= 4 && m >= 3 && f >= 3:
+        } else if maxDefenders >= 4 && maxMidfielders >= 3 && maxForwards >= 3 {
             customFormation = .formation433
-        case (let d, let m, let f) where d >= 3 && m >= 4 && f >= 3:
+        } else if maxDefenders >= 3 && maxMidfielders >= 4 && maxForwards >= 3 {
             customFormation = .formation343
-        case (let d, let m, let f) where d >= 5 && m >= 3 && f >= 2:
+        } else if maxDefenders >= 5 && maxMidfielders >= 3 && maxForwards >= 2 {
             customFormation = .formation532
-        case (let d, let m, let f) where d >= 4 && m >= 5 && f >= 1:
+        } else if maxDefenders >= 4 && maxMidfielders >= 5 && maxForwards >= 1 {
             customFormation = .formation451
-        default:
+        } else {
             // Fallback auf 4-3-3 mit verfügbaren Spielern
             customFormation = .formation433
         }
@@ -2507,7 +2507,7 @@ struct LineupPlayerCard: View {
         #if os(macOS)
             return (width: 90, height: 110)  // 30% größer auf macOS
         #else
-            if UIDevice.current.userInterfaceIdiom == .pad {
+            if UIDevice.current.userInterfaceIdiom == UIUserInterfaceIdiom.pad {
                 return (width: 80, height: 100)  // 15% größer auf iPad
             } else {
                 return (width: 60, height: 80)  // 20% größer auf iPhone
@@ -2524,7 +2524,7 @@ struct LineupPlayerCard: View {
         #if os(macOS)
             return (firstName: 14, lastName: 16, avgPoints: 14, totalPoints: 11, status: 12)  // Größere Schriften auf macOS
         #else
-            if UIDevice.current.userInterfaceIdiom == .pad {
+            if UIDevice.current.userInterfaceIdiom == UIUserInterfaceIdiom.pad {
                 return (firstName: 13, lastName: 15, avgPoints: 13, totalPoints: 10, status: 11)
             } else {
                 return (firstName: 11, lastName: 13, avgPoints: 12, totalPoints: 9, status: 10)
@@ -2614,7 +2614,12 @@ struct ReservePlayersView: View {
 
     // Gruppiere Reservespieler nach Position
     private var reservePlayersByPosition: [(String, [TeamPlayer])] {
-        let grouped = Dictionary(grouping: reservePlayers) { $0.position }
+        var grouped: [Int: [TeamPlayer]] = [:]
+        for player in reservePlayers {
+            var list = grouped[player.position] ?? []
+            list.append(player)
+            grouped[player.position] = list
+        }
 
         return [
             ("Torhüter", grouped[1] ?? []),
@@ -3383,7 +3388,7 @@ struct AllPlayersRow: View {
             ) {
                 Text("")
             }
-            .toggleStyle(SwitchToggleStyle(tint: .blue))
+            .toggleStyle(SwitchToggleStyle(tint: Color.blue))
             .frame(width: 50, height: 30)
         }
         .padding(.vertical, 8)

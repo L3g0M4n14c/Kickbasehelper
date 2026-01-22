@@ -1,4 +1,3 @@
-import KickbaseCore
 import SwiftUI
 
 struct TeamTab: View {

@@ -1,4 +1,3 @@
-import KickbaseCore
 import SwiftUI
 
 struct LoginView: View {
@@ -18,7 +17,11 @@ struct LoginView: View {
                 iPhoneLayout
             }
         }
-        .background(Color(.systemGroupedBackground))
+        #if !SKIP
+            .background(Color(.systemGroupedBackground))
+        #else
+            .background(Color.gray.opacity(0.1))
+        #endif
     }
 
     private var iPadLayout: some View {
@@ -40,7 +43,7 @@ struct LoginView: View {
 
                     if authManager.isLoading {
                         ProgressView("Anmeldung läuft...")
-                            .progressViewStyle(CircularProgressViewStyle(tint: .green))
+                            .progressViewStyle(CircularProgressViewStyle(tint: Color.green))
                     }
 
                     if let error = authManager.errorMessage {
@@ -76,7 +79,7 @@ struct LoginView: View {
 
                 if authManager.isLoading {
                     ProgressView("Anmeldung läuft...")
-                        .progressViewStyle(CircularProgressViewStyle(tint: .green))
+                        .progressViewStyle(CircularProgressViewStyle(tint: Color.green))
                 }
 
                 if let error = authManager.errorMessage {
@@ -120,9 +123,11 @@ struct LoginView: View {
 
             TextField("ihre@email.com", text: $email)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
-                .textInputAutocapitalization(.never)
-                .keyboardType(.emailAddress)
-                .autocorrectionDisabled()
+                #if !SKIP
+                    .textInputAutocapitalization(.never)
+                    .keyboardType(.emailAddress)
+                    .autocorrectionDisabled()
+                #endif
         }
     }
 
@@ -140,7 +145,7 @@ struct LoginView: View {
                 }
 
                 Button(action: {
-                    showPassword.toggle()
+                    showPassword = !showPassword
                 }) {
                     Image(systemName: showPassword ? "eye.slash" : "eye")
                         .foregroundColor(.gray)

@@ -42,6 +42,7 @@ let package = Package(
                 .product(name: "SkipUI", package: "skip-ui"),
                 .product(name: "SkipFoundation", package: "skip-foundation"),
             ],
+            resources: [.process("Resources")],
             plugins: plugins
         )
     ]

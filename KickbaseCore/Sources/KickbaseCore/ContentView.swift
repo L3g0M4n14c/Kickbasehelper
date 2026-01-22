@@ -5,15 +5,16 @@
 //  Created by Marco Corro on 27.08.25.
 //
 
-import KickbaseCore
 import SwiftData
 import SwiftUI
 
-struct ContentView: View {
+public struct ContentView: View {
     @StateObject private var authManager = AuthenticationManager()
     @StateObject private var kickbaseManager = KickbaseManager()
 
-    var body: some View {
+    public init() {}
+
+    public var body: some View {
         Group {
             if authManager.isAuthenticated {
                 MainDashboardView()
