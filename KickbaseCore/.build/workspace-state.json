@@ -30,7 +30,7 @@
         "packageRef" : {
           "identity" : "skip",
           "kind" : "remoteSourceControl",
-          "location" : "https://source.skip.tools/skip.git",
+          "location" : "https://github.com/skiptools/skip.git",
           "name" : "skip"
         },
         "state" : {
@@ -47,7 +47,7 @@
         "packageRef" : {
           "identity" : "skip-foundation",
           "kind" : "remoteSourceControl",
-          "location" : "https://source.skip.tools/skip-foundation.git",
+          "location" : "https://github.com/skiptools/skip-foundation.git",
           "name" : "skip-foundation"
         },
         "state" : {
@@ -98,7 +98,7 @@
         "packageRef" : {
           "identity" : "skip-ui",
           "kind" : "remoteSourceControl",
-          "location" : "https://source.skip.tools/skip-ui.git",
+          "location" : "https://github.com/skiptools/skip-ui.git",
           "name" : "skip-ui"
         },
         "state" : {
