@@ -160,5 +160,56 @@ echo "✅ Package.swift successfully overwritten."
 echo "📄 Content check (head):"
 head -n 20 "$SKIP_MANIFEST"
 
+# -------------------------------------------------------------------------
+# 4. SURGICAL STRIKE CONTINUED: Neuter Dependent Packages
+# -------------------------------------------------------------------------
+# 'skip-foundation' and 'skip-ui' depend on the 'skipstone' plugin product.
+# Since we removed 'skipstone' from 'skip', these packages will fail to resolve.
+# We must remove the dependency from them as well.
+
+CHECKOUTS_DIR=$(dirname "$SKIP_DIR")
+echo "📂 Checkouts Root: $CHECKOUTS_DIR"
+
+neuter_package() {
+    PKG_NAME=$1
+    PKG_DIR="$CHECKOUTS_DIR/$PKG_NAME"
+    MANIFEST="$PKG_DIR/Package.swift"
+    
+    if [ -d "$PKG_DIR" ] && [ -f "$MANIFEST" ]; then
+        echo "🔪 Neutering $PKG_NAME..."
+        
+        # Make writable
+        chmod +w "$MANIFEST"
+        
+        # Backup
+        cp "$MANIFEST" "$MANIFEST.bak"
+        
+        # Replace .plugin(...) or similar references to "skipstone" with a comment
+        # We use a block comment /* ... */ to be safe within array lists
+        
+        # 1. Remove .plugin(name: "skipstone", package: "skip")
+        sed -i '' 's/\.plugin(name: "skipstone", package: "skip")/\/\* skipstone-plugin-removed \*\//g' "$MANIFEST"
+        
+        # 2. Remove .product(name: "skipstone", package: "skip") (if used this way)
+        sed -i '' 's/\.product(name: "skipstone", package: "skip")/\/\* skipstone-product-removed \*\//g' "$MANIFEST"
+        
+        # 3. Just in case it's listed as a string in a dependencies array (older swift versions or simpler declaration)
+        # But be careful not to match substrings.
+        # This is a fallback if specific patterns missed.
+        
+        echo "✅ Patched $MANIFEST."
+        grep "skipstone" "$MANIFEST" || echo "   (No remaining 'skipstone' references found)"
+    else
+        echo "ℹ️  $PKG_NAME not found in checkouts (might not be used)."
+    fi
+}
+
+echo "🏥 Extending cleanup to skip-foundation and skip-ui..."
+neuter_package "skip-foundation"
+neuter_package "skip-ui"
+# Add others if necessary
+neuter_package "skip-model" 
+neuter_package "skip-script"
+
 echo "🏁 Surgical strike script completed."
 
