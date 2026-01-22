@@ -96,10 +96,23 @@ cd "$CURRENT_PWD"
 
 echo "📍 Redirecting 'skip' repo to local mock at: $GIT_MOCK_PATH"
 
-# Redirect both source and github URLs to the local mock
-# This prevents Xcode from fetching the real repo with the plugin
-git config --global url."$GIT_MOCK_PATH".insteadOf "https://source.skip.tools/skip.git"
-git config --global url."$GIT_MOCK_PATH".insteadOf "https://github.com/skiptools/skip.git"
+# 1. Clean up SPM caches to ensure the real package isn't used from cache
+echo "🧹 Clearing SPM caches..."
+rm -rf ~/Library/Caches/org.swift.swiftpm
+rm -rf ~/Library/org.swift.swiftpm
+
+# 2. Remove Package.resolved to force re-resolution against the mock
+# (Since the mock repo has different commit hashes than the real one, the lockfile must be regenerated)
+RESOLVED_FILE="${TARGET_FILE%.swift}.resolved"
+if [ -f "$RESOLVED_FILE" ]; then
+    echo "🗑 Deleting $RESOLVED_FILE to force dependency resolution using mock..."
+    rm "$RESOLVED_FILE"
+fi
+
+# 3. Redirect both source and github URLs to the local mock
+# Using file:// schema is critical for SPM to respect the local path override correctly
+git config --global url."file://$GIT_MOCK_PATH".insteadOf "https://source.skip.tools/skip.git"
+git config --global url."file://$GIT_MOCK_PATH".insteadOf "https://github.com/skiptools/skip.git"
 
 # -------------------------------------------------------------------------
 # 4. DISABLE PLUGIN VALIDATION (Safety Net)
