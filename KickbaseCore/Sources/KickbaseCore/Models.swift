@@ -191,6 +191,18 @@ public struct Player: Codable, Identifiable {
         return "\(firstName) \(lastName)"
     }
 
+    public var imageUrl: URL? {
+        if profileBigUrl.hasPrefix("http") {
+            return URL(string: profileBigUrl)
+        } else if !profileBigUrl.isEmpty {
+            // Remove leading slash if present to avoid double slashes
+            let path =
+                profileBigUrl.hasPrefix("/") ? String(profileBigUrl.dropFirst()) : profileBigUrl
+            return URL(string: "https://kickbase.b-cdn.net/" + path)
+        }
+        return nil
+    }
+
     // Neue computed property für den vollständigen Teamnamen basierend auf teamId
     public var fullTeamName: String {
         return TeamMapping.getTeamName(for: teamId) ?? teamName
@@ -271,6 +283,18 @@ public struct MarketPlayer: Codable, Identifiable, Equatable {
 
     public var fullName: String {
         return "\(firstName) \(lastName)"
+    }
+
+    public var imageUrl: URL? {
+        if profileBigUrl.hasPrefix("http") {
+            return URL(string: profileBigUrl)
+        } else if !profileBigUrl.isEmpty {
+            // Remove leading slash if present to avoid double slashes
+            let path =
+                profileBigUrl.hasPrefix("/") ? String(profileBigUrl.dropFirst()) : profileBigUrl
+            return URL(string: "https://kickbase.b-cdn.net/" + path)
+        }
+        return nil
     }
 
     // Neue computed property für den vollständigen Teamnamen basierend auf teamId

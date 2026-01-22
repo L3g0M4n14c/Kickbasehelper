@@ -62,11 +62,22 @@ struct PlayerHeroHeader: View {
     let player: TeamPlayer
     @EnvironmentObject var ligainsiderService: LigainsiderService
 
+    private var heroImageUrl: URL? {
+        if let ligaPlayer = ligainsiderService.getLigainsiderPlayer(
+            firstName: player.firstName, lastName: player.lastName),
+            let imgString = ligaPlayer.imageUrl,
+            let url = URL(string: imgString)
+        {
+            return url
+        }
+        return player.imageUrl
+    }
+
     var body: some View {
         VStack(spacing: 20) {
             // Großes Profilbild mit Position Badge
             ZStack(alignment: .bottomTrailing) {
-                AsyncImage(url: URL(string: player.profileBigUrl)) { image in
+                AsyncImage(url: heroImageUrl) { image in
                     image
                         .resizable()
                         .aspectRatio(contentMode: .fill)
@@ -1320,7 +1331,7 @@ struct AlternativePlayerCard: View {
         VStack(spacing: 12) {
             // Header mit Foto und Namen
             HStack(spacing: 12) {
-                AsyncImage(url: URL(string: alternativePlayer.profileBigUrl)) { image in
+                AsyncImage(url: alternativePlayer.imageUrl) { image in
                     image
                         .resizable()
                         .aspectRatio(contentMode: .fill)

@@ -4,6 +4,7 @@ import SwiftUI
 struct MainDashboardView: View {
     @EnvironmentObject var kickbaseManager: KickbaseManager
     @EnvironmentObject var authManager: AuthenticationManager
+    @EnvironmentObject var ligainsiderService: LigainsiderService
     @State private var selectedTab = 0
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
 
@@ -22,6 +23,13 @@ struct MainDashboardView: View {
         .onAppear {
             // Automatisches Laden aller Daten beim ersten Start
             Task {
+                // Starte Ligainsider Fetch im Hintergrund (für Bilder und Status)
+                if ligainsiderService.matches.isEmpty {
+                    ligainsiderService.fetchLineups()
+                    // Lade zusätzlich alle Kader für Bilder von Spielern, die nicht in S11 sind
+                    ligainsiderService.fetchAllSquads()
+                }
+
                 // Warte auf Liga-Auswahl und lade dann alle Daten
                 await kickbaseManager.loadUserData()
 

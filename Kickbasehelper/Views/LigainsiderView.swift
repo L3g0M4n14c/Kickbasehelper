@@ -55,17 +55,69 @@ struct LigainsiderMatchRow: View {
             // Header: Team vs Team
             Button(action: { withAnimation { isExpanded.toggle() } }) {
                 HStack {
-                    Text(match.homeTeam)
-                        .font(.headline)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    // Home Team
+                    HStack(spacing: 8) {
+                        if let logo = match.homeLogo, let url = URL(string: logo) {
+                            AsyncImage(url: url) { phase in
+                                switch phase {
+                                case .empty:
+                                    ProgressView()
+                                        .frame(width: 30, height: 30)
+                                case .success(let image):
+                                    image
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(width: 30, height: 30)
+                                case .failure:
+                                    Image(systemName: "shield")
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(width: 30, height: 30)
+                                        .foregroundColor(.gray)
+                                @unknown default:
+                                    EmptyView()
+                                }
+                            }
+                        }
+                        Text(match.homeTeam)
+                            .font(.headline)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
                     Text("vs")
                         .foregroundColor(.gray)
                         .font(.caption)
 
-                    Text(match.awayTeam)
-                        .font(.headline)
-                        .frame(maxWidth: .infinity, alignment: .trailing)
+                    // Away Team
+                    HStack(spacing: 8) {
+                        Text(match.awayTeam)
+                            .font(.headline)
+                            .multilineTextAlignment(.trailing)
+
+                        if let logo = match.awayLogo, let url = URL(string: logo) {
+                            AsyncImage(url: url) { phase in
+                                switch phase {
+                                case .empty:
+                                    ProgressView()
+                                        .frame(width: 30, height: 30)
+                                case .success(let image):
+                                    image
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(width: 30, height: 30)
+                                case .failure:
+                                    Image(systemName: "shield")
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(width: 30, height: 30)
+                                        .foregroundColor(.gray)
+                                @unknown default:
+                                    EmptyView()
+                                }
+                            }
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .trailing)
 
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                         .foregroundColor(.gray)
