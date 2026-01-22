@@ -9,7 +9,21 @@ echo "🔧 Configuring Xcode Cloud specific settings..."
 # We use sed to physically modify Package.swift before the build starts.
 # This bypasses any issues with environment variables not propagating.
 
-TARGET_FILE="KickbaseCore/Package.swift"
+# In Xcode Cloud, this script runs inside the ci_scripts directory
+# So we need to go up one level to reach KickbaseCore
+TARGET_FILE="../KickbaseCore/Package.swift"
+
+if [ ! -f "$TARGET_FILE" ]; then
+    # Fallback to current directory just in case context changes
+    echo "⚠️ File not found at ../KickbaseCore/Package.swift, checking current dir..."
+    TARGET_FILE="KickbaseCore/Package.swift"
+fi
+
+if [ ! -f "$TARGET_FILE" ]; then
+    echo "❌ Error: Could not find Package.swift. Current dir: $(pwd)"
+    ls -la
+    exit 1
+fi
 
 echo "📝 Modifying $TARGET_FILE to disable Skip plugin..."
 
