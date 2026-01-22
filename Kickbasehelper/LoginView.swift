@@ -9,15 +9,16 @@ struct LoginView: View {
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
 
     var body: some View {
-        ZStack {
-            Color.white.ignoresSafeArea()
-            
+        Group {
             if horizontalSizeClass == .regular {
-                 iPadLayout
+                // iPad Layout - horizontal centered
+                iPadLayout
             } else {
-                 iPhoneLayout
+                // iPhone Layout - vertical centered
+                iPhoneLayout
             }
         }
+        .background(Color(.systemGroupedBackground))
     }
 
     private var iPadLayout: some View {
@@ -94,14 +95,12 @@ struct LoginView: View {
     private var logoSection: some View {
         VStack(spacing: 10) {
             Image("AppIconImage")
-            // Fallback image if asset is missing on Android
-            Image(systemName: "soccerball")
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .frame(
                     width: horizontalSizeClass == .regular ? 160 : 120,
                     height: horizontalSizeClass == .regular ? 160 : 120)
-                .foregroundColor(.green
+
             Text("Kickbase Helper")
                 .font(horizontalSizeClass == .regular ? .largeTitle : .title)
                 .fontWeight(.bold)
