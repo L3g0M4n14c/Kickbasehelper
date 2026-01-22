@@ -47,78 +47,112 @@ else
 fi
 
 # -------------------------------------------------------------------------
-# 3. MOCK 'skip' PACKAGE to prevent Plugin Validation
+# 3. SURGICAL STRIKE: Force Resolve & Modify 'skip'
 # -------------------------------------------------------------------------
-# Even if disabled in Package.swift, transitive dependencies (skip-ui) bring in 'skip'.
-# Xcode Cloud validates all plugins in resolved graph. 'skip' contains a plugin.
-# We replace 'skip' with a local dummy package that has NO plugin using git config redirects.
+# Strategy: Instead of mocking, we let Xcode resolve the real package, 
+# find where it checked it out in DerivedData, and overwrite its Package.swift 
+# to remove the plugin definition before the build starts.
 
-echo "👻 Creating Mock 'skip' package to bypass plugin validation..."
+echo "🏥 SURGICAL STRIKE: Force resolving and patching 'skip'..."
 
-# Location for the mock package (outside ci_scripts to avoid clutter)
-# ci_scripts is inside the repo, so ../MockSkip puts it in the repo root temporarily or ignored
-MOCK_DIR="../MockSkip"
-mkdir -p "$MOCK_DIR/Sources/Skip"
+# Define project and scheme paths relative to ci_scripts
+PROJECT_PATH="../Kickbasehelper.xcodeproj"
+SCHEME_NAME="Kickbasehelper"
 
-# Create dummy Package.swift
-# We provide the 'Skip' library product because 'skip-ui' likely links against it.
-cat > "$MOCK_DIR/Package.swift" <<EOF
+# 1. Resolve Dependencies to populate DerivedData
+echo "🔄 Resolving package dependencies to populate DerivedData..."
+# Note: This might take a moment as it fetches the real package
+if xcodebuild -resolvePackageDependencies -project "$PROJECT_PATH" -scheme "$SCHEME_NAME"; then
+    echo "✅ Resolution command finished."
+else
+    echo "⚠️ Resolution command reported failure (could be due to plugin validation). Proceeding to find checkouts anyway..."
+fi
+
+# 2. Locate DerivedData
+echo "🔍 Locating DerivedData path..."
+BUILD_SETTINGS=$(xcodebuild -project "$PROJECT_PATH" -scheme "$SCHEME_NAME" -showBuildSettings -skipUnavailableActions 2>/dev/null)
+BUILD_DIR=$(echo "$BUILD_SETTINGS" | grep "\bBUILD_DIR =" | awk -F ' = ' '{print $2}' | xargs)
+
+if [ -z "$BUILD_DIR" ]; then
+    echo "❌ Error: Could not determine BUILD_DIR."
+    echo "⚠️ Falling back to searching standard DerivedData location..."
+    DD_ROOT="$HOME/Library/Developer/Xcode/DerivedData"
+    # Find the most recently modified Kickbasehelper directory?
+    # We'll try to find the one containing SourcePackages/checkouts/skip
+    SKIP_DIR=$(find "$DD_ROOT" -type d -path "*/SourcePackages/checkouts/skip" -print -quit)
+else
+    # BUILD_DIR is .../DerivedData/Kickbasehelper-hash/Build/Products
+    DERIVED_DATA_ROOT=$(dirname "$(dirname "$BUILD_DIR")")
+    SKIP_DIR="$DERIVED_DATA_ROOT/SourcePackages/checkouts/skip"
+fi
+
+echo "📂 Target Skip Directory: $SKIP_DIR"
+
+if [ -z "$SKIP_DIR" ] || [ ! -d "$SKIP_DIR" ]; then
+    echo "❌ Fatal: 'skip' checkout directory not found."
+    echo "  Expected path: $SKIP_DIR"
+    echo "  Listing SourcePackages (if BUILD_DIR known):"
+    [ ! -z "$DERIVED_DATA_ROOT" ] && ls -R "$DERIVED_DATA_ROOT/SourcePackages"
+    exit 1
+fi
+
+echo "✅ Found 'skip' checkout."
+
+# 3. Overwrite Package.swift
+SKIP_MANIFEST="$SKIP_DIR/Package.swift"
+echo "💉 Injecting neutered Package.swift into $SKIP_MANIFEST"
+
+# Preserve original for debugging
+cp "$SKIP_MANIFEST" "$SKIP_MANIFEST.bak"
+
+# 4. Write the Sanitized Manifest
+# This manifest is based on skip v1.7.0 but drops all 'plugin' products and targets.
+cat > "$SKIP_MANIFEST" << 'EOF'
 // swift-tools-version: 5.9
 import PackageDescription
 
 let package = Package(
     name: "skip",
+    defaultLocalization: "en",
+    platforms: [
+        .iOS(.v16),
+        .macOS(.v13),
+        .tvOS(.v16),
+        .watchOS(.v9),
+        .macCatalyst(.v16),
+    ],
     products: [
-        .library(name: "Skip", targets: ["Skip"]),
+        // REMOVED: .plugin(name: "skipstone", targets: ["skipstone"]),
+        // REMOVED: .plugin(name: "skiplink", targets: ["Create SkipLink"]),
+        .library(name: "SkipDrive", targets: ["SkipDrive"]),
+        .library(name: "SkipTest", targets: ["SkipTest"]),
     ],
     targets: [
-        .target(name: "Skip"),
+        // REMOVED: .plugin(name: "skipstone", ...),
+        // REMOVED: .plugin(name: "Create SkipLink", ...),
+        
+        // MODIFIED: 'SkipDrive' originally depended on "skipstone". We remove that dependency.
+        // Original: .target(name: "SkipDrive", dependencies: ["skipstone", .target(name: "skip")]),
+        .target(name: "SkipDrive", dependencies: [
+            .target(name: "skip")
+        ]),
+        
+        .target(name: "SkipTest", dependencies: [
+             .target(name: "SkipDrive", condition: .when(platforms: [.macOS, .linux]))
+        ]),
+        
+        .testTarget(name: "SkipTestTests", dependencies: ["SkipTest"]),
+        .testTarget(name: "SkipDriveTests", dependencies: ["SkipDrive"]),
+        
+        // UNCHANGED: Binary target (macOS)
+        .binaryTarget(name: "skip", url: "https://source.skip.tools/skip/releases/download/1.7.0/skip-macos.zip", checksum: "b4e5a62b3cc436824dc9555bf71938d9e9aebcbd992c77ca96c7165dddb3b836")
     ]
 )
 EOF
 
-# Create dummy source file to make it a valid target
-echo "public struct Skip {}" > "$MOCK_DIR/Sources/Skip/Skip.swift"
+echo "✅ Package.swift successfully overwritten."
+echo "📄 Content check (head):"
+head -n 20 "$SKIP_MANIFEST"
 
-# Initialize Git repo and tag it to match the version dependencies expect (e.g. 1.7.0)
-CURRENT_PWD=$(pwd)
-cd "$MOCK_DIR" || exit 1
-git init
-git config user.email "ci@example.com"
-git config user.name "CI Bot"
-git add .
-git commit -m "Initial commit of Mock Skip"
-git tag 1.7.0
-git tag 1.0.0
-# Save absolute path
-GIT_MOCK_PATH=$(pwd)
-cd "$CURRENT_PWD"
+echo "🏁 Surgical strike script completed."
 
-echo "📍 Redirecting 'skip' repo to local mock at: $GIT_MOCK_PATH"
-
-# 1. Clean up SPM caches to ensure the real package isn't used from cache
-echo "🧹 Clearing SPM caches..."
-rm -rf ~/Library/Caches/org.swift.swiftpm
-rm -rf ~/Library/org.swift.swiftpm
-
-# 2. Remove Package.resolved to force re-resolution against the mock
-# (Since the mock repo has different commit hashes than the real one, the lockfile must be regenerated)
-RESOLVED_FILE="${TARGET_FILE%.swift}.resolved"
-if [ -f "$RESOLVED_FILE" ]; then
-    echo "🗑 Deleting $RESOLVED_FILE to force dependency resolution using mock..."
-    rm "$RESOLVED_FILE"
-fi
-
-# 3. Redirect both source and github URLs to the local mock
-# Using file:// schema is critical for SPM to respect the local path override correctly
-git config --global url."file://$GIT_MOCK_PATH".insteadOf "https://source.skip.tools/skip.git"
-git config --global url."file://$GIT_MOCK_PATH".insteadOf "https://github.com/skiptools/skip.git"
-
-# -------------------------------------------------------------------------
-# 4. DISABLE PLUGIN VALIDATION (Safety Net)
-# -------------------------------------------------------------------------
-echo "🛡 Setting defaults to disable plugin validation..."
-defaults write com.apple.dt.Xcode IDESkipPackagePluginFingerprintValidation -bool YES
-defaults write com.apple.dt.Xcode IDEDisablePluginValidation -bool YES
-
-echo "✅ CI setup complete."
