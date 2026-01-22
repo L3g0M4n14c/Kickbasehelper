@@ -387,16 +387,14 @@ struct PlayerRowView: View {
                             .fontWeight(.medium)
 
                         // Ligainsider Status Icon
-                        if !ligainsiderService.matches.isEmpty {
-                            let status = ligainsiderService.getPlayerStatus(
-                                firstName: player.firstName, lastName: player.lastName)
-                            if status != .out {
-                                Image(systemName: ligainsiderService.getIcon(for: status))
-                                    .foregroundColor(
-                                        Color(ligainsiderService.getColor(for: status))
-                                    )
-                                    .font(.caption)
-                            }
+                        let status = ligainsiderService.getPlayerStatus(
+                            firstName: player.firstName, lastName: player.lastName)
+                        if status != .out {
+                            Image(systemName: ligainsiderService.getIcon(for: status))
+                                .foregroundColor(
+                                    Color(ligainsiderService.getColor(for: status))
+                                )
+                                .font(.caption)
                         }
 
                         // Status-Icons basierend auf st-Feld aus API-Daten anzeigen
@@ -531,16 +529,14 @@ struct PlayerRowViewWithSale: View {
                                 .fontWeight(.medium)
 
                             // Ligainsider Status Icon
-                            if !ligainsiderService.matches.isEmpty {
-                                let status = ligainsiderService.getPlayerStatus(
-                                    firstName: player.firstName, lastName: player.lastName)
-                                if status != .out {
-                                    Image(systemName: ligainsiderService.getIcon(for: status))
-                                        .foregroundColor(
-                                            Color(ligainsiderService.getColor(for: status))
-                                        )
-                                        .font(.caption)
-                                }
+                            let status = ligainsiderService.getPlayerStatus(
+                                firstName: player.firstName, lastName: player.lastName)
+                            if status != .out {
+                                Image(systemName: ligainsiderService.getIcon(for: status))
+                                    .foregroundColor(
+                                        Color(ligainsiderService.getColor(for: status))
+                                    )
+                                    .font(.caption)
                             }
 
                             // Status-Icons basierend auf st-Feld aus API-Daten anzeigen
@@ -865,16 +861,14 @@ struct MarketPlayerRowView: View {
                             .fontWeight(.medium)
 
                         // Ligainsider Status Icon
-                        if !ligainsiderService.matches.isEmpty {
-                            let status = ligainsiderService.getPlayerStatus(
-                                firstName: player.firstName, lastName: player.lastName)
-                            if status != .out {
-                                Image(systemName: ligainsiderService.getIcon(for: status))
-                                    .foregroundColor(
-                                        Color(ligainsiderService.getColor(for: status))
-                                    )
-                                    .font(.caption)
-                            }
+                        let status = ligainsiderService.getPlayerStatus(
+                            firstName: player.firstName, lastName: player.lastName)
+                        if status != .out {
+                            Image(systemName: ligainsiderService.getIcon(for: status))
+                                .foregroundColor(
+                                    Color(ligainsiderService.getColor(for: status))
+                                )
+                                .font(.caption)
                         }
 
                         // Status-Icons basierend auf status-Feld aus API-Daten anzeigen
@@ -1830,17 +1824,15 @@ struct SalesRecommendationRow: View {
                                 .fontWeight(.medium)
 
                             // Ligainsider Status Icon
-                            if !ligainsiderService.matches.isEmpty {
-                                let status = ligainsiderService.getPlayerStatus(
-                                    firstName: recommendation.player.firstName,
-                                    lastName: recommendation.player.lastName)
-                                if status != .out {
-                                    Image(systemName: ligainsiderService.getIcon(for: status))
-                                        .foregroundColor(
-                                            Color(ligainsiderService.getColor(for: status))
-                                        )
-                                        .font(.caption)
-                                }
+                            let status = ligainsiderService.getPlayerStatus(
+                                firstName: recommendation.player.firstName,
+                                lastName: recommendation.player.lastName)
+                            if status != .out {
+                                Image(systemName: ligainsiderService.getIcon(for: status))
+                                    .foregroundColor(
+                                        Color(ligainsiderService.getColor(for: status))
+                                    )
+                                    .font(.caption)
                             }
 
                             // Status-Icons
@@ -2576,14 +2568,12 @@ struct LineupPlayerCard: View {
                     }
 
                     // Ligainsider Icon (wenn verfügbar)
-                    if !ligainsiderService.matches.isEmpty {
-                        let status = ligainsiderService.getPlayerStatus(
-                            firstName: player.firstName, lastName: player.lastName)
-                        if status != .out {
-                            Image(systemName: ligainsiderService.getIcon(for: status))
-                                .foregroundColor(Color(ligainsiderService.getColor(for: status)))
-                                .font(.system(size: fontSizes.status))
-                        }
+                    let status = ligainsiderService.getPlayerStatus(
+                        firstName: player.firstName, lastName: player.lastName)
+                    if status != .out {
+                        Image(systemName: ligainsiderService.getIcon(for: status))
+                            .foregroundColor(Color(ligainsiderService.getColor(for: status)))
+                            .font(.system(size: fontSizes.status))
                     }
                 }
             }
@@ -2867,16 +2857,14 @@ struct ReservePlayerRow: View {
                             .lineLimit(1)
 
                         // Ligainsider Status Icon
-                        if !ligainsiderService.matches.isEmpty {
-                            let status = ligainsiderService.getPlayerStatus(
-                                firstName: player.firstName, lastName: player.lastName)
-                            if status != .out {
-                                Image(systemName: ligainsiderService.getIcon(for: status))
-                                    .foregroundColor(
-                                        Color(ligainsiderService.getColor(for: status))
-                                    )
-                                    .font(.system(size: 8))
-                            }
+                        let status = ligainsiderService.getPlayerStatus(
+                            firstName: player.firstName, lastName: player.lastName)
+                        if status != .out {
+                            Image(systemName: ligainsiderService.getIcon(for: status))
+                                .foregroundColor(
+                                    Color(ligainsiderService.getColor(for: status))
+                                )
+                                .font(.system(size: 8))
                         }
 
                         // Status indicator
@@ -3309,16 +3297,14 @@ struct AllPlayersRow: View {
                                 .fontWeight(.medium)
 
                             // Ligainsider Status Icon
-                            if !ligainsiderService.matches.isEmpty {
-                                let status = ligainsiderService.getPlayerStatus(
-                                    firstName: player.firstName, lastName: player.lastName)
-                                if status != .out {
-                                    Image(systemName: ligainsiderService.getIcon(for: status))
-                                        .foregroundColor(
-                                            Color(ligainsiderService.getColor(for: status))
-                                        )
-                                        .font(.caption)
-                                }
+                            let status = ligainsiderService.getPlayerStatus(
+                                firstName: player.firstName, lastName: player.lastName)
+                            if status != .out {
+                                Image(systemName: ligainsiderService.getIcon(for: status))
+                                    .foregroundColor(
+                                        Color(ligainsiderService.getColor(for: status))
+                                    )
+                                    .font(.caption)
                             }
 
                             // Empfehlungsindikator

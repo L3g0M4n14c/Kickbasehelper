@@ -227,19 +227,27 @@ struct PlayerPillView: View {
                 .background(Color.black.opacity(0.4))
                 .cornerRadius(4)
 
-            // Alternative anzeigen falls unsicher
+            // Alternative anzeigen via Icon (1. Option / 2. Option) falls möglich
+            // Da wir hier LigainsiderPlayer haben, kennen wir den Status via 'alternative' property
+            // Wenn player.alternative != nil -> Er ist S11, aber hat Alternative (1. Option)
+            // Wenn er eine Alternative IST -> Das wissen wir hier im Pill View isoliert nicht sicher,
+            // (außer wir checken ob er als Alternative im Match gelistet war - aber PillView kriegt nur Player).
+            // ABER: LigainsiderStatus Logik in Service nutzt Cache.
+            // Checken wir den Status via Service? PitchView hat keinen Service access direkt, aber LigainsiderView hat environment.
+            // Wir fügen EnvironmentObject zu PitchView/PillView hinzu?
+            
             if let alt = player.alternative {
                 HStack(spacing: 2) {
-                    Image(systemName: "exclamationmark.triangle.fill")
+                    Image(systemName: "1.circle.fill") // 1. Option (Wackelkandidat)
                         .font(.system(size: 8))
-                        .foregroundColor(.yellow)
-                    Text("alt: \(alt)")
+                        .foregroundColor(.orange)
+                    Text(alt)
                         .font(.system(size: 8))
                         .lineLimit(1)
                 }
                 .foregroundColor(.white)
                 .padding(2)
-                .background(Color.red.opacity(0.7))
+                .background(Color.black.opacity(0.5)) // Neutralerer Hintergrund
                 .cornerRadius(4)
             }
         }

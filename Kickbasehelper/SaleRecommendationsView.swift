@@ -3,6 +3,7 @@ import SwiftUI
 
 struct SaleRecommendationsView: View {
     @ObservedObject var kickbaseManager: KickbaseManager
+    @EnvironmentObject var ligainsiderService: LigainsiderService
     @StateObject private var recommendationService: PlayerRecommendationService
     @State private var selectedGoal: SaleRecommendationGoal = .balanceBudget
     @State private var recommendations: [SaleRecommendation] = []
@@ -213,6 +214,7 @@ struct SaleRecommendationCard: View {
     let recommendation: SaleRecommendation
     @State private var expandedReplacements = false
     let currentBudget: Int
+    @EnvironmentObject var ligainsiderService: LigainsiderService
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -283,6 +285,18 @@ struct SaleRecommendationCard: View {
                             Text(recommendation.playerToSell.fullName)
                                 .font(.headline)
                                 .fontWeight(.semibold)
+
+                            // Ligainsider Status Icon
+                            let status = ligainsiderService.getPlayerStatus(
+                                firstName: recommendation.playerToSell.firstName,
+                                lastName: recommendation.playerToSell.lastName)
+                            if status != .out {
+                                Image(systemName: ligainsiderService.getIcon(for: status))
+                                    .foregroundColor(
+                                        Color(ligainsiderService.getColor(for: status))
+                                    )
+                                    .font(.caption)
+                            }
 
                             Text(positionAbbreviation(recommendation.playerToSell.position))
                                 .font(.caption2)
@@ -443,6 +457,7 @@ struct SaleRecommendationCard: View {
 struct ReplacementPlayerCard: View {
     let replacement: ReplacementSuggestion
     let originalPlayer: TeamPlayer
+    @EnvironmentObject var ligainsiderService: LigainsiderService
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -452,6 +467,18 @@ struct ReplacementPlayerCard: View {
                         Text(replacement.player.firstName + " " + replacement.player.lastName)
                             .font(.subheadline)
                             .fontWeight(.semibold)
+
+                        // Ligainsider Status Icon
+                        let status = ligainsiderService.getPlayerStatus(
+                            firstName: replacement.player.firstName,
+                            lastName: replacement.player.lastName)
+                        if status != .out {
+                            Image(systemName: ligainsiderService.getIcon(for: status))
+                                .foregroundColor(
+                                    Color(ligainsiderService.getColor(for: status))
+                                )
+                                .font(.caption)
+                        }
 
                         Text(positionAbbreviation(replacement.player.position))
                             .font(.caption2)

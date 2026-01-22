@@ -28,7 +28,8 @@ public struct LigainsiderMatch: Codable, Identifiable {
 
 public enum LigainsiderStatus {
     case likelyStart  // S11 ohne Alternative
-    case possibleStart  // S11 mit Alternative oder ist Alternative
+    case startWithAlternative  // S11 mit Alternative (1. Option)
+    case isAlternative  // Ist die Alternative (2. Option)
     case out  // Nicht im Kader / nicht gefunden
 }
 
@@ -189,7 +190,7 @@ public class LigainsiderService: ObservableObject {
         // Wenn Spieler gefunden: Check Status
         if let player = foundPlayer {
             if player.alternative != nil {
-                return .possibleStart
+                return .startWithAlternative
             }
             return .likelyStart
         }
@@ -201,7 +202,7 @@ public class LigainsiderService: ObservableObject {
         }
 
         if isAlternative {
-            return .possibleStart
+            return .isAlternative
         }
 
         return .out
@@ -211,7 +212,8 @@ public class LigainsiderService: ObservableObject {
     public func getIcon(for status: LigainsiderStatus) -> String {
         switch status {
         case .likelyStart: return "checkmark.circle.fill"
-        case .possibleStart: return "questionmark.circle.fill"
+        case .startWithAlternative: return "1.circle.fill"
+        case .isAlternative: return "2.circle.fill"
         case .out: return "xmark.circle.fill"
         }
     }
@@ -219,7 +221,8 @@ public class LigainsiderService: ObservableObject {
     public func getColor(for status: LigainsiderStatus) -> String {  // String Hex oder Color Name
         switch status {
         case .likelyStart: return "green"
-        case .possibleStart: return "orange"
+        case .startWithAlternative: return "orange"
+        case .isAlternative: return "orange"
         case .out: return "red"  // Oder Gray für unauffällig
         }
     }

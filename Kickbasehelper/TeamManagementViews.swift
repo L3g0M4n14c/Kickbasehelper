@@ -437,16 +437,14 @@ struct TeamPlayerRowWithSale: View {
                             .lineLimit(2)  // Erlaubt 2 Zeilen für längere Namen
 
                         // Ligainsider Status Icon
-                        if !ligainsiderService.matches.isEmpty {
-                            let status = ligainsiderService.getPlayerStatus(
-                                firstName: teamPlayer.firstName, lastName: teamPlayer.lastName)
-                            if status != .out {
-                                Image(systemName: ligainsiderService.getIcon(for: status))
-                                    .foregroundColor(
-                                        Color(ligainsiderService.getColor(for: status))
-                                    )
-                                    .font(.caption)
-                            }
+                        let status = ligainsiderService.getPlayerStatus(
+                            firstName: teamPlayer.firstName, lastName: teamPlayer.lastName)
+                        if status != .out {
+                            Image(systemName: ligainsiderService.getIcon(for: status))
+                                .foregroundColor(
+                                    Color(ligainsiderService.getColor(for: status))
+                                )
+                                .font(.caption)
                         }
 
                         // Status-Icons basierend auf st-Feld aus API-Daten anzeigen

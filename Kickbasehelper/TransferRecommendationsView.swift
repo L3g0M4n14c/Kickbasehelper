@@ -3,6 +3,7 @@ import SwiftUI
 
 struct TransferRecommendationsView: View {
     @ObservedObject var kickbaseManager: KickbaseManager
+    @EnvironmentObject var ligainsiderService: LigainsiderService
     @StateObject private var recommendationService: PlayerRecommendationService
     @State private var recommendations: [TransferRecommendation] = []
     @State private var teamAnalysis: TeamAnalysis?
@@ -595,6 +596,7 @@ struct TransferRecommendationsView: View {
 struct EnhancedRecommendationCard: View {
     let recommendation: TransferRecommendation
     let onTap: () -> Void
+    @EnvironmentObject var ligainsiderService: LigainsiderService
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -607,6 +609,18 @@ struct EnhancedRecommendationCard: View {
                             .font(.headline)
                             .fontWeight(.semibold)
                             .foregroundColor(.primary)
+
+                        // Ligainsider Status Icon
+                        let status = ligainsiderService.getPlayerStatus(
+                            firstName: recommendation.player.firstName,
+                            lastName: recommendation.player.lastName)
+                        if status != .out {
+                            Image(systemName: ligainsiderService.getIcon(for: status))
+                                .foregroundColor(
+                                    Color(ligainsiderService.getColor(for: status))
+                                )
+                                .font(.caption)
+                        }
 
                         // Form Trend Indicator
                         FormTrendBadge(trend: recommendation.analysis.formTrend)

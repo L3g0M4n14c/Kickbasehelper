@@ -179,7 +179,10 @@ struct PlayerHeroHeader: View {
                                 .foregroundColor(color)
                             Text(
                                 liStatus == .likelyStart
-                                    ? "S11" : (liStatus == .possibleStart ? "Möglich" : "Bank/Out")
+                                    ? "S11"
+                                    : (liStatus == .startWithAlternative
+                                        ? "1. Option"
+                                        : (liStatus == .isAlternative ? "2. Option" : "Bank/Out"))
                             )
                             .font(.caption)
                             .fontWeight(.medium)
