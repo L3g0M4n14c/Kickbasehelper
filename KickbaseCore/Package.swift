@@ -12,10 +12,15 @@ var enableSkipPlugin = true
 // -------------------------------------------------------------------------
 
 var plugins: [Target.PluginUsage] = []
+var packageDependencies: [Package.Dependency] = [
+    .package(url: "https://source.skip.tools/skip-ui.git", from: "1.0.0"),
+    .package(url: "https://source.skip.tools/skip-foundation.git", from: "1.0.0"),
+]
 
 // Only enable the Skip plugin if required
 if enableSkipPlugin {
     plugins.append(.plugin(name: "skipstone", package: "skip"))
+    packageDependencies.append(.package(url: "https://source.skip.tools/skip.git", from: "1.0.0"))
 }
 
 let package = Package(
@@ -29,11 +34,7 @@ let package = Package(
             name: "KickbaseCore",
             targets: ["KickbaseCore"])
     ],
-    dependencies: [
-        .package(url: "https://source.skip.tools/skip.git", from: "1.0.0"),
-        .package(url: "https://source.skip.tools/skip-ui.git", from: "1.0.0"),
-        .package(url: "https://source.skip.tools/skip-foundation.git", from: "1.0.0"),
-    ],
+    dependencies: packageDependencies,
     targets: [
         .target(
             name: "KickbaseCore",
