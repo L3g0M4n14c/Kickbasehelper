@@ -210,6 +210,8 @@ neuter_package "skip-ui"
 # Add others if necessary
 neuter_package "skip-model" 
 neuter_package "skip-script"
+neuter_package "skip-lib"
+neuter_package "skip-unit"
 
 echo "🏁 Surgical strike script completed."
 
