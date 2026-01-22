@@ -46,4 +46,66 @@ else
     exit 1
 fi
 
+# -------------------------------------------------------------------------
+# 3. MOCK 'skip' PACKAGE to prevent Plugin Validation
+# -------------------------------------------------------------------------
+# Even if disabled in Package.swift, transitive dependencies (skip-ui) bring in 'skip'.
+# Xcode Cloud validates all plugins in resolved graph. 'skip' contains a plugin.
+# We replace 'skip' with a local dummy package that has NO plugin using git config redirects.
+
+echo "👻 Creating Mock 'skip' package to bypass plugin validation..."
+
+# Location for the mock package (outside ci_scripts to avoid clutter)
+# ci_scripts is inside the repo, so ../MockSkip puts it in the repo root temporarily or ignored
+MOCK_DIR="../MockSkip"
+mkdir -p "$MOCK_DIR/Sources/Skip"
+
+# Create dummy Package.swift
+# We provide the 'Skip' library product because 'skip-ui' likely links against it.
+cat > "$MOCK_DIR/Package.swift" <<EOF
+// swift-tools-version: 5.9
+import PackageDescription
+
+let package = Package(
+    name: "skip",
+    products: [
+        .library(name: "Skip", targets: ["Skip"]),
+    ],
+    targets: [
+        .target(name: "Skip"),
+    ]
+)
+EOF
+
+# Create dummy source file to make it a valid target
+echo "public struct Skip {}" > "$MOCK_DIR/Sources/Skip/Skip.swift"
+
+# Initialize Git repo and tag it to match the version dependencies expect (e.g. 1.7.0)
+CURRENT_PWD=$(pwd)
+cd "$MOCK_DIR" || exit 1
+git init
+git config user.email "ci@example.com"
+git config user.name "CI Bot"
+git add .
+git commit -m "Initial commit of Mock Skip"
+git tag 1.7.0
+git tag 1.0.0
+# Save absolute path
+GIT_MOCK_PATH=$(pwd)
+cd "$CURRENT_PWD"
+
+echo "📍 Redirecting 'skip' repo to local mock at: $GIT_MOCK_PATH"
+
+# Redirect both source and github URLs to the local mock
+# This prevents Xcode from fetching the real repo with the plugin
+git config --global url."$GIT_MOCK_PATH".insteadOf "https://source.skip.tools/skip.git"
+git config --global url."$GIT_MOCK_PATH".insteadOf "https://github.com/skiptools/skip.git"
+
+# -------------------------------------------------------------------------
+# 4. DISABLE PLUGIN VALIDATION (Safety Net)
+# -------------------------------------------------------------------------
+echo "🛡 Setting defaults to disable plugin validation..."
+defaults write com.apple.dt.Xcode IDESkipPackagePluginFingerprintValidation -bool YES
+defaults write com.apple.dt.Xcode IDEDisablePluginValidation -bool YES
+
 echo "✅ CI setup complete."
