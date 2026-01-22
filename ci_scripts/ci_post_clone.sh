@@ -3,10 +3,19 @@
 #  ci_post_clone.sh
 #  Kickbasehelper
 #
-#  Created by GitHub Copilot on 22.01.26.
+#  Updated for Skip plugin trust issues
 #
 
-# Skip package plugin validation to avoid "Plugin must be enabled" error in Xcode Cloud
-defaults write com.apple.dt.Xcode IDESkipPackagePluginFingerprintValidation -bool YES
+echo "🔧 Configuring Xcode Cloud specific settings..."
 
-echo "✅ IDESkipPackagePluginFingerprintValidation set to YES"
+# Disable plugin validation for both Xcode and xcodebuild
+# This is required for Skipstone (and other plugins) to run in CI without interaction
+defaults write com.apple.dt.Xcode IDESkipPackagePluginFingerprintValidation -bool YES
+defaults write com.apple.dt.xcodebuild IDESkipPackagePluginFingerprintValidation -bool YES
+
+# Verify the settings
+echo "IDE settings updated:"
+defaults read com.apple.dt.Xcode IDESkipPackagePluginFingerprintValidation
+defaults read com.apple.dt.xcodebuild IDESkipPackagePluginFingerprintValidation
+
+echo "✅ Deployment preparation complete."
