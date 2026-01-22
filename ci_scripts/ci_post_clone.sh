@@ -27,8 +27,15 @@ defaults read com.apple.dt.xcodebuild IDESkipPackagePluginFingerprintValidation
 defaults read com.apple.dt.Xcode IDESkipMacroFingerprintValidation
 defaults read com.apple.dt.xcodebuild IDESkipMacroFingerprintValidation
 
+# Pre-resolve dependencies for the package directly
+echo "📦 Resolving Swift Package dependencies..."
+if [ -d "KickbaseCore" ]; then
+    echo "Resolving KickbaseCore..."
+    (cd KickbaseCore && swift package resolve)
+fi
+
 # Pre-resolve dependencies to ensure plugins are loaded with validation skipped
-echo "📦 Resolving package dependencies..."
+echo "📦 Resolving Project dependencies..."
 xcodebuild -resolvePackageDependencies -project Kickbasehelper.xcodeproj -skipPackagePluginValidation || true
 
 echo "✅ Deployment preparation complete."
