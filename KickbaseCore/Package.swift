@@ -2,9 +2,14 @@
 import PackageDescription
 import Foundation
 
-// Check environment variable to optionally disable Skip plugin (e.g. in Xcode Cloud)
-// Set 'SKIP_DISABLE_PLUGIN' to 'true' in your CI environment to disable the plugin
-let enableSkipPlugin = ProcessInfo.processInfo.environment["SKIP_DISABLE_PLUGIN"] != "true"
+// -------------------------------------------------------------------------
+// CONFIGURATION
+// -------------------------------------------------------------------------
+// This variable controls whether the Skipstone plugin is loaded.
+// It is set to 'true' by default for local development.
+// It will be replaced with 'false' by ci_scripts/ci_post_clone.sh in CI.
+var enableSkipPlugin = true
+// -------------------------------------------------------------------------
 
 var plugins: [Target.PluginUsage] = []
 
