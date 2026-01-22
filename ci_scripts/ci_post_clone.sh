@@ -5,10 +5,12 @@
 
 echo "🔧 Configuring Xcode Cloud specific settings..."
 
-# HARD REPLACEMENT for Skip Plugin
-# We use sed to physically modify Package.swift before the build starts.
-# This bypasses any issues with environment variables not propagating.
+# 1. Fix Dependency Resolution likely caused by source.skip.tools redirects
+echo "🌐 Configuring git to use github.com instead of source.skip.tools..."
+# Skip's vanity URL just redirects to GitHub, but this fails often in CI
+git config --global url."https://github.com/skiptools/".insteadOf "https://source.skip.tools/"
 
+# 2. Disable Skip Plugin to avoid 'Plugin must be enabled' trust issues
 # In Xcode Cloud, this script runs inside the ci_scripts directory
 # So we need to go up one level to reach KickbaseCore
 TARGET_FILE="../KickbaseCore/Package.swift"
