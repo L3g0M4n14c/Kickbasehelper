@@ -102,6 +102,12 @@ echo "✅ Found 'skip' checkout."
 SKIP_MANIFEST="$SKIP_DIR/Package.swift"
 echo "💉 Injecting neutered Package.swift into $SKIP_MANIFEST"
 
+# Make writable first (SPM checkouts are read-only)
+echo "🔓 Making $SKIP_MANIFEST writable..."
+chmod +w "$SKIP_MANIFEST"
+# Verify permissions
+ls -l "$SKIP_MANIFEST"
+
 # Preserve original for debugging
 cp "$SKIP_MANIFEST" "$SKIP_MANIFEST.bak"
 
