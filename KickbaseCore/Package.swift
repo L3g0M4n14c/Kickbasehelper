@@ -2,8 +2,9 @@
 import PackageDescription
 import Foundation
 
-// This variable will be set to false by ci_scripts/ci_post_clone.sh in Xcode Cloud
-var enableSkipPlugin = true
+// Check environment variable to optionally disable Skip plugin (e.g. in Xcode Cloud)
+// Set 'SKIP_DISABLE_PLUGIN' to 'true' in your CI environment to disable the plugin
+let enableSkipPlugin = ProcessInfo.processInfo.environment["SKIP_DISABLE_PLUGIN"] != "true"
 
 var plugins: [Target.PluginUsage] = []
 
