@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 // MARK: - Transfer Recommendation Models
 
@@ -30,11 +31,11 @@ public struct TransferRecommendation: Identifiable {
         case medium = "Mittel"
         case high = "Hoch"
 
-        public var color: String {
+        public var color: Color {
             switch self {
-            case .low: return "green"
-            case .medium: return "orange"
-            case .high: return "red"
+            case .low: return .green
+            case .medium: return .orange
+            case .high: return .red
             }
         }
     }
@@ -44,11 +45,11 @@ public struct TransferRecommendation: Identifiable {
         case recommended = "Empfohlen"
         case optional = "Optional"
 
-        public var color: String {
+        public var color: Color {
             switch self {
-            case .essential: return "red"
-            case .recommended: return "orange"
-            case .optional: return "blue"
+            case .essential: return .red
+            case .recommended: return .orange
+            case .optional: return .blue
             }
         }
     }
@@ -91,11 +92,11 @@ public struct PlayerAnalysis: Codable {
         case stable = "Stabil"
         case declining = "Verschlechterung"
 
-        public var color: String {
+        public var color: Color {
             switch self {
-            case .improving: return "green"
-            case .stable: return "blue"
-            case .declining: return "red"
+            case .improving: return .green
+            case .stable: return .blue
+            case .declining: return .red
             }
         }
     }
@@ -105,11 +106,11 @@ public struct PlayerAnalysis: Codable {
         case medium = "Mittel"
         case high = "Hoch"
 
-        public var color: String {
+        public var color: Color {
             switch self {
-            case .low: return "green"
-            case .medium: return "orange"
-            case .high: return "red"
+            case .low: return .green
+            case .medium: return .orange
+            case .high: return .red
             }
         }
     }
@@ -131,7 +132,7 @@ public struct FixtureAnalysis: Identifiable, Codable {
         self.difficultAwayGames = difficultAwayGames
         self.totalMatches = totalMatches
     }
-    
+
     private enum CodingKeys: String, CodingKey {
         case averageDifficulty, topTeamOpponents, difficultAwayGames, totalMatches
     }

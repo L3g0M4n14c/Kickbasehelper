@@ -197,7 +197,7 @@ struct LineupSlotRowView: View {
                                     if status != .out {
                                         Image(systemName: ligainsiderService.getIcon(for: status))
                                             .foregroundColor(
-                                                Color(ligainsiderService.getColor(for: status))
+                                                ligainsiderService.getColor(for: status)
                                             )
                                             .font(.caption2)
                                     }
@@ -254,7 +254,7 @@ struct LineupSlotRowView: View {
                                     if status != .out {
                                         Image(systemName: ligainsiderService.getIcon(for: status))
                                             .foregroundColor(
-                                                Color(ligainsiderService.getColor(for: status))
+                                                ligainsiderService.getColor(for: status)
                                             )
                                             .font(.caption2)
                                     }

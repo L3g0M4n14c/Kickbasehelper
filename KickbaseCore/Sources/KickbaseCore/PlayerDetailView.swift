@@ -168,10 +168,7 @@ struct PlayerHeroHeader: View {
                     if !ligainsiderService.matches.isEmpty {
                         let liStatus = ligainsiderService.getPlayerStatus(
                             firstName: player.firstName, lastName: player.lastName)
-                        let colorString = ligainsiderService.getColor(for: liStatus)
-                        let color =
-                            (colorString == "green")
-                            ? Color.green : (colorString == "orange" ? Color.orange : Color.red)
+                        let color = ligainsiderService.getColor(for: liStatus)
 
                         HStack(spacing: 6) {
                             Image(systemName: ligainsiderService.getIcon(for: liStatus))

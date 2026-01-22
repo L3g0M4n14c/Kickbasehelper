@@ -1,5 +1,6 @@
 import Combine
 import Foundation
+import SwiftUI
 
 // MARK: - Models
 
@@ -218,12 +219,12 @@ public class LigainsiderService: ObservableObject {
         }
     }
 
-    public func getColor(for status: LigainsiderStatus) -> String {  // String Hex oder Color Name
+    public func getColor(for status: LigainsiderStatus) -> Color {
         switch status {
-        case .likelyStart: return "green"
-        case .startWithAlternative: return "orange"
-        case .isAlternative: return "orange"
-        case .out: return "red"  // Oder Gray für unauffällig
+        case .likelyStart: return .green
+        case .startWithAlternative: return .orange
+        case .isAlternative: return .orange
+        case .out: return .red
         }
     }
 

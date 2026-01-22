@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 // MARK: - Authentication Models
 public struct LoginRequest: Codable {
@@ -218,13 +219,13 @@ public struct Player: Codable, Identifiable {
         }
     }
 
-    public var positionColor: String {
+    public var positionColor: Color {
         switch position {
-        case 1: return "yellow"  // TW
-        case 2: return "green"  // ABW
-        case 3: return "blue"  // MF
-        case 4: return "red"  // ST
-        default: return "gray"
+        case 1: return .yellow  // TW
+        case 2: return .green  // ABW
+        case 3: return .blue  // MF
+        case 4: return .red  // ST
+        default: return .gray
         }
     }
 
@@ -312,13 +313,13 @@ public struct MarketPlayer: Codable, Identifiable, Equatable {
         }
     }
 
-    public var positionColor: String {
+    public var positionColor: Color {
         switch position {
-        case 1: return "blue"  // Torwart
-        case 2: return "green"  // Abwehr
-        case 3: return "orange"  // Mittelfeld
-        case 4: return "red"  // Sturm
-        default: return "gray"
+        case 1: return .blue  // Torwart
+        case 2: return .green  // Abwehr
+        case 3: return .orange  // Mittelfeld
+        case 4: return .red  // Sturm
+        default: return .gray
         }
     }
 
