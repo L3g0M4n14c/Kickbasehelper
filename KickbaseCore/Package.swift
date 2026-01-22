@@ -30,9 +30,9 @@ let package = Package(
             targets: ["KickbaseCore"])
     ],
     dependencies: [
-        .package(url: "https://github.com/skiptools/skip.git", from: "1.0.0"),
-        .package(url: "https://github.com/skiptools/skip-ui.git", from: "1.0.0"),
-        .package(url: "https://github.com/skiptools/skip-foundation.git", from: "1.0.0"),
+        .package(url: "https://source.skip.tools/skip.git", from: "1.0.0"),
+        .package(url: "https://source.skip.tools/skip-ui.git", from: "1.0.0"),
+        .package(url: "https://source.skip.tools/skip-foundation.git", from: "1.0.0"),
     ],
     targets: [
         .target(
