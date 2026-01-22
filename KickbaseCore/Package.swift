@@ -2,19 +2,14 @@
 import PackageDescription
 import Foundation
 
-// Check if running in a CI environment (Xcode Cloud sets CI=TRUE)
-// Also check for explicit opt-out via SKIP_DISABLE_PLUGIN
-let isCI = ProcessInfo.processInfo.environment["CI"] == "TRUE" || 
-           ProcessInfo.processInfo.environment["CI"] == "true" ||
-           ProcessInfo.processInfo.environment["SKIP_DISABLE_PLUGIN"] == "true"
+// This variable will be set to false by ci_scripts/ci_post_clone.sh in Xcode Cloud
+var enableSkipPlugin = true
 
 var plugins: [Target.PluginUsage] = []
 
-// Only enable the Skip plugin if NOT running in CI
-if !isCI {
+// Only enable the Skip plugin if required
+if enableSkipPlugin {
     plugins.append(.plugin(name: "skipstone", package: "skip"))
-} else {
-    print("⚠️ Skipstone plugin disabled for CI build")
 }
 
 let package = Package(
