@@ -530,7 +530,18 @@ public class LigainsiderService: ObservableObject {
         var formationRows: [[LigainsiderPlayer]] = []
 
         // Parsing Logik für Aufstellung
-        if let contentStart = html.substringAfter("VORAUSSICHTLICHE AUFSTELLUNG") {
+        // Support for both Pre-Match (VORAUSSICHTLICHE AUFSTELLUNG) and Live/Post-Match (Voraussichtliche Aufstellung und Ergebnisse) headers
+        let headerMarkers = ["VORAUSSICHTLICHE AUFSTELLUNG", "Voraussichtliche Aufstellung"]
+        var contentStart: String?
+
+        for marker in headerMarkers {
+            if let found = html.substringAfter(marker) {
+                contentStart = found
+                break
+            }
+        }
+
+        if let contentStart = contentStart {
             let limit = min(100000, contentStart.count)
             let searchArea = String(contentStart.prefix(limit))
 
@@ -594,8 +605,19 @@ public class LigainsiderService: ObservableObject {
 
                         // HTML Tags entfernen bevor getrimmt wird
                         let clearName = removeHtmlTags(rawName)
-                        let name = clearName.trimmingCharacters(
+                        var name = clearName.trimmingCharacters(
                             in: CharacterSet.whitespacesAndNewlines)
+
+                        // Fallback: Wenn Name leer ist (z.B. bei Live-Ansicht wo nur ein IMG Tag drin ist), versuche title/alt attribute zu lesen
+                        if name.isEmpty {
+                            if let title = rawName.substringBetween("title=\"", "\"") {
+                                name = title
+                            } else if let alt = rawName.substringBetween("alt=\"", "\"") {
+                                name = alt
+                            }
+                        }
+
+                        if name.isEmpty || name.count > 50 { continue }
 
                         if name.count > 1 && !seen.contains(name) {
                             seen.insert(name)

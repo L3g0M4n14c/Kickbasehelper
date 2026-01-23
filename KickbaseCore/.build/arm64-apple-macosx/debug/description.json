@@ -164,8 +164,8 @@
     }
   },
   "generatedSourceTargetSet" : [
-    "Create_SkipLink",
-    "skipstone"
+    "skipstone",
+    "Create_SkipLink"
   ],
   "pluginDescriptions" : [
     {
