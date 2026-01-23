@@ -1,0 +1,446 @@
+> Task :app:clean
+> Task :KickbaseCore:clean
+> Task :SkipFoundation:clean
+> Task :SkipLib:clean
+> Task :SkipModel:clean
+> Task :SkipUI:clean
+> Task :SkipUnit:clean
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :KickbaseCore:preBuild UP-TO-DATE
+> Task :KickbaseCore:preDebugBuild UP-TO-DATE
+> Task :SkipFoundation:preBuild UP-TO-DATE
+> Task :SkipFoundation:preDebugBuild UP-TO-DATE
+> Task :KickbaseCore:writeDebugAarMetadata
+> Task :SkipLib:preBuild UP-TO-DATE
+> Task :SkipLib:preDebugBuild UP-TO-DATE
+> Task :SkipFoundation:writeDebugAarMetadata
+> Task :SkipModel:preBuild UP-TO-DATE
+> Task :SkipModel:preDebugBuild UP-TO-DATE
+> Task :SkipLib:writeDebugAarMetadata
+> Task :SkipUI:preBuild UP-TO-DATE
+> Task :SkipModel:writeDebugAarMetadata
+> Task :SkipUI:preDebugBuild UP-TO-DATE
+> Task :SkipUI:writeDebugAarMetadata
+> Task :KickbaseCore:processDebugNavigationResources
+> Task :SkipFoundation:processDebugNavigationResources
+> Task :SkipLib:processDebugNavigationResources
+> Task :SkipModel:processDebugNavigationResources
+> Task :SkipUI:processDebugNavigationResources
+> Task :app:processDebugNavigationResources
+> Task :app:compileDebugNavigationResources
+> Task :app:generateDebugResValues
+> Task :app:processDebugGoogleServices
+> Task :KickbaseCore:generateDebugResValues
+> Task :app:checkDebugAarMetadata
+> Task :KickbaseCore:generateDebugResources
+> Task :KickbaseCore:packageDebugResources
+> Task :SkipFoundation:generateDebugResValues
+> Task :SkipFoundation:generateDebugResources
+> Task :SkipFoundation:packageDebugResources
+> Task :SkipLib:generateDebugResValues
+> Task :SkipLib:generateDebugResources
+> Task :SkipLib:packageDebugResources
+> Task :SkipModel:generateDebugResValues
+> Task :SkipModel:generateDebugResources
+> Task :SkipModel:packageDebugResources
+> Task :SkipUI:generateDebugResValues
+> Task :SkipUI:generateDebugResources
+> Task :SkipUI:packageDebugResources
+> Task :app:mapDebugSourceSetPaths
+> Task :app:generateDebugResources
+> Task :app:packageDebugResources
+> Task :app:createDebugCompatibleScreenManifests
+> Task :app:extractDeepLinksDebug
+> Task :KickbaseCore:extractDeepLinksDebug
+> Task :SkipFoundation:extractDeepLinksDebug
+> Task :SkipLib:extractDeepLinksDebug
+> Task :KickbaseCore:processDebugManifest
+> Task :SkipModel:extractDeepLinksDebug
+> Task :SkipFoundation:processDebugManifest
+> Task :SkipLib:processDebugManifest
+> Task :SkipUI:extractDeepLinksDebug
+> Task :SkipUI:processDebugManifest
+> Task :KickbaseCore:compileDebugLibraryResources
+> Task :SkipFoundation:compileDebugLibraryResources
+> Task :SkipLib:compileDebugLibraryResources
+> Task :SkipModel:processDebugManifest
+> Task :SkipModel:compileDebugLibraryResources
+> Task :app:parseDebugLocalResources
+> Task :KickbaseCore:parseDebugLocalResources
+> Task :SkipFoundation:parseDebugLocalResources
+> Task :SkipLib:parseDebugLocalResources
+> Task :app:mergeDebugResources
+
+> Task :app:processDebugMainManifest
+[:KickbaseCore] /Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml Warning:
+	Namespace 'Kickbasehelper' is used in multiple modules and/or libraries: :KickbaseCore, :SkipUI, :SkipModel, :SkipFoundation, :SkipLib. Please ensure that all modules and libraries have a unique namespace. For more information, See https://developer.android.com/studio/build/configure-app-module#set-namespace
+
+> Task :app:processDebugManifest
+> Task :KickbaseCore:generateDebugRFile
+> Task :SkipUI:compileDebugLibraryResources
+> Task :SkipFoundation:generateDebugRFile
+> Task :SkipLib:generateDebugRFile
+> Task :app:processDebugManifestForPackage
+> Task :SkipModel:parseDebugLocalResources
+> Task :KickbaseCore:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :SkipFoundation:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :SkipLib:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :SkipUI:parseDebugLocalResources
+> Task :SkipModel:generateDebugRFile
+> Task :SkipLib:javaPreCompileDebug
+> Task :SkipModel:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :SkipUI:generateDebugRFile
+> Task :SkipFoundation:javaPreCompileDebug
+> Task :SkipModel:javaPreCompileDebug
+> Task :SkipUI:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :SkipUI:javaPreCompileDebug
+> Task :KickbaseCore:javaPreCompileDebug
+> Task :app:javaPreCompileDebug
+> Task :app:mergeDebugShaders
+> Task :app:compileDebugShaders NO-SOURCE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :KickbaseCore:mergeDebugShaders
+> Task :KickbaseCore:compileDebugShaders NO-SOURCE
+> Task :KickbaseCore:generateDebugAssets UP-TO-DATE
+> Task :KickbaseCore:mergeDebugAssets
+> Task :SkipFoundation:mergeDebugShaders
+> Task :SkipFoundation:compileDebugShaders NO-SOURCE
+> Task :SkipFoundation:generateDebugAssets UP-TO-DATE
+> Task :SkipFoundation:mergeDebugAssets
+> Task :SkipLib:mergeDebugShaders
+> Task :SkipLib:compileDebugShaders NO-SOURCE
+> Task :SkipLib:generateDebugAssets UP-TO-DATE
+> Task :SkipLib:mergeDebugAssets
+> Task :SkipModel:mergeDebugShaders
+> Task :SkipModel:compileDebugShaders NO-SOURCE
+> Task :SkipModel:generateDebugAssets UP-TO-DATE
+> Task :SkipModel:mergeDebugAssets
+> Task :SkipUI:mergeDebugShaders
+> Task :SkipUI:compileDebugShaders NO-SOURCE
+> Task :SkipUI:generateDebugAssets UP-TO-DATE
+> Task :SkipUI:mergeDebugAssets
+> Task :app:mergeDebugAssets
+> Task :app:desugarDebugFileDependencies
+> Task :app:compressDebugAssets
+> Task :app:mergeDebugJniLibFolders
+> Task :KickbaseCore:mergeDebugJniLibFolders
+> Task :KickbaseCore:mergeDebugNativeLibs NO-SOURCE
+> Task :KickbaseCore:copyDebugJniLibsProjectOnly
+> Task :SkipFoundation:mergeDebugJniLibFolders
+> Task :SkipFoundation:mergeDebugNativeLibs NO-SOURCE
+> Task :SkipFoundation:copyDebugJniLibsProjectOnly
+> Task :SkipLib:mergeDebugJniLibFolders
+> Task :SkipLib:mergeDebugNativeLibs NO-SOURCE
+> Task :SkipLib:copyDebugJniLibsProjectOnly
+> Task :SkipModel:mergeDebugJniLibFolders
+> Task :SkipModel:mergeDebugNativeLibs NO-SOURCE
+> Task :SkipModel:copyDebugJniLibsProjectOnly
+> Task :SkipUI:mergeDebugJniLibFolders
+> Task :SkipUI:mergeDebugNativeLibs NO-SOURCE
+> Task :SkipUI:copyDebugJniLibsProjectOnly
+> Task :app:validateSigningDebug
+> Task :app:writeDebugAppMetadata
+> Task :app:writeDebugSigningConfigVersions
+> Task :app:mergeDebugNativeLibs
+> Task :KickbaseCore:checkDebugAarMetadata
+> Task :KickbaseCore:stripDebugDebugSymbols NO-SOURCE
+> Task :KickbaseCore:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :KickbaseCore:prepareDebugArtProfile UP-TO-DATE
+> Task :KickbaseCore:prepareLintJarForPublish UP-TO-DATE
+> Task :SkipFoundation:stripDebugDebugSymbols NO-SOURCE
+> Task :SkipFoundation:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :SkipFoundation:prepareDebugArtProfile UP-TO-DATE
+> Task :SkipFoundation:prepareLintJarForPublish UP-TO-DATE
+> Task :app:checkDebugDuplicateClasses
+> Task :SkipLib:checkDebugAarMetadata
+> Task :KickbaseCore:copyDebugJniLibsProjectAndLocalJars
+> Task :SkipFoundation:checkDebugAarMetadata
+> Task :SkipFoundation:copyDebugJniLibsProjectAndLocalJars
+> Task :SkipLib:stripDebugDebugSymbols NO-SOURCE
+> Task :SkipLib:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :SkipLib:prepareDebugArtProfile UP-TO-DATE
+> Task :SkipLib:prepareLintJarForPublish UP-TO-DATE
+> Task :SkipModel:stripDebugDebugSymbols NO-SOURCE
+> Task :SkipModel:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :SkipModel:prepareDebugArtProfile UP-TO-DATE
+> Task :SkipModel:prepareLintJarForPublish UP-TO-DATE
+> Task :SkipLib:copyDebugJniLibsProjectAndLocalJars
+> Task :SkipUI:stripDebugDebugSymbols NO-SOURCE
+> Task :SkipModel:copyDebugJniLibsProjectAndLocalJars
+> Task :SkipUI:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :SkipUI:prepareDebugArtProfile UP-TO-DATE
+> Task :SkipUI:prepareLintJarForPublish UP-TO-DATE
+> Task :SkipUnit:preBuild UP-TO-DATE
+> Task :SkipUnit:preDebugBuild UP-TO-DATE
+> Task :SkipModel:checkDebugAarMetadata
+> Task :SkipUI:copyDebugJniLibsProjectAndLocalJars
+> Task :SkipUnit:checkDebugAarMetadata
+> Task :SkipUnit:mergeDebugJniLibFolders
+> Task :SkipUnit:mergeDebugNativeLibs NO-SOURCE
+> Task :SkipUnit:stripDebugDebugSymbols NO-SOURCE
+> Task :SkipUnit:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :SkipUnit:generateDebugResValues
+> Task :SkipUI:checkDebugAarMetadata
+> Task :SkipUnit:copyDebugJniLibsProjectAndLocalJars
+> Task :app:stripDebugDebugSymbols
+> Task :SkipUnit:generateDebugResources
+> Task :SkipUnit:packageDebugResources
+> Task :SkipUnit:processDebugNavigationResources
+> Task :SkipUnit:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :SkipUnit:mergeDebugShaders
+> Task :SkipUnit:compileDebugShaders NO-SOURCE
+> Task :SkipUnit:generateDebugAssets UP-TO-DATE
+> Task :SkipUnit:parseDebugLocalResources
+> Task :SkipUnit:mergeDebugAssets
+> Task :SkipUnit:prepareDebugArtProfile UP-TO-DATE
+> Task :SkipUnit:prepareLintJarForPublish UP-TO-DATE
+> Task :SkipUnit:javaPreCompileDebug
+> Task :SkipUnit:writeDebugAarMetadata
+> Task :SkipUnit:generateDebugRFile
+> Task :SkipUnit:processDebugManifest
+> Task :app:processDebugResources
+> Task :SkipUnit:compileDebugKotlin
+> Task :SkipUnit:extractDebugAnnotations
+> Task :SkipUnit:compileDebugJavaWithJavac NO-SOURCE
+> Task :SkipUnit:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :SkipUnit:mergeDebugConsumerProguardFiles UP-TO-DATE
+> Task :SkipUnit:processDebugJavaRes
+> Task :SkipUnit:mergeDebugJavaResource
+> Task :SkipUnit:syncDebugLibJars
+> Task :SkipUnit:bundleDebugAar
+> Task :SkipUnit:assembleDebug
+> Task :SkipLib:compileDebugKotlin
+> Task :SkipLib:compileDebugJavaWithJavac NO-SOURCE
+> Task :SkipLib:processDebugJavaRes
+> Task :SkipLib:extractDebugAnnotations
+> Task :SkipLib:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :SkipLib:mergeDebugConsumerProguardFiles UP-TO-DATE
+> Task :SkipLib:mergeDebugJavaResource
+> Task :SkipLib:bundleLibCompileToJarDebug
+> Task :SkipLib:bundleLibRuntimeToJarDebug
+> Task :SkipLib:syncDebugLibJars
+> Task :SkipLib:bundleDebugAar
+> Task :SkipLib:assembleDebug
+> Task :SkipLib:bundleLibRuntimeToDirDebug
+> Task :SkipFoundation:compileDebugKotlin
+> Task :SkipFoundation:compileDebugJavaWithJavac NO-SOURCE
+> Task :SkipFoundation:processDebugJavaRes
+> Task :SkipFoundation:bundleLibCompileToJarDebug
+> Task :SkipFoundation:bundleLibRuntimeToJarDebug
+> Task :SkipFoundation:extractDebugAnnotations
+> Task :SkipFoundation:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :SkipFoundation:mergeDebugConsumerProguardFiles UP-TO-DATE
+> Task :SkipFoundation:mergeDebugJavaResource
+> Task :SkipFoundation:syncDebugLibJars
+> Task :SkipFoundation:bundleDebugAar
+> Task :SkipFoundation:assembleDebug
+> Task :SkipFoundation:bundleLibRuntimeToDirDebug
+> Task :SkipModel:compileDebugKotlin
+> Task :SkipModel:compileDebugJavaWithJavac NO-SOURCE
+> Task :SkipModel:bundleLibRuntimeToJarDebug
+> Task :SkipModel:bundleLibCompileToJarDebug
+> Task :SkipModel:processDebugJavaRes
+> Task :app:mergeExtDexDebug
+> Task :SkipModel:extractDebugAnnotations
+> Task :SkipModel:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :SkipModel:mergeDebugConsumerProguardFiles UP-TO-DATE
+> Task :SkipModel:mergeDebugJavaResource
+> Task :SkipModel:syncDebugLibJars
+> Task :SkipModel:bundleLibRuntimeToDirDebug
+> Task :SkipModel:bundleDebugAar
+> Task :SkipModel:assembleDebug
+> Task :SkipUI:compileDebugKotlin
+> Task :SkipUI:compileDebugJavaWithJavac NO-SOURCE
+> Task :SkipUI:processDebugJavaRes
+> Task :SkipUI:extractDebugAnnotations
+> Task :SkipUI:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :SkipUI:mergeDebugConsumerProguardFiles UP-TO-DATE
+> Task :SkipUI:mergeDebugJavaResource
+> Task :SkipUI:bundleLibCompileToJarDebug
+> Task :SkipUI:bundleLibRuntimeToJarDebug
+> Task :SkipUI:syncDebugLibJars
+> Task :SkipUI:bundleDebugAar
+> Task :SkipUI:assembleDebug
+> Task :SkipUI:bundleLibRuntimeToDirDebug
+
+> Task :KickbaseCore:compileDebugKotlin
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/LigainsiderService.kt:338:38 None of the following candidates is applicable:
+val <E0, E1> Tuple2<E0, E1>.value: E1
+val <E0, E1> Tuple2<E0, E1>.value: E1
+val <E0, E1> Tuple2<E0, E1>.value: E1
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/LigainsiderService.kt:344:31 None of the following candidates is applicable:
+val <E0, E1> Tuple2<E0, E1>.value: E1
+val <E0, E1> Tuple2<E0, E1>.value: E1
+val <E0, E1> Tuple2<E0, E1>.value: E1
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/LigainsiderService.kt:368:45 None of the following candidates is applicable:
+val <E0, E1> Tuple2<E0, E1>.value: E1
+val <E0, E1> Tuple2<E0, E1>.value: E1
+val <E0, E1> Tuple2<E0, E1>.value: E1
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/LigainsiderService.kt:374:38 None of the following candidates is applicable:
+val <E0, E1> Tuple2<E0, E1>.value: E1
+val <E0, E1> Tuple2<E0, E1>.value: E1
+val <E0, E1> Tuple2<E0, E1>.value: E1
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/LigainsiderService.kt:452:55 Argument type mismatch: actual type is 'Array<CapturedType(*)>', but 'Sequence<LigainsiderPlayer>' was expected.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/LigainsiderService.kt:522:61 No parameter with name 'range' found.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/LigainsiderService.kt:541:56 No parameter with name 'range' found.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/LigainsiderService.kt:558:34 Unresolved reference. None of the following candidates is applicable because of a receiver type mismatch:
+fun String.range(of: String): IntRange?
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/LigainsiderService.kt:559:49 Argument type mismatch: actual type is 'String', but 'String' was expected.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/LigainsiderService.kt:559:59 No parameter with name 'range' found.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/LigainsiderService.kt:560:53 Argument type mismatch: actual type is 'String', but 'String' was expected.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/LigainsiderService.kt:560:59 No parameter with name 'range' found.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/LigainsiderService.kt:633:28 Type in a class literal cannot be nullable.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/LigainsiderService.kt:650:34 Null cannot be a value of a non-null type 'LigainsiderMatch'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/LigainsiderService.kt:688:49 No parameter with name 'range' found.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/LigainsiderService.kt:712:47 No parameter with name 'range' found.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/LigainsiderService.kt:774:68 No parameter with name 'range' found.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/LigainsiderService.kt:799:68 No parameter with name 'range' found.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/LigainsiderService.kt:878:24 Unresolved reference. None of the following candidates is applicable because of a receiver type mismatch:
+fun <T : Appendable> T.append(vararg value: CharSequence?): T
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/LigainsiderView.kt:239:34 Argument type mismatch: actual type is 'View', but 'ShapeStyle' was expected.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/LineupComparisonView.kt:257:13 Return type mismatch: expected 'ComposeResult', actual 'View'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/LineupComparisonView.kt:593:22 Argument type mismatch: actual type is 'Shape', but 'ShapeStyle' was expected.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/MainDashboardView.kt:1761:114 Return type mismatch: expected 'Int', actual 'Double'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/MainDashboardView.kt:1761:114 Type mismatch: inferred type is 'Double', but 'Int' was expected.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/MainDashboardView.kt:3331:76 Unresolved reference 'firstName'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/MainDashboardView.kt:3335:76 Unresolved reference 'lastName'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/MainDashboardView.kt:3347:76 Unresolved reference 'avgPoints'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/MainDashboardView.kt:3354:66 Argument type mismatch: actual type is 'E0 (of val <E0, E1, E2, E3> Tuple4<E0, E1, E2, E3>.totalPoints)', but 'Double' was expected.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/MainDashboardView.kt:3354:76 Cannot infer type for this parameter. Specify it explicitly.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/MainDashboardView.kt:3354:76 Unresolved reference. None of the following candidates is applicable because of a receiver type mismatch:
+val <E0, E1, E2, E3> Tuple4<E0, E1, E2, E3>.totalPoints: E0
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/MainDashboardView.kt:3366:80 Unresolved reference 'status'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/MainDashboardView.kt:3374:80 Unresolved reference 'status'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/MainDashboardView.kt:4525:106 Return type mismatch: expected 'Int', actual 'Double'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/MainDashboardView.kt:4525:106 Type mismatch: inferred type is 'Double', but 'Int' was expected.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/MainDashboardView.kt:4551:106 Return type mismatch: expected 'Int', actual 'Double'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/MainDashboardView.kt:4551:106 Type mismatch: inferred type is 'Double', but 'Int' was expected.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerDetailView.kt:148:38 Argument type mismatch: actual type is 'Shape', but 'ShapeStyle' was expected.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerDetailView.kt:159:42 Argument type mismatch: actual type is 'Shape', but 'ShapeStyle' was expected.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerDetailView.kt:161:45 Argument type mismatch: actual type is 'Int', but 'Double' was expected.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerDetailView.kt:161:52 Argument type mismatch: actual type is 'Int', but 'Double' was expected.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerDetailView.kt:1495:32 Receiver type 'Number & Comparable<*>' contains star projection which prohibits the use of 'fun compareTo(other: T): Int'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerDetailView.kt:1517:51 None of the following candidates is applicable:
+fun BigDecimal.div(other: BigDecimal): BigDecimal
+fun BigInteger.div(other: BigInteger): BigInteger
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerDetailView.kt:1517:57 Argument type mismatch: actual type is 'Number & Comparable<CapturedType(*)>', but 'Comparable<Double>' was expected.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerDetailView.kt:1518:24 'operator' modifier is required on 'FirNamedFunctionSymbol kotlin/compareTo' in 'compareTo'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerDetailView.kt:1520:31 'operator' modifier is required on 'FirNamedFunctionSymbol kotlin/compareTo' in 'compareTo'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerDetailView.kt:1522:31 'operator' modifier is required on 'FirNamedFunctionSymbol kotlin/compareTo' in 'compareTo'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerDetailView.kt:1524:31 'operator' modifier is required on 'FirNamedFunctionSymbol kotlin/compareTo' in 'compareTo'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerDetailView.kt:1565:114 Return type mismatch: expected 'Int', actual 'Double'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerDetailView.kt:1565:114 Type mismatch: inferred type is 'Double', but 'Int' was expected.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerDetailView.kt:1728:33 Receiver type 'Number & Comparable<*>' contains star projection which prohibits the use of 'fun compareTo(other: T): Int'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerDetailView.kt:1731:31 None of the following candidates is applicable:
+fun BigDecimal.minus(other: BigDecimal): BigDecimal
+fun BigInteger.minus(other: BigInteger): BigInteger
+fun <T> Iterable<T>.minus(element: T): List<T>
+fun <T> Iterable<T>.minus(elements: Array<out T>): List<T>
+fun <T> Iterable<T>.minus(elements: Iterable<T>): List<T>
+fun <T> Iterable<T>.minus(elements: Sequence<T>): List<T>
+fun <K, V> Map<out K, V>.minus(key: K): Map<K, V>
+fun <K, V> Map<out K, V>.minus(keys: Iterable<K>): Map<K, V>
+fun <K, V> Map<out K, V>.minus(keys: Array<out K>): Map<K, V>
+fun <K, V> Map<out K, V>.minus(keys: Sequence<K>): Map<K, V>
+fun <T> Set<T>.minus(element: T): Set<T>
+fun <T> Set<T>.minus(elements: Array<out T>): Set<T>
+fun <T> Set<T>.minus(elements: Iterable<T>): Set<T>
+fun <T> Set<T>.minus(elements: Sequence<T>): Set<T>
+fun <T> Sequence<T>.minus(element: T): Sequence<T>
+fun <T> Sequence<T>.minus(elements: Array<out T>): Sequence<T>
+fun <T> Sequence<T>.minus(elements: Iterable<T>): Sequence<T>
+fun <T> Sequence<T>.minus(elements: Sequence<T>): Sequence<T>
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerDetailView.kt:1766:38 Argument type mismatch: actual type is 'Shape', but 'ShapeStyle' was expected.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerRecommendationService.kt:182:75 Syntax error: Type expected.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerRecommendationService.kt:182:75 Syntax error: Incomplete code.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerRecommendationService.kt:620:56 Syntax error: Type expected.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerRecommendationService.kt:620:56 Syntax error: Incomplete code.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerRecommendationService.kt:626:39 Cannot infer type for this parameter. Specify it explicitly.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerRecommendationService.kt:626:62 Cannot infer type for this parameter. Specify it explicitly.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerRecommendationService.kt:626:62 Not enough information to infer type argument for 'E0'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerRecommendationService.kt:626:62 Not enough information to infer type argument for 'E1'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerRecommendationService.kt:626:62 Not enough information to infer type argument for 'E2'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerRecommendationService.kt:626:62 Not enough information to infer type argument for 'E3'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerRecommendationService.kt:629:24 Unresolved reference 'status'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerRecommendationService.kt:630:23 Unresolved reference 'minusAssign'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerRecommendationService.kt:631:31 Unresolved reference 'status'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerRecommendationService.kt:632:23 Unresolved reference 'minusAssign'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerRecommendationService.kt:635:20 Cannot infer type for this parameter. Specify it explicitly.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerRecommendationService.kt:635:20 Return type mismatch: expected 'Tuple2<Player, Double>', actual 'Tuple2<uninferred ERROR CLASS: Cannot infer argument for type parameter E0, String>'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerRecommendationService.kt:738:66 Syntax error: Type expected.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerRecommendationService.kt:738:66 Syntax error: Incomplete code.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerRecommendationService.kt:741:40 Unresolved reference 'marketValue'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerRecommendationService.kt:741:62 Cannot infer type for this parameter. Specify it explicitly.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerRecommendationService.kt:741:62 Not enough information to infer type argument for 'E0'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerRecommendationService.kt:741:62 Not enough information to infer type argument for 'E1'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerRecommendationService.kt:741:62 Not enough information to infer type argument for 'E2'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerRecommendationService.kt:741:62 Not enough information to infer type argument for 'E3'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerRecommendationService.kt:742:34 Argument type mismatch: actual type is 'Int', but 'String' was expected.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerRecommendationService.kt:745:20 Cannot infer type for this parameter. Specify it explicitly.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerRecommendationService.kt:745:20 Return type mismatch: expected 'Tuple2<Player, Int>?', actual 'Tuple2<uninferred ERROR CLASS: Cannot infer argument for type parameter E0, String>'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerRecommendationService.kt:867:52 Syntax error: Type expected.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerRecommendationService.kt:867:52 Syntax error: Incomplete code.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerRecommendationService.kt:868:45 Cannot infer type for this parameter. Specify it explicitly.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerRecommendationService.kt:868:45 Not enough information to infer type argument for 'E0'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerRecommendationService.kt:868:45 Not enough information to infer type argument for 'E1'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerRecommendationService.kt:868:45 Not enough information to infer type argument for 'E2'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerRecommendationService.kt:868:45 Not enough information to infer type argument for 'E3'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerRecommendationService.kt:869:71 Unresolved reference 'price'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerRecommendationService.kt:875:39 Unresolved reference 'firstName'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerRecommendationService.kt:875:62 Unresolved reference 'lastName'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerRecommendationService.kt:877:20 Cannot infer type for this parameter. Specify it explicitly.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerRecommendationService.kt:877:20 Return type mismatch: expected 'Tuple2<MarketPlayer, Double>', actual 'Tuple2<uninferred ERROR CLASS: Cannot infer argument for type parameter E0, String>'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/ScalingUtility.kt:65:32 Argument type mismatch: actual type is 'Number & Comparable<CapturedType(*)>', but 'Double?' was expected.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/TransferRecommendationsView.kt:803:13 Return type mismatch: expected 'ComposeResult', actual 'View'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/TransferRecommendationsView.kt:873:45 Argument type mismatch: actual type is 'Function0<Unit>', but 'Function1<CGPoint, Unit>' was expected.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/TransferRecommendationsView.kt:994:22 Argument type mismatch: actual type is 'View', but 'ShapeStyle' was expected.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/TransferRecommendationsView.kt:1686:41 This variable must either have an explicit type or be initialized.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/TransferRecommendationsView.kt:1686:45 Syntax error: Expecting property name or receiver type.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/TransferRecommendationsView.kt:1687:37 Unresolved reference 'val_'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/TransferRecommendationsView.kt:1704:42 This variable must either have an explicit type or be initialized.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/TransferRecommendationsView.kt:1704:46 Syntax error: Expecting property name or receiver type.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/TransferRecommendationsView.kt:1705:37 Unresolved reference 'val_'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/TransferRecommendationsView.kt:1722:46 This variable must either have an explicit type or be initialized.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/TransferRecommendationsView.kt:1722:50 Syntax error: Expecting property name or receiver type.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/TransferRecommendationsView.kt:1723:37 Unresolved reference 'val_'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/TransferRecommendationsView.kt:1815:125 Unresolved reference. None of the following candidates is applicable because of a receiver type mismatch:
+val KClass<*>.companionObjectInstance: Any?
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/TransferRecommendationsView.kt:1815:152 Syntax error: Incomplete code.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/TransferRecommendationsView.kt:1815:178 Syntax error: Expecting function type.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/TransferRecommendationsView.kt:1815:178 Unresolved reference 'Companion'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/TransferRecommendationsView.kt:1815:187 Syntax error: Expecting an element.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/TransferRecommendationsView.kt:1818:105 Unresolved reference. None of the following candidates is applicable because of a receiver type mismatch:
+val KClass<*>.companionObjectInstance: Any?
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/TransferRecommendationsView.kt:1818:132 Syntax error: Incomplete code.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/TransferRecommendationsView.kt:1818:158 Syntax error: Expecting function type.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/TransferRecommendationsView.kt:1818:158 Unresolved reference 'Companion'.
+e: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/TransferRecommendationsView.kt:1818:167 Syntax error: Expecting an element.
+
+> Task :KickbaseCore:compileDebugKotlin FAILED
+
+[Incubating] Problems report is available at: file:///Users/marcocorro/Documents/xCode/Kickbasehelper/Android/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':KickbaseCore:compileDebugKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.3.0/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 53s
+206 actionable tasks: 178 executed, 28 up-to-date

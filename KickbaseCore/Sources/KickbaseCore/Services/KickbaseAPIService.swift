@@ -1,3 +1,5 @@
+import Combine
+import SwiftUI
 import Foundation
 
 /// Hauptservice für alle Kickbase API v4 Endpoints basierend auf der Swagger-Dokumentation

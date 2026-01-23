@@ -7,18 +7,28 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import androidx.compose.runtime.remember
+import kickbase.core.ContentView
+import kickbase.core.LigainsiderService
+import skip.foundation.ProcessInfo
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Retrieve and set the application context for Skip
+        ProcessInfo.launch(application)
+        
         setContent {
+            val ligainsiderService = remember { LigainsiderService() }
             MaterialTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    // Hier wird später die Skip-transpilierte UI integriert
-                    // ContentView()
+                    ContentView()
+                        .environmentObject(ligainsiderService)
+                        .Compose()
                 }
             }
         }

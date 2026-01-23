@@ -1,5 +1,13 @@
 import SwiftUI
 
+struct TeamPlayerCounts {
+    let total: Int
+    let goalkeepers: Int
+    let defenders: Int
+    let midfielders: Int
+    let forwards: Int
+}
+
 struct MainDashboardView: View {
     @EnvironmentObject var kickbaseManager: KickbaseManager
     @EnvironmentObject var authManager: AuthenticationManager
@@ -43,88 +51,93 @@ struct MainDashboardView: View {
 
     // iPad-spezifisches Layout mit Sidebar
     private var iPadLayout: some View {
-        NavigationSplitView {
-            // Sidebar
-            List(
-                selection: Binding<Int?>(
-                    get: { selectedTab },
-                    set: { selectedTab = $0 ?? 0 }
-                )
-            ) {
-                NavigationLink(value: 0) {
-                    Label("Team", systemImage: "person.3.fill")
-                }
-                .tag(0)
+        #if os(iOS)
+            NavigationSplitView {
+                // Sidebar
+                List(
+                    selection: Binding<Int?>(
+                        get: { selectedTab },
+                        set: { selectedTab = $0 ?? 0 }
+                    )
+                ) {
+                    NavigationLink(value: 0) {
+                        Label("Team", systemImage: "person.3.fill")
+                    }
+                    .tag(0)
 
-                NavigationLink(value: 1) {
-                    Label("Markt", systemImage: "cart.fill")
-                }
-                .tag(1)
+                    NavigationLink(value: 1) {
+                        Label("Markt", systemImage: "cart.fill")
+                    }
+                    .tag(1)
 
-                NavigationLink(value: 2) {
-                    Label("Verkaufen", systemImage: "dollarsign.circle.fill")
-                }
-                .tag(2)
+                    NavigationLink(value: 2) {
+                        Label("Verkaufen", systemImage: "dollarsign.circle.fill")
+                    }
+                    .tag(2)
 
-                NavigationLink(value: 3) {
-                    Label("Aufstellung", systemImage: "person.crop.square.fill.and.at.rectangle")
-                }
-                .tag(3)
+                    NavigationLink(value: 3) {
+                        Label(
+                            "Aufstellung", systemImage: "person.crop.square.fill.and.at.rectangle")
+                    }
+                    .tag(3)
 
-                NavigationLink(value: 4) {
-                    Label("Transfer-Tipps", systemImage: "person.crop.circle.badge.plus")
-                }
-                .tag(4)
+                    NavigationLink(value: 4) {
+                        Label("Transfer-Tipps", systemImage: "person.crop.circle.badge.plus")
+                    }
+                    .tag(4)
 
-                NavigationLink(value: 5) {
-                    Label("Ligainsider", systemImage: "list.bullet.clipboard")
+                    NavigationLink(value: 5) {
+                        Label("Ligainsider", systemImage: "list.bullet.clipboard")
+                    }
+                    .tag(5)
                 }
-                .tag(5)
-            }
-            .navigationTitle("Kickbase Helper")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar(content: {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Logout") {
-                        authManager.logout()
+                .navigationTitle("Kickbase Helper")
+                .navigationBarTitleDisplayMode(.large)
+                .toolbar(content: {
+                    ToolbarItem(placement: .navigationBarTrailingCompat) {
+                        Button("Logout") {
+                            authManager.logout()
+                        }
+                    }
+
+                    ToolbarItem(placement: .navigationBarLeadingCompat) {
+                        if kickbaseManager.isLoading {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                        }
+                    }
+                })
+            } detail: {
+                // Detail View
+                Group {
+                    switch selectedTab {
+                    case 0:
+                        TeamView()
+                    case 1:
+                        MarketView()
+                    case 2:
+                        SalesRecommendationView()
+                    case 3:
+                        LineupOptimizerView()
+                    case 4:
+                        TransferRecommendationsView(kickbaseManager: kickbaseManager)
+                    case 5:
+                        LigainsiderView()
+                    default:
+                        TeamView()
                     }
                 }
-
-                ToolbarItem(placement: .navigationBarLeading) {
-                    if kickbaseManager.isLoading {
-                        ProgressView()
-                            .scaleEffect(0.8)
-                    }
-                }
-            })
-        } detail: {
-            // Detail View
-            Group {
-                switch selectedTab {
-                case 0:
-                    TeamView()
-                case 1:
-                    MarketView()
-                case 2:
-                    SalesRecommendationView()
-                case 3:
-                    LineupOptimizerView()
-                case 4:
-                    TransferRecommendationsView(kickbaseManager: kickbaseManager)
-                case 5:
-                    LigainsiderView()
-                default:
-                    TeamView()
-                }
+                .navigationTitle(getNavigationTitle())
+                .navigationBarTitleDisplayMode(.large)
             }
-            .navigationTitle(navigationTitle)
-            .navigationBarTitleDisplayMode(.large)
-        }
+        #else
+            Text("iPad Layout not supported on Android")
+        #endif
     }
 
     // iPhone-spezifisches Layout mit Tabs
     private var iPhoneLayout: some View {
-        NavigationView {
+        NavigationStack {
             TabView(selection: $selectedTab) {
                 // Team Tab mit Punktzahlen
                 TeamView()
@@ -173,41 +186,43 @@ struct MainDashboardView: View {
                         Text("Ligainsider")
                     }
                     .tag(5)
-            }
-            .navigationTitle(kickbaseManager.selectedLeague?.name ?? "Kickbase Helper")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Logout") {
-                        authManager.logout()
-                    }
-                }
+                    #if os(iOS)
+                        .navigationBarTitleDisplayMode(.inline)
+                    #endif
+                    .navigationTitle(kickbaseManager.selectedLeague?.name ?? "Kickbase Helper")
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarTrailingCompat) {
+                            Button("Logout") {
+                                authManager.logout()
+                            }
+                        }
 
-                ToolbarItem(placement: .navigationBarLeading) {
-                    if kickbaseManager.isLoading {
-                        ProgressView()
-                            .scaleEffect(0.8)
+                        ToolbarItem(placement: .navigationBarLeadingCompat) {
+                            if kickbaseManager.isLoading {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                            }
+                        }
                     }
-                }
-            }
-            .onAppear {
-                #if !SKIP
-                    // Konfiguriere Navigation Bar Appearance für iPhone (nicht transparent)
-                    let appearance = UINavigationBarAppearance()
-                    appearance.configureWithOpaqueBackground()
-                    appearance.backgroundColor = UIColor.systemBackground
-                    appearance.titleTextAttributes = [.foregroundColor: UIColor.label]
-                    appearance.largeTitleTextAttributes = [.foregroundColor: UIColor.label]
+                    .onAppear {
+                        #if os(iOS) && os(iOS)
+                            // Konfiguriere Navigation Bar Appearance für iPhone (nicht transparent)
+                            let appearance = UINavigationBarAppearance()
+                            appearance.configureWithOpaqueBackground()
+                            appearance.backgroundColor = UIColor.systemBackground
+                            appearance.titleTextAttributes = [.foregroundColor: UIColor.label]
+                            appearance.largeTitleTextAttributes = [.foregroundColor: UIColor.label]
 
-                    UINavigationBar.appearance().standardAppearance = appearance
-                    UINavigationBar.appearance().scrollEdgeAppearance = appearance
-                    UINavigationBar.appearance().compactAppearance = appearance
-                #endif
+                            UINavigationBar.appearance().standardAppearance = appearance
+                            UINavigationBar.appearance().scrollEdgeAppearance = appearance
+                            UINavigationBar.appearance().compactAppearance = appearance
+                        #endif
+                    }
             }
         }
     }
 
-    private var navigationTitle: String {
+    private func getNavigationTitle() -> String {
         switch selectedTab {
         case 0:
             return "Team"
@@ -248,9 +263,7 @@ struct TeamView: View {
     }
 
     // Berechnung der Spieleranzahl nach Positionen (ohne zum Verkauf markierte)
-    private var playerCounts:
-        (total: Int, goalkeepers: Int, defenders: Int, midfielders: Int, forwards: Int)
-    {
+    private var playerCounts: TeamPlayerCounts {
         let availablePlayers = kickbaseManager.teamPlayers.filter {
             !playersForSale.contains($0.id)
         }
@@ -261,7 +274,13 @@ struct TeamView: View {
         let forwards = availablePlayers.filter { $0.position == 4 }.count
         let total = availablePlayers.count
 
-        return (total, goalkeepers, defenders, midfielders, forwards)
+        return TeamPlayerCounts(
+            total: total,
+            goalkeepers: goalkeepers,
+            defenders: defenders,
+            midfielders: midfielders,
+            forwards: forwards
+        )
     }
 
     var body: some View {
@@ -305,7 +324,7 @@ struct TeamView: View {
                                     Text(option.rawValue).tag(option)
                                 }
                             }
-                            .pickerStyle(SegmentedPickerStyle())
+                            .pickerStyle(.segmented)
                         }
                     }
                     .padding(.horizontal)
@@ -393,7 +412,7 @@ struct PlayerRowView: View {
                         if status != .out {
                             Image(systemName: ligainsiderService.getIcon(for: status))
                                 .foregroundColor(
-                                    Color(ligainsiderService.getColor(for: status))
+                                    ligainsiderService.getColor(for: status)
                                 )
                                 .font(.caption)
                         }
@@ -493,7 +512,9 @@ struct PlayerRowView: View {
             }
             .padding(.vertical, 8)
         }
-        .buttonStyle(PlainButtonStyle())
+        #if os(iOS)
+            .buttonStyle(PlainButtonStyle())
+        #endif
         .sheet(isPresented: $showingPlayerDetail) {
             PlayerDetailView(player: player)
                 .environmentObject(kickbaseManager)
@@ -535,7 +556,7 @@ struct PlayerRowViewWithSale: View {
                             if status != .out {
                                 Image(systemName: ligainsiderService.getIcon(for: status))
                                     .foregroundColor(
-                                        Color(ligainsiderService.getColor(for: status))
+                                        ligainsiderService.getColor(for: status)
                                     )
                                     .font(.caption)
                             }
@@ -631,7 +652,9 @@ struct PlayerRowViewWithSale: View {
                     }
                 }
             }
-            .buttonStyle(PlainButtonStyle())
+            #if os(iOS)
+                .buttonStyle(PlainButtonStyle())
+            #endif
             .sheet(isPresented: $showingPlayerDetail) {
                 PlayerDetailView(player: player)
                     .environmentObject(kickbaseManager)
@@ -649,7 +672,7 @@ struct PlayerRowViewWithSale: View {
             ) {
                 Text("")
             }
-            .toggleStyle(SwitchToggleStyle(tint: Color.blue))
+
             .frame(width: 50, height: 30)
         }
         .padding(.vertical, 8)
@@ -732,7 +755,7 @@ struct TeamStatsHeader: View {
             }
         }
         .padding()
-        .background(Color(.systemGray6))
+        .background(Color.systemGray6Compat)
         .cornerRadius(12)
         .padding(.horizontal)
     }
@@ -761,7 +784,7 @@ struct MarketView: View {
                     Image(systemName: "magnifyingglass")
                         .foregroundColor(.gray)
                     TextField("Spieler suchen...", text: $searchText)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .textFieldStyle(.roundedBorder)
                 }
 
                 HStack {
@@ -774,7 +797,7 @@ struct MarketView: View {
                             Text(option.rawValue).tag(option)
                         }
                     }
-                    .pickerStyle(SegmentedPickerStyle())
+                    .pickerStyle(.segmented)
                 }
             }
             .padding(.horizontal)
@@ -805,10 +828,10 @@ struct MarketView: View {
             searchText.isEmpty
             ? kickbaseManager.marketPlayers
             : kickbaseManager.marketPlayers.filter { player in
-                player.firstName.localizedCaseInsensitiveContains(searchText)
-                    || player.lastName.localizedCaseInsensitiveContains(searchText)
-                    || player.fullTeamName.localizedCaseInsensitiveContains(searchText)
-                    || (player.owner?.name.localizedCaseInsensitiveContains(searchText) ?? false)
+                player.firstName.lowercased().contains(searchText.lowercased())
+                    || player.lastName.lowercased().contains(searchText.lowercased())
+                    || player.fullTeamName.lowercased().contains(searchText.lowercased())
+                    || (player.owner?.name.lowercased().contains(searchText.lowercased()) ?? false)
             }
 
         return filtered.sorted(by: { player1, player2 in
@@ -867,7 +890,7 @@ struct MarketPlayerRowView: View {
                         if status != .out {
                             Image(systemName: ligainsiderService.getIcon(for: status))
                                 .foregroundColor(
-                                    Color(ligainsiderService.getColor(for: status))
+                                    ligainsiderService.getColor(for: status)
                                 )
                                 .font(.caption)
                         }
@@ -985,7 +1008,9 @@ struct MarketPlayerRowView: View {
             }
             .padding(.vertical, 8)
         }
-        .buttonStyle(PlainButtonStyle())
+        #if os(iOS)
+            .buttonStyle(PlainButtonStyle())
+        #endif
         .sheet(isPresented: $showingPlayerDetail) {
             PlayerDetailView(player: convertMarketPlayerToTeamPlayer(player))
                 .environmentObject(kickbaseManager)
@@ -1008,9 +1033,7 @@ struct SalesRecommendationView: View {
     }
 
     // Berechnung der Spieleranzahl nach Positionen (ohne ausgewählte Verkäufe)
-    private var playerCountsAfterSales:
-        (total: Int, goalkeepers: Int, defenders: Int, midfielders: Int, forwards: Int)
-    {
+    private var playerCountsAfterSales: TeamPlayerCounts {
         let remainingPlayers = kickbaseManager.teamPlayers.filter { !selectedSales.contains($0.id) }
 
         let goalkeepers = remainingPlayers.filter { $0.position == 1 }.count
@@ -1019,7 +1042,13 @@ struct SalesRecommendationView: View {
         let forwards = remainingPlayers.filter { $0.position == 4 }.count
         let total = remainingPlayers.count
 
-        return (total, goalkeepers, defenders, midfielders, forwards)
+        return TeamPlayerCounts(
+            total: total,
+            goalkeepers: goalkeepers,
+            defenders: defenders,
+            midfielders: midfielders,
+            forwards: forwards
+        )
     }
 
     var body: some View {
@@ -1043,7 +1072,7 @@ struct SalesRecommendationView: View {
                     PlayerCountOverview(playerCounts: playerCountsAfterSales)
                 }
                 .padding()
-                .background(Color(.systemGray6))
+                .background(Color.systemGray6Compat)
                 .cornerRadius(12)
 
                 // Optimierungsziel Auswahl
@@ -1057,10 +1086,10 @@ struct SalesRecommendationView: View {
                             Text(goal.rawValue).tag(goal)
                         }
                     }
-                    .pickerStyle(SegmentedPickerStyle())
+                    .pickerStyle(.segmented)
                 }
                 .padding()
-                .background(Color(.systemGray6))
+                .background(Color.systemGray6Compat)
                 .cornerRadius(12)
 
                 // Verkaufs-Empfehlungen
@@ -1088,7 +1117,7 @@ struct SalesRecommendationView: View {
                     }
                 }
                 .padding()
-                .background(Color(.systemGray6))
+                .background(Color.systemGray6Compat)
                 .cornerRadius(12)
             }
             .padding()
@@ -1266,7 +1295,7 @@ struct SalesRecommendationView: View {
         // 7. WEITERE PERFORMANCE-KRITERIEN (nur bei geringer Priorität)
         if priority == .low {
             let teamAveragePoints =
-                allPlayers.map(\.averagePoints).reduce(0, +) / Double(allPlayers.count)
+                allPlayers.map(\.averagePoints).reduce(0.0, +) / Double(allPlayers.count)
 
             if player.averagePoints < teamAveragePoints * 0.6 {
                 reasons.append("Schwache Performance")
@@ -1660,7 +1689,7 @@ struct SalesRecommendationHeader: View {
                         }
                     }
                     .padding()
-                    .background(Color(.systemGray6))
+                    .background(Color.systemGray6Compat)
                     .cornerRadius(8)
 
                     // Ausgewählte Verkäufe
@@ -1687,7 +1716,7 @@ struct SalesRecommendationHeader: View {
                         }
                     }
                     .padding()
-                    .background(Color(.systemGray6))
+                    .background(Color.systemGray6Compat)
                     .cornerRadius(8)
                 }
             }
@@ -1730,7 +1759,7 @@ struct SalesRecommendationSummary: View {
                     .foregroundColor(.secondary)
             }
             .padding()
-            .background(Color(.systemBackground))
+            .background(Color.systemBackgroundCompat)
             .cornerRadius(8)
 
             // Prioritäten-Übersicht
@@ -1752,13 +1781,13 @@ struct SalesRecommendationSummary: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color(.systemGray6))
+                    .background(Color.systemGray6Compat)
                     .cornerRadius(8)
                 }
             }
         }
         .padding()
-        .background(Color(.systemGray6))
+        .background(Color.systemGray6Compat)
         .cornerRadius(12)
     }
 
@@ -1831,7 +1860,7 @@ struct SalesRecommendationRow: View {
                             if status != .out {
                                 Image(systemName: ligainsiderService.getIcon(for: status))
                                     .foregroundColor(
-                                        Color(ligainsiderService.getColor(for: status))
+                                        ligainsiderService.getColor(for: status)
                                     )
                                     .font(.caption)
                             }
@@ -1900,7 +1929,9 @@ struct SalesRecommendationRow: View {
                     }
                 }
             }
-            .buttonStyle(PlainButtonStyle())
+            #if os(iOS)
+                .buttonStyle(PlainButtonStyle())
+            #endif
 
             // Toggle (separater Bereich)
             Toggle(
@@ -1913,7 +1944,7 @@ struct SalesRecommendationRow: View {
             ) {
                 Text("")
             }
-            .toggleStyle(SwitchToggleStyle(tint: Color.blue))
+
             .frame(width: 50, height: 30)
         }
         .padding(.vertical, 8)
@@ -1989,7 +2020,7 @@ struct LineupOptimizerView: View {
                         Text(type.rawValue).tag(type)
                     }
                 }
-                .pickerStyle(SegmentedPickerStyle())
+                .pickerStyle(.segmented)
 
                 // Button für optimale Aufstellung mit Marktspieler
                 Button(action: generateOptimalLineupComparison) {
@@ -2013,7 +2044,7 @@ struct LineupOptimizerView: View {
                 .disabled(isGeneratingComparison || kickbaseManager.teamPlayers.isEmpty)
             }
             .padding()
-            .background(Color(.systemGray6))
+            .background(Color.systemGray6Compat)
 
             if kickbaseManager.teamPlayers.isEmpty {
                 // Empty state
@@ -2432,7 +2463,7 @@ struct OptimalLineupStatsView: View {
             }
         }
         .padding()
-        .background(Color(.systemGray6))
+        .background(Color.systemGray6Compat)
         .cornerRadius(12)
     }
 }
@@ -2505,30 +2536,41 @@ struct LineupPlayerCard: View {
     // Plattformspezifische Größen
     private var cardSize: (width: CGFloat, height: CGFloat) {
         #if os(macOS)
-            return (width: 90, height: 110)  // 30% größer auf macOS
-        #else
+            return (width: 90.0, height: 110.0)  // 30% größer auf macOS
+        #elseif os(iOS)
             if UIDevice.current.userInterfaceIdiom == UIUserInterfaceIdiom.pad {
-                return (width: 80, height: 100)  // 15% größer auf iPad
+                return (width: 80.0, height: 100.0)  // 15% größer auf iPad
             } else {
-                return (width: 60, height: 80)  // 20% größer auf iPhone
+                return (width: 60.0, height: 80.0)  // 20% größer auf iPhone
             }
+        #else
+            return (width: 60.0, height: 80.0)
         #endif
     }
 
-    private var fontSizes:
-        (
-            firstName: CGFloat, lastName: CGFloat, avgPoints: CGFloat, totalPoints: CGFloat,
-            status: CGFloat
-        )
-    {
+    private struct CardFontSizes {
+        let firstName: Int
+        let lastName: Int
+        let avgPoints: Int
+        let totalPoints: Int
+        let status: Int
+    }
+
+    private var fontSizes: CardFontSizes {
         #if os(macOS)
-            return (firstName: 14, lastName: 16, avgPoints: 14, totalPoints: 11, status: 12)  // Größere Schriften auf macOS
-        #else
+            return CardFontSizes(
+                firstName: 14, lastName: 16, avgPoints: 14, totalPoints: 11, status: 12)  // Größere Schriften auf macOS
+        #elseif os(iOS)
             if UIDevice.current.userInterfaceIdiom == UIUserInterfaceIdiom.pad {
-                return (firstName: 13, lastName: 15, avgPoints: 13, totalPoints: 10, status: 11)
+                return CardFontSizes(
+                    firstName: 13, lastName: 15, avgPoints: 13, totalPoints: 10, status: 11)
             } else {
-                return (firstName: 11, lastName: 13, avgPoints: 12, totalPoints: 9, status: 10)
+                return CardFontSizes(
+                    firstName: 11, lastName: 13, avgPoints: 12, totalPoints: 9, status: 10)
             }
+        #else
+            return CardFontSizes(
+                firstName: 11, lastName: 13, avgPoints: 12, totalPoints: 9, status: 10)
         #endif
     }
 
@@ -2539,11 +2581,11 @@ struct LineupPlayerCard: View {
             VStack(spacing: 5) {  // Player name - größer und lesbarer
                 VStack(spacing: 2) {
                     Text(player.firstName)
-                        .font(.system(size: fontSizes.firstName, weight: .medium))
+                        .font(.system(size: CGFloat(fontSizes.firstName), weight: .medium))
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
                     Text(player.lastName)
-                        .font(.system(size: fontSizes.lastName, weight: .bold))
+                        .font(.system(size: CGFloat(fontSizes.lastName), weight: .bold))
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
                 }
@@ -2552,10 +2594,10 @@ struct LineupPlayerCard: View {
                 // Points - größer und prominenter
                 VStack(spacing: 1) {
                     Text(String(format: "%.0f", player.averagePoints))
-                        .font(.system(size: fontSizes.avgPoints, weight: .bold))
+                        .font(.system(size: CGFloat(fontSizes.avgPoints), weight: .bold))
                         .foregroundColor(.orange)
                     Text("\(player.totalPoints)")
-                        .font(.system(size: fontSizes.totalPoints))
+                        .font(.system(size: CGFloat(fontSizes.totalPoints)))
                         .foregroundColor(.secondary)
                 }
 
@@ -2564,7 +2606,7 @@ struct LineupPlayerCard: View {
                     if player.status == 2 {
                         Image(systemName: "pills.fill")
                             .foregroundColor(.orange)
-                            .font(.system(size: fontSizes.status))
+                            .font(.system(size: CGFloat(fontSizes.status)))
                     }
 
                     // Ligainsider Icon (wenn verfügbar)
@@ -2572,8 +2614,8 @@ struct LineupPlayerCard: View {
                         firstName: player.firstName, lastName: player.lastName)
                     if status != .out {
                         Image(systemName: ligainsiderService.getIcon(for: status))
-                            .foregroundColor(Color(ligainsiderService.getColor(for: status)))
-                            .font(.system(size: fontSizes.status))
+                            .foregroundColor(ligainsiderService.getColor(for: status))
+                            .font(.system(size: CGFloat(fontSizes.status)))
                     }
                 }
             }
@@ -2581,11 +2623,13 @@ struct LineupPlayerCard: View {
                 width: cardSize.width,
                 height: cardSize.height
             )
-            .background(Color(.systemBackground))
+            .background(Color.systemBackgroundCompat)
             .cornerRadius(10)  // Größerer Radius
             .shadow(radius: 1.0)  // Stärkerer Schatten
         }
-        .buttonStyle(PlainButtonStyle())
+        #if os(iOS)
+            .buttonStyle(PlainButtonStyle())
+        #endif
         .sheet(isPresented: $showingPlayerDetail) {
             PlayerDetailView(player: player)
         }
@@ -2720,7 +2764,7 @@ struct ReservePlayersView: View {
             }
         }
         .padding()
-        .background(Color(.systemGray6))
+        .background(Color.systemGray6Compat)
         .cornerRadius(12)
     }
 }
@@ -2788,7 +2832,7 @@ struct ReserveBenchStatsView: View {
             }
         }
         .padding()
-        .background(Color(.systemBackground))
+        .background(Color.systemBackgroundCompat)
         .cornerRadius(8)
     }
 }
@@ -2818,7 +2862,7 @@ struct BenchStatCard: View {
         }
         .frame(height: 100)
         .frame(maxWidth: .infinity)
-        .background(Color(.systemBackground))
+        .background(Color.systemBackgroundCompat)
         .cornerRadius(8)
     }
 }
@@ -2867,7 +2911,7 @@ struct ReservePlayerRow: View {
                         if status != .out {
                             Image(systemName: ligainsiderService.getIcon(for: status))
                                 .foregroundColor(
-                                    Color(ligainsiderService.getColor(for: status))
+                                    ligainsiderService.getColor(for: status)
                                 )
                                 .font(.system(size: 8))
                         }
@@ -2906,11 +2950,13 @@ struct ReservePlayerRow: View {
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
-            .background(Color(.systemBackground))
+            .background(Color.systemBackgroundCompat)
             .cornerRadius(6)
             .shadow(radius: 0.5)
         }
-        .buttonStyle(PlainButtonStyle())
+        #if os(iOS)
+            .buttonStyle(PlainButtonStyle())
+        #endif
         .sheet(isPresented: $showingPlayerDetail) {
             PlayerDetailView(player: player)
                 .environmentObject(kickbaseManager)
@@ -2941,8 +2987,7 @@ struct ReservePlayerRow: View {
 
 // MARK: - Player Count Overview
 struct PlayerCountOverview: View {
-    let playerCounts:
-        (total: Int, goalkeepers: Int, defenders: Int, midfielders: Int, forwards: Int)
+    let playerCounts: TeamPlayerCounts
 
     private func getPositionColor(position: String, count: Int) -> Color {
         let minRequired: Int
@@ -3005,7 +3050,7 @@ struct PlayerCountOverview: View {
         .font(.headline)
         .padding(.horizontal)
         .padding(.vertical, 10)
-        .background(Color(.systemGray6))
+        .background(Color.systemGray6Compat)
         .cornerRadius(12)
     }
 }
@@ -3065,7 +3110,7 @@ struct TeamBudgetHeaderMain: View {
             }
         }
         .padding()
-        .background(Color(.systemGray6))
+        .background(Color.systemGray6Compat)
         .cornerRadius(12)
         .padding(.horizontal)
     }
@@ -3150,7 +3195,7 @@ struct TeamPointsOverview: View {
             }
         }
         .padding()
-        .background(Color(.systemGray6))
+        .background(Color.systemGray6Compat)
         .cornerRadius(12)
     }
 }
@@ -3180,7 +3225,7 @@ struct DetailedStatsView: View {
             }
         }
         .padding()
-        .background(Color(.systemGray6))
+        .background(Color.systemGray6Compat)
         .cornerRadius(12)
     }
 }
@@ -3209,7 +3254,7 @@ struct StatCard: View {
         }
         .frame(height: 100)
         .frame(maxWidth: .infinity)
-        .background(Color(.systemBackground))
+        .background(Color.systemBackgroundCompat)
         .cornerRadius(8)
     }
 }
@@ -3230,7 +3275,7 @@ struct LeagueInfoView: View {
             InfoRow(label: "Ersteller", value: league.creatorName)
         }
         .padding()
-        .background(Color(.systemGray6))
+        .background(Color.systemGray6Compat)
         .cornerRadius(12)
     }
 }
@@ -3307,7 +3352,7 @@ struct AllPlayersRow: View {
                             if status != .out {
                                 Image(systemName: ligainsiderService.getIcon(for: status))
                                     .foregroundColor(
-                                        Color(ligainsiderService.getColor(for: status))
+                                        ligainsiderService.getColor(for: status)
                                     )
                                     .font(.caption)
                             }
@@ -3375,7 +3420,9 @@ struct AllPlayersRow: View {
                     }
                 }
             }
-            .buttonStyle(PlainButtonStyle())
+            #if os(iOS)
+                .buttonStyle(PlainButtonStyle())
+            #endif
 
             // Toggle für Verkauf (separater Bereich)
             Toggle(
@@ -3388,7 +3435,7 @@ struct AllPlayersRow: View {
             ) {
                 Text("")
             }
-            .toggleStyle(SwitchToggleStyle(tint: Color.blue))
+
             .frame(width: 50, height: 30)
         }
         .padding(.vertical, 8)
@@ -3460,7 +3507,8 @@ private func analyzePositionRedundancy(player: TeamPlayer, allPlayers: [TeamPlay
 }
 
 private func isPlayerOverpriced(player: TeamPlayer, allPlayers: [TeamPlayer]) -> Bool {
-    let teamAveragePoints = allPlayers.map(\.averagePoints).reduce(0, +) / Double(allPlayers.count)
+    let teamAveragePoints =
+        allPlayers.map(\.averagePoints).reduce(0.0, +) / Double(allPlayers.count)
     let teamAverageValue =
         Double(allPlayers.map(\.marketValue).reduce(0, +)) / Double(allPlayers.count)
 
@@ -3489,7 +3537,8 @@ private func calculateLineupImpact(player: TeamPlayer, allPlayers: [TeamPlayer])
     }
 
     // Mittlerer Impact wenn Spieler überdurchschnittlich ist
-    let teamAveragePoints = allPlayers.map(\.averagePoints).reduce(0, +) / Double(allPlayers.count)
+    let teamAveragePoints =
+        allPlayers.map(\.averagePoints).reduce(0.0, +) / Double(allPlayers.count)
     if player.averagePoints > teamAveragePoints * 1.1 {
         return .moderate
     }

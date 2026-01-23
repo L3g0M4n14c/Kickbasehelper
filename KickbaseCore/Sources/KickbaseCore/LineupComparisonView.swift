@@ -44,7 +44,9 @@ struct LineupComparisonView: View {
             .padding(.horizontal)
         }
         .navigationTitle("Aufstellung optimieren")
-        .navigationBarTitleDisplayMode(.inline)
+        #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+        #endif
     }
 }
 
@@ -95,7 +97,7 @@ struct LineupDetailView: View {
                     Spacer()
                 }
                 .padding()
-                .background(Color(.systemGray6))
+                .background(Color.systemGray6Compat)
                 .cornerRadius(8)
             }
 
@@ -142,7 +144,7 @@ struct LineupDetailView: View {
             }
         }
         .padding()
-        .background(Color(.systemGray6))
+        .background(Color.systemGray6Compat)
         .cornerRadius(12)
     }
 
@@ -308,14 +310,17 @@ struct LineupSlotRowView: View {
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 10)
-        .background(Color(.systemBackground))
+        .background(Color.systemBackgroundCompat)
         .cornerRadius(8)
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(
-                    slot.hasBetterMarketOption ? Color.blue.opacity(0.3) : Color(.systemGray5),
-                    lineWidth: 1)
-        )
+        .overlay {
+            ZStack {
+                RoundedRectangle(cornerRadius: 8)
+                    .strokeBorder(
+                        slot.hasBetterMarketOption
+                            ? Color.blue.opacity(0.3) : Color.systemGray5Compat,
+                        lineWidth: 1)
+            }
+        }
     }
 
     private func scoreColor(_ score: Double) -> Color {
@@ -367,7 +372,7 @@ struct HybridLineupSummary: View {
                     )
                 }
                 .padding()
-                .background(Color(.systemGray6))
+                .background(Color.systemGray6Compat)
                 .cornerRadius(8)
 
                 // Liste der empfohlenen Markt-Spieler
@@ -399,7 +404,7 @@ struct HybridLineupSummary: View {
                                             .foregroundColor(.green)
                                     }
                                     .padding(8)
-                                    .background(Color(.systemBackground))
+                                    .background(Color.systemBackgroundCompat)
                                     .cornerRadius(6)
                                 }
                             }
@@ -432,7 +437,7 @@ struct HybridLineupSummary: View {
                 }
             }
             .padding()
-            .background(Color(.systemGray6))
+            .background(Color.systemGray6Compat)
             .cornerRadius(12)
         )
     }

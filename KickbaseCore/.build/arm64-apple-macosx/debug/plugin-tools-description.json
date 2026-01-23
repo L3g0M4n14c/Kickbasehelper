@@ -3,7 +3,48 @@
 
   ],
   "copyCommands" : {
-
+    "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore_KickbaseCore.bundle/Assets.xcassets" : {
+      "inputs" : [
+        {
+          "kind" : "directory",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Resources/Assets.xcassets"
+        }
+      ],
+      "outputs" : [
+        {
+          "kind" : "directory",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore_KickbaseCore.bundle/Assets.xcassets"
+        }
+      ]
+    },
+    "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore_KickbaseCore.bundle/Info.plist" : {
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/Info.plist"
+        }
+      ],
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore_KickbaseCore.bundle/Info.plist"
+        }
+      ]
+    },
+    "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore_KickbaseCore.bundle/kickbasev4.json" : {
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Resources/kickbasev4.json"
+        }
+      ],
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore_KickbaseCore.bundle/kickbasev4.json"
+        }
+      ]
+    }
   },
   "explicitTargetDependencyImportCheckingMode" : {
     "none" : {
@@ -58,7 +99,39 @@
       "inputs" : [
         {
           "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/AuthenticationManager.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/ContentView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/DebugMarketParser.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/EnhancedMarketParser.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Item.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/KickbaseManager.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/LineupComparisonView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/LoginView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/MainDashboardView.swift"
         },
         {
           "kind" : "file",
@@ -66,7 +139,19 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/PlatformUtils.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/PlayerDetailView.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/RecommendationModels.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/SaleRecommendationsView.swift"
         },
         {
           "kind" : "file",
@@ -102,11 +187,35 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/TeamManagementViews.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/TransferRecommendationsView.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Utilities/ScalingUtility.swift"
         },
         {
           "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Utilities/SearchUtils.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Views/LigainsiderView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/DerivedSources/resource_bundle_accessor.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"
+        },
+        {
+          "kind" : "virtual",
+          "name" : "<KickbaseCore-arm64-apple-macosx15.0-debug.module-resources>"
         },
         {
           "kind" : "file",
@@ -125,9 +234,20 @@
       "moduleName" : "KickbaseCore",
       "moduleOutputPath" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/Modules/KickbaseCore.swiftmodule",
       "objects" : [
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/AuthenticationManager.swift.o",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/ContentView.swift.o",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/DebugMarketParser.swift.o",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/EnhancedMarketParser.swift.o",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/Item.swift.o",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/KickbaseManager.swift.o",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/LineupComparisonView.swift.o",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/LoginView.swift.o",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/MainDashboardView.swift.o",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/Models.swift.o",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/PlatformUtils.swift.o",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/PlayerDetailView.swift.o",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/RecommendationModels.swift.o",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/SaleRecommendationsView.swift.o",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/KickbaseAPIClient.swift.o",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/KickbaseAPIService.swift.o",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/KickbaseDataParser.swift.o",
@@ -136,7 +256,12 @@
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/KickbaseUserStatsService.swift.o",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/LigainsiderService.swift.o",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/PlayerRecommendationService.swift.o",
-        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/ScalingUtility.swift.o"
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/TeamManagementViews.swift.o",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/TransferRecommendationsView.swift.o",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/ScalingUtility.swift.o",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/SearchUtils.swift.o",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/LigainsiderView.swift.o",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/resource_bundle_accessor.swift.o"
       ],
       "otherArguments" : [
         "-target",
@@ -151,7 +276,7 @@
         "-j8",
         "-DSWIFT_PACKAGE",
         "-DDEBUG",
-        "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+        "-DSWIFT_MODULE_RESOURCE_BUNDLE_AVAILABLE",
         "-module-cache-path",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/ModuleCache",
         "-parseable-output",
@@ -198,7 +323,39 @@
       "outputs" : [
         {
           "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/AuthenticationManager.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/ContentView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/DebugMarketParser.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/EnhancedMarketParser.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/Item.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/KickbaseManager.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/LineupComparisonView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/LoginView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/MainDashboardView.swift.o"
         },
         {
           "kind" : "file",
@@ -206,7 +363,19 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/PlatformUtils.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/PlayerDetailView.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/RecommendationModels.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/SaleRecommendationsView.swift.o"
         },
         {
           "kind" : "file",
@@ -242,7 +411,27 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/TeamManagementViews.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/TransferRecommendationsView.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/ScalingUtility.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/SearchUtils.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/LigainsiderView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/resource_bundle_accessor.swift.o"
         },
         {
           "kind" : "file",
@@ -251,9 +440,20 @@
       ],
       "prepareForIndexing" : false,
       "sources" : [
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/AuthenticationManager.swift",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/ContentView.swift",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/DebugMarketParser.swift",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/EnhancedMarketParser.swift",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Item.swift",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/KickbaseManager.swift",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/LineupComparisonView.swift",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/LoginView.swift",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/MainDashboardView.swift",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Models.swift",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/PlatformUtils.swift",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/PlayerDetailView.swift",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/RecommendationModels.swift",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/SaleRecommendationsView.swift",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIClient.swift",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseDataParser.swift",
@@ -262,7 +462,12 @@
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseUserStatsService.swift",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/LigainsiderService.swift",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/PlayerRecommendationService.swift",
-        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Utilities/ScalingUtility.swift"
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/TeamManagementViews.swift",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/TransferRecommendationsView.swift",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Utilities/ScalingUtility.swift",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Utilities/SearchUtils.swift",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Views/LigainsiderView.swift",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/DerivedSources/resource_bundle_accessor.swift"
       ],
       "tempsPath" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build",
       "wholeModuleOptimization" : false
@@ -4122,9 +4327,20 @@
       "-package-name",
       "kickbasecore",
       "-c",
+      "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/AuthenticationManager.swift",
+      "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/ContentView.swift",
+      "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/DebugMarketParser.swift",
+      "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/EnhancedMarketParser.swift",
+      "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Item.swift",
       "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/KickbaseManager.swift",
+      "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/LineupComparisonView.swift",
+      "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/LoginView.swift",
+      "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/MainDashboardView.swift",
       "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Models.swift",
+      "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/PlatformUtils.swift",
+      "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/PlayerDetailView.swift",
       "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/RecommendationModels.swift",
+      "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/SaleRecommendationsView.swift",
       "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIClient.swift",
       "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift",
       "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseDataParser.swift",
@@ -4133,7 +4349,12 @@
       "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseUserStatsService.swift",
       "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/LigainsiderService.swift",
       "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/PlayerRecommendationService.swift",
+      "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/TeamManagementViews.swift",
+      "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/TransferRecommendationsView.swift",
       "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Utilities/ScalingUtility.swift",
+      "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Utilities/SearchUtils.swift",
+      "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Views/LigainsiderView.swift",
+      "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/DerivedSources/resource_bundle_accessor.swift",
       "-I",
       "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/Modules",
       "-target",
@@ -4148,7 +4369,7 @@
       "-j8",
       "-DSWIFT_PACKAGE",
       "-DDEBUG",
-      "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+      "-DSWIFT_MODULE_RESOURCE_BUNDLE_AVAILABLE",
       "-module-cache-path",
       "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/ModuleCache",
       "-parseable-output",
@@ -5054,7 +5275,39 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/AuthenticationManager.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/ContentView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/DebugMarketParser.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/EnhancedMarketParser.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Item.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/KickbaseManager.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/LineupComparisonView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/LoginView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/MainDashboardView.swift"
         },
         {
           "kind" : "file",
@@ -5062,7 +5315,19 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/PlatformUtils.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/PlayerDetailView.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/RecommendationModels.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/SaleRecommendationsView.swift"
         },
         {
           "kind" : "file",
@@ -5098,7 +5363,27 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/TeamManagementViews.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/TransferRecommendationsView.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Utilities/ScalingUtility.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Utilities/SearchUtils.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Views/LigainsiderView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/DerivedSources/resource_bundle_accessor.swift"
         }
       ],
       "outputFilePath" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/sources"

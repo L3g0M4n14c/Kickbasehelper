@@ -12,6 +12,15 @@ public struct LigainsiderPlayer: Codable, Identifiable, Hashable {
     public let imageUrl: String?  // URL zum Profilbild
 }
 
+public struct LineupRow: Codable, Identifiable {
+    public var id = UUID()
+    public let players: [LigainsiderPlayer]
+
+    public init(players: [LigainsiderPlayer]) {
+        self.players = players
+    }
+}
+
 public struct LigainsiderMatch: Codable, Identifiable {
     public var id: String { homeTeam + (url ?? UUID().uuidString) }
     public let homeTeam: String
@@ -20,8 +29,8 @@ public struct LigainsiderMatch: Codable, Identifiable {
     public let awayLogo: String?
     // Aufstellung ist jetzt ein Array von Reihen (z.B. [Torwart, Abwehr, Mittelfeld, Sturm])
     // Jede Reihe ist ein Array von Spielern
-    public let homeLineup: [[LigainsiderPlayer]]
-    public let awayLineup: [[LigainsiderPlayer]]
+    public let homeLineup: [LineupRow]
+    public let awayLineup: [LineupRow]
     public let homeSquad: [LigainsiderPlayer]
     public let awaySquad: [LigainsiderPlayer]
     public let url: String?
@@ -73,7 +82,7 @@ public class LigainsiderService: ObservableObject {
 
                     let allRows = match.homeLineup + match.awayLineup
                     for row in allRows {
-                        for player in row {
+                        for player in row.players {
                             // Speichere Hauptspieler (überschreibt Kader-Eintrag -> wichtig wegen 'alternative' Property)
                             if let id = player.ligainsiderId {
                                 newCache[id] = player
@@ -121,6 +130,12 @@ public class LigainsiderService: ObservableObject {
             .replacingOccurrences(of: "ö", with: "oe")
             .replacingOccurrences(of: "ü", with: "ue")
             .replacingOccurrences(of: "ß", with: "ss")
+            // Manuelle Transliteration für kroatische/slawische Buchstaben
+            .replacingOccurrences(of: "ć", with: "c")
+            .replacingOccurrences(of: "č", with: "c")
+            .replacingOccurrences(of: "š", with: "s")
+            .replacingOccurrences(of: "ž", with: "z")
+            .replacingOccurrences(of: "đ", with: "d")
 
         #if !SKIP
             return
@@ -151,13 +166,14 @@ public class LigainsiderService: ObservableObject {
         }
 
         if candidates.count == 1 {
-            return candidates.first?.value
+            return candidates.first?.1
         } else if candidates.count > 1 {
             let bestMatch = candidates.first(where: { key, _ in
                 let normalizedKey = normalize(key)
                 return normalizedKey.contains(normalizedFirstName)
             })
-            return bestMatch?.value
+            // Fallback: Einfach den ersten nehmen, wenn Vorname nicht matcht (lockereres Matching)
+            return bestMatch?.1 ?? candidates.first?.1
         }
         return nil
     }
@@ -179,13 +195,14 @@ public class LigainsiderService: ObservableObject {
         }
 
         if candidates.count == 1 {
-            foundPlayer = candidates.first?.value
+            foundPlayer = candidates.first?.1
         } else if candidates.count > 1 {
             let bestMatch = candidates.first(where: { key, _ in
                 let normalizedKey = normalize(key)
                 return normalizedKey.contains(normalizedFirstName)
             })
-            foundPlayer = bestMatch?.value
+            // Fallback: Lockereres Matching bei Statusabfrage
+            foundPlayer = bestMatch?.1 ?? candidates.first?.1
         }
 
         // Wenn Spieler gefunden: Check Status
@@ -261,14 +278,18 @@ public class LigainsiderService: ObservableObject {
                     }
                 }
 
-                var allNewPlayers: [LigainsiderPlayer] = []
+                var accumulatedPlayers: [LigainsiderPlayer] = []
                 for await squad in group {
-                    allNewPlayers.append(contentsOf: squad)
+                    // Start manually iterating to avoid Sequence type issues
+                    for player in squad {
+                        let p = player as LigainsiderPlayer
+                        accumulatedPlayers.append(p)
+                    }
                 }
 
                 await MainActor.run {
-                    print("Kader-Abruf beendet. Gefundene Spieler: \(allNewPlayers.count)")
-                    for player in allNewPlayers {
+                    print("Kader-Abruf beendet. Gefundene Spieler: \(accumulatedPlayers.count)")
+                    for player in accumulatedPlayers {
                         if let id = player.ligainsiderId {
                             // Update playerCache safely
                             if let existing = self.playerCache[id] {
@@ -304,7 +325,7 @@ public class LigainsiderService: ObservableObject {
             // Robustere Suche: Wir suchen nach allen Links auf Spielerprofile
             // Pattern: href="/(name)_(id)/"
 
-            let components = html.components(separatedBy: "href=\"/")
+            let components = html.splitBy("href=\"/")
 
             // Wir iterieren mit Index, um auf vorherige Komponenten zugreifen zu können (für Bilder davor)
             for i in 1..<components.count {
@@ -312,8 +333,7 @@ public class LigainsiderService: ObservableObject {
                 let previousComponent = components[i - 1]
 
                 // 1. Slug extrahieren
-                guard let quoteEnd = component.firstIndex(of: "\"") else { continue }
-                let slug = String(component[..<quoteEnd])
+                guard let slug = component.substringBefore("\"") else { continue }
 
                 // Validierung
                 if !slug.contains("_") { continue }
@@ -322,12 +342,7 @@ public class LigainsiderService: ObservableObject {
                 if !"0123456789".contains(lastChar) { continue }
 
                 // 2. Name extrahieren
-                guard let tagClose = component.range(of: ">"),
-                    let aClose = component.range(
-                        of: "</a>", range: tagClose.upperBound..<component.endIndex)
-                else { continue }
-
-                let rawName = String(component[tagClose.upperBound..<aClose.lowerBound])
+                guard let rawName = component.substringBetween(">", "</a>") else { continue }
                 let name = removeHtmlTags(rawName).trimmingCharacters(in: .whitespacesAndNewlines)
 
                 if name.isEmpty || name.count > 50 { continue }
@@ -335,15 +350,10 @@ public class LigainsiderService: ObservableObject {
                 // 3. Bild suchen
                 var imageUrl: String?
 
-                // A) Im Link selbst
-                let contentInLink = String(component[tagClose.upperBound..<aClose.lowerBound])
+                // A) Im Link selbst (contentInLink ist rawName content)
+                let contentInLink = rawName
                 if contentInLink.contains("<img") {
-                    if let srcRange = contentInLink.range(of: "src=\""),
-                        let srcEnd = contentInLink.range(
-                            of: "\"", range: srcRange.upperBound..<contentInLink.endIndex)
-                    {
-                        let extracted = String(
-                            contentInLink[srcRange.upperBound..<srcEnd.lowerBound])
+                    if let extracted = contentInLink.substringBetween("src=\"", "\"") {
                         if extracted.contains("ligainsider.de") {
                             imageUrl = extracted
                         }
@@ -352,25 +362,18 @@ public class LigainsiderService: ObservableObject {
 
                 // B) Kurz vor dem Link (im previousComponent)
                 if imageUrl == nil {
-                    // Wir schauen uns die letzten 400 Zeichen des vorherigen Blocks an
-                    let lookBackLimit = 400
-                    let prevCount = previousComponent.count
-                    let startIndex = previousComponent.index(
-                        previousComponent.startIndex, offsetBy: max(0, prevCount - lookBackLimit))
-                    let rangeToCheck = previousComponent[startIndex...]
-
-                    if let imgTagRange = rangeToCheck.range(
-                        of: "<img", options: String.CompareOptions.backwards),
-                        let srcRange = rangeToCheck.range(
-                            of: "src=\"", range: imgTagRange.upperBound..<rangeToCheck.endIndex),
-                        let srcEnd = rangeToCheck.range(
-                            of: "\"", range: srcRange.upperBound..<rangeToCheck.endIndex)
-                    {
-
-                        let extracted = String(
-                            rangeToCheck[srcRange.upperBound..<srcEnd.lowerBound])
-                        if extracted.contains("ligainsider.de") {
-                            imageUrl = extracted
+                    // Simple Suche von hinten im Previous Component
+                    // Wir suchen das letzte Vorkommen von src="..." das ligainsider.de enthält
+                    // Da findLastRange komplex ist, splitten wir einfach nach src=" und nehmen das letzte was passt
+                    let parts = previousComponent.components(separatedBy: "src=\"")
+                    if parts.count > 1 {
+                        for part in parts.reversed() {
+                            if let candidate = part.substringBefore("\""),
+                                candidate.contains("ligainsider.de")
+                            {
+                                imageUrl = candidate
+                                break
+                            }
                         }
                     }
                 }
@@ -395,7 +398,8 @@ public class LigainsiderService: ObservableObject {
         // 1. Übersicht laden
         print("Lade Übersicht von: \(overviewURL)")
         guard let url = URL(string: overviewURL) else { throw URLError(.badURL) }
-        let (data, _) = try await URLSession.shared.data(from: url)
+        let sessionResponse = try await URLSession.shared.data(from: url)
+        let data = sessionResponse.0
 
         guard let htmlString = String(data: data, encoding: .utf8) else {
             throw URLError(.cannotDecodeContentData)
@@ -405,7 +409,7 @@ public class LigainsiderService: ObservableObject {
         var matchLinks: [String] = []
 
         // Wir suchen nach href="/bundesliga/team/.../saison-..."
-        let components = htmlString.components(separatedBy: "href=\"")
+        let components = htmlString.splitBy("href=\"")
         for component in components.dropFirst() {
             // component beginnt mit dem URL-Pfad
             if let quoteIndex = component.firstIndex(of: "\"") {
@@ -432,31 +436,27 @@ public class LigainsiderService: ObservableObject {
             }
         }
 
-        // 3. Details parallel laden
-        var finalMatches: [LigainsiderMatch] = []
-
-        await withTaskGroup(of: LigainsiderMatch?.self) { group in
+        // 3. Details laden (parallel für bessere Performance)
+        print("Starte paralleles Laden der Match-Details...")
+        return await withTaskGroup(of: LigainsiderMatch?.self) { group in
             for pair in matchPairs {
-                let homeUrl = pair[0]
-                let awayUrl = pair[1]
-
                 group.addTask {
-                    async let homeData = self.fetchTeamData(url: homeUrl)
-                    async let awayData = self.fetchTeamData(url: awayUrl)
+                    let homeUrl = pair[0]
+                    let awayUrl = pair[1]
 
                     do {
-                        let (hName, hLogo, hLineup, hSquad) = try await homeData
-                        let (aName, aLogo, aLineup, aSquad) = try await awayData
+                        let home = try await self.fetchTeamData(url: homeUrl)
+                        let away = try await self.fetchTeamData(url: awayUrl)
 
                         return LigainsiderMatch(
-                            homeTeam: hName,
-                            awayTeam: aName,
-                            homeLogo: hLogo,
-                            awayLogo: aLogo,
-                            homeLineup: hLineup,
-                            awayLineup: aLineup,
-                            homeSquad: hSquad,
-                            awaySquad: aSquad,
+                            homeTeam: home.name,
+                            awayTeam: away.name,
+                            homeLogo: home.logo,
+                            awayLogo: away.logo,
+                            homeLineup: home.lineup.map { LineupRow(players: $0) },
+                            awayLineup: away.lineup.map { LineupRow(players: $0) },
+                            homeSquad: home.squad,
+                            awaySquad: away.squad,
                             url: homeUrl
                         )
                     } catch {
@@ -466,24 +466,32 @@ public class LigainsiderService: ObservableObject {
                 }
             }
 
+            var finalMatches: [LigainsiderMatch] = []
             for await match in group {
                 if let match = match {
                     finalMatches.append(match)
                 }
             }
+            return finalMatches
         }
-
-        return finalMatches
     }
 
-    private func fetchTeamData(url: String) async throws -> (
-        String, String?, [[LigainsiderPlayer]], [LigainsiderPlayer]
-    ) {
+    private struct TeamDataResult {
+        let name: String
+        let logo: String?
+        let lineup: [[LigainsiderPlayer]]
+        let squad: [LigainsiderPlayer]
+    }
+
+    private func fetchTeamData(url: String) async throws -> TeamDataResult {
         print("Lade Team Details: \(url)")
-        guard let urlObj = URL(string: url) else { return ("Unbekannt", nil, [], []) }
-        let (data, _) = try await URLSession.shared.data(from: urlObj)
+        guard let urlObj = URL(string: url) else {
+            return TeamDataResult(name: "Unbekannt", logo: nil, lineup: [], squad: [])
+        }
+        let sessionResponse = try await URLSession.shared.data(from: urlObj)
+        let data = sessionResponse.0
         guard let html = String(data: data, encoding: .utf8) else {
-            return ("Unbekannt", nil, [], [])
+            return TeamDataResult(name: "Unbekannt", logo: nil, lineup: [], squad: [])
         }
 
         // Teamnamen extrahieren
@@ -491,84 +499,66 @@ public class LigainsiderService: ObservableObject {
         var teamLogo: String?
 
         // Suche nach: <h2 ... itemprop="name">Team Name</h2>
-        let nameComponents = html.components(separatedBy: "itemprop=\"name\"")
+        let nameComponents = html.splitBy("itemprop=\"name\"")
         if nameComponents.count > 1 {
             // Logo suchen im Teil davor (letzte src="..." vor dem Namen)
             // Struktur: <div ...><a ...><img src="..."></a></div> ... <h2 ... itemprop="name">
             let partBeforeName = nameComponents[0]
-            if let srcRange = partBeforeName.range(
-                of: "src=\"", options: String.CompareOptions.backwards)
+            // Wir nutzen last components logic um das letzte bild zu finden?
+            // "src=\"" explizit suchen
+            let srcParts = partBeforeName.components(separatedBy: "src=\"")
+            if srcParts.count > 1, let lastPart = srcParts.last,
+                let logoUrl = lastPart.substringBefore("\"")
             {
-                if let quoteEnd = partBeforeName.range(
-                    of: "\"", range: srcRange.upperBound..<partBeforeName.endIndex)
+                if logoUrl.contains("ligainsider.de")
+                    && (logoUrl.contains("wappen") || logoUrl.contains("images/teams"))
                 {
-                    let logoUrl = String(partBeforeName[srcRange.upperBound..<quoteEnd.lowerBound])
-                    // Validierung: sollte ligainsider domain enthalten oder relativ sein?
-                    // Meistens absolut: https://cdn.ligainsider.de/...
-                    if logoUrl.contains("ligainsider.de")
-                        && (logoUrl.contains("wappen") || logoUrl.contains("images/teams"))
-                    {
-                        teamLogo = logoUrl
-                    }
+                    teamLogo = logoUrl
                 }
             }
 
             let partAfterName = nameComponents[1]  // > Team name </h2> ...
-            if let closingTagIdx = partAfterName.range(of: ">"),
-                let headerEndIdx = partAfterName.range(of: "</h2>")
-            {
-
-                let start = closingTagIdx.upperBound
-                let end = headerEndIdx.lowerBound
-                if start < end {
-                    teamName = String(partAfterName[start..<end])
-                        .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
-                }
+            if let name = partAfterName.substringBetween(">", "</h2>") {
+                teamName = name.trimmingCharacters(in: .whitespacesAndNewlines)
             }
-        } else if let titleStart = html.range(of: "<title>"),
-            let titleEnd = html.range(of: "</title>", range: titleStart.upperBound..<html.endIndex)
-        {
-            let title = html[titleStart.upperBound..<titleEnd.lowerBound]
+        } else if let title = html.substringBetween("<title>", "</title>") {
             teamName =
                 title.components(separatedBy: "|").first?.trimmingCharacters(
-                    in: CharacterSet.whitespacesAndNewlines) ?? "Team"
+                    in: .whitespacesAndNewlines) ?? "Team"
         }
 
         var formationRows: [[LigainsiderPlayer]] = []
 
         // Parsing Logik für Aufstellung
-        if let startRange = html.range(of: "VORAUSSICHTLICHE AUFSTELLUNG") {
-            let contentStart = html[startRange.upperBound...]
-            let limit = contentStart.index(
-                contentStart.startIndex, offsetBy: min(100000, contentStart.count))
-            let searchArea = String(contentStart[..<limit])
+        if let contentStart = html.substringAfter("VORAUSSICHTLICHE AUFSTELLUNG") {
+            let limit = min(100000, contentStart.count)
+            let searchArea = String(contentStart.prefix(limit))
 
             // Falls das Ende der Aufstellung durch die Legende markiert ist, schneiden wir dort ab
             // Das verhindert, dass Links aus dem Footer (News, Kommentare) fälschlicherweise als Spieler erkannt werden
             var cleanSearchArea = searchArea
-            if let legendRange = cleanSearchArea.range(of: "Spieler stand in der Startelf") {
-                cleanSearchArea = String(cleanSearchArea[..<legendRange.lowerBound])
+            if let beforeLegend = cleanSearchArea.substringBefore("Spieler stand in der Startelf") {
+                cleanSearchArea = beforeLegend
             }
 
             // Aufteilen in Rows
-            let rowComponents = cleanSearchArea.components(separatedBy: "player_position_row")
+            let rowComponents = cleanSearchArea.splitBy("player_position_row")
 
             for i in 1..<rowComponents.count {
                 let rowHtml = rowComponents[i]
                 if !rowHtml.contains("player_position_column") { continue }
 
                 var currentRowPlayers: [LigainsiderPlayer] = []
-                let colComponents = rowHtml.components(separatedBy: "player_position_column")
+                let colComponents = rowHtml.splitBy("player_position_column")
 
                 for j in 1..<colComponents.count {
                     let colHtml = colComponents[j]
 
                     // Bild URL extrahieren
                     var extractedImageUrl: String?
-                    let srcComponents = colHtml.components(separatedBy: "src=\"")
+                    let srcComponents = colHtml.splitBy("src=\"")
                     for srcPart in srcComponents.dropFirst() {
-                        if let quoteEnd = srcPart.range(of: "\"") {
-                            let urlCandidate = String(srcPart[..<quoteEnd.lowerBound])
+                        if let urlCandidate = srcPart.substringBefore("\"") {
                             // Wir akzeptieren Bilder die "ligainsider.de" enthalten
                             if urlCandidate.contains("ligainsider.de") {
                                 extractedImageUrl = urlCandidate
@@ -578,19 +568,17 @@ public class LigainsiderService: ObservableObject {
                     }
 
                     // Suche: <a ... href="/id/" ... >Name</a>
-                    let linkComponents = colHtml.components(separatedBy: "<a ")
+                    let linkComponents = colHtml.splitBy("<a ")
 
                     var namesInColumn: [(String, String)] = []
                     var seen = Set<String>()
 
                     for linkPart in linkComponents.dropFirst() {
                         // href finden
-                        guard let hrefRange = linkPart.range(of: "href=\"/"),
-                            let hrefEnd = linkPart.range(
-                                of: "/\"", range: hrefRange.upperBound..<linkPart.endIndex)
-                        else { continue }
+                        guard let slug = linkPart.substringBetween("href=\"/", "/\"") else {
+                            continue
+                        }
 
-                        let slug = String(linkPart[hrefRange.upperBound..<hrefEnd.lowerBound])
                         // Slug muss ID enthalten (z.B. name_12345)
                         if !slug.contains("_") { continue }
                         // Darf keine Slashes enthalten (wären Sub-Pfade wie News)
@@ -602,12 +590,8 @@ public class LigainsiderService: ObservableObject {
                         }
 
                         // name finden (zwischen > und </a>)
-                        guard let tagClose = linkPart.range(of: ">"),
-                            let aClose = linkPart.range(
-                                of: "</a>", range: tagClose.upperBound..<linkPart.endIndex)
-                        else { continue }
+                        guard let rawName = linkPart.substringBetween(">", "</a>") else { continue }
 
-                        let rawName = String(linkPart[tagClose.upperBound..<aClose.lowerBound])
                         // HTML Tags entfernen bevor getrimmt wird
                         let clearName = removeHtmlTags(rawName)
                         let name = clearName.trimmingCharacters(
@@ -635,7 +619,9 @@ public class LigainsiderService: ObservableObject {
                         // Wir sammeln sie in 'extraPlayers'
                     }
 
-                    if let (mainName, mainSlug) = namesInColumn.first {
+                    if let firstEntry = namesInColumn.first {
+                        let mainName = firstEntry.0
+                        let mainSlug = firstEntry.1
                         let alternativeName = namesInColumn.count > 1 ? namesInColumn[1].0 : nil
                         currentRowPlayers.append(
                             LigainsiderPlayer(
@@ -675,7 +661,7 @@ public class LigainsiderService: ObservableObject {
         let path = URL(string: url)?.path ?? ""
         let squad = await fetchSquad(path: path, teamName: teamName)
 
-        return (teamName, teamLogo, formationRows, squad)
+        return TeamDataResult(name: teamName, logo: teamLogo, lineup: formationRows, squad: squad)
     }
 
     // Helper zum Entfernen von HTML Tags
@@ -689,7 +675,7 @@ public class LigainsiderService: ObservableObject {
             } else if char == ">" {
                 insideTag = false
             } else if !insideTag {
-                result.append(char)
+                result += String(char)
             }
         }
         return result

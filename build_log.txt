@@ -1,0 +1,308 @@
+[1/1] Compiling plugin Create SkipLink
+[2/2] Compiling plugin skipstone
+Building for debugging...
+[2/6] Write sources
+[3/6] Write swift-version--58304C5D6DBC2206.txt
+note: Skip 1.7.0: skipstone plugin to: /Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main at 14:17:23
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Skip/skip.yml: note: loading skip.yml from /Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Skip/skip.yml
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/checkouts/skip-ui/Sources/SkipUI/Skip/skip.yml: note: SkipUI skip.yml config loaded (8 ms)
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/checkouts/skip-model/Sources/SkipModel/Skip/skip.yml: note: SkipModel skip.yml config loaded (1 ms)
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/checkouts/skip-foundation/Sources/SkipFoundation/Skip/skip.yml: note: SkipFoundation skip.yml config loaded (1 ms)
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/checkouts/skip-lib/Sources/SkipLib/Skip/skip.yml: note: SkipLib skip.yml config loaded (1 ms)
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/checkouts/skip-unit/Sources/SkipUnit/Skip/skip.yml: note: SkipUnit skip.yml config loaded (24 ms)
+note: skip.yml aggregate created (43 ms) for modules: ["KickbaseCore", "SkipUI", "SkipModel", "SkipFoundation", "SkipLib", "SkipUnit"]
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/skip-ui/SkipUI/destination/skipstone/SkipUI.skipcode.json: note: SkipUI.skipcode.json codebase (2,3 MB) loaded (150 ms) for SkipUI
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/skip-model/SkipModel/destination/skipstone/SkipModel.skipcode.json: note: SkipModel.skipcode.json codebase (37 KB) loaded (2 ms) for SkipModel
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/skip-foundation/SkipFoundation/destination/skipstone/SkipFoundation.skipcode.json: note: SkipFoundation.skipcode.json codebase (1,3 MB) loaded (74 ms) for SkipFoundation
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/skip-lib/SkipLib/destination/skipstone/SkipLib.skipcode.json: note: SkipLib.skipcode.json codebase (656 KB) loaded (39 ms) for SkipLib
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/skip-unit/SkipUnit/destination/skipstone/SkipUnit.skipcode.json: note: SkipUnit.skipcode.json codebase (10 KB) loaded (0 ms) for SkipUnit
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/Item.kt: note: KickbaseCore/src/main/kotlin/kickbase/core/Item.kt (126 bytes) transpilation unchanged from Item.swift (280 bytes) in 2 ms
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlatformUtils.kt: note: KickbaseCore/src/main/kotlin/kickbase/core/PlatformUtils.kt (1 KB) transpilation unchanged from PlatformUtils.swift (2 KB) in 9 ms
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/ContentView.kt: note: KickbaseCore/src/main/kotlin/kickbase/core/ContentView.kt (3 KB) transpilation unchanged from ContentView.swift (1 KB) in 10 ms
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/DebugMarketParser.swift:20:34: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/DebugMarketParser.kt: note: KickbaseCore/src/main/kotlin/kickbase/core/DebugMarketParser.kt (6 KB) transpilation unchanged from DebugMarketParser.swift (5 KB) in 14 ms
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/DebugMarketParser.swift:38:66: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/DebugMarketParser.swift:44:40: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/DebugMarketParser.swift:66:42: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/DebugMarketParser.swift:76:46: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/DebugMarketParser.swift:78:52: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/KickbaseLeagueService.kt: note: KickbaseCore/src/main/kotlin/kickbase/core/KickbaseLeagueService.kt (2 KB) transpilation unchanged from KickbaseLeagueService.swift (961 bytes) in 3 ms
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIClient.swift:82:85: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/KickbaseAPIClient.kt: note: KickbaseCore/src/main/kotlin/kickbase/core/KickbaseAPIClient.kt (8 KB) transpilation unchanged from KickbaseAPIClient.swift (6 KB) in 18 ms
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/KickbaseUserStatsService.kt: note: KickbaseCore/src/main/kotlin/kickbase/core/KickbaseUserStatsService.kt (3 KB) transpilation unchanged from KickbaseUserStatsService.swift (2 KB) in 7 ms
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/EnhancedMarketParser.swift:36:59: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/EnhancedMarketParser.swift:40:49: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/EnhancedMarketParser.swift:66:55: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/EnhancedMarketParser.swift:131:46: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/EnhancedMarketParser.swift:138:46: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/EnhancedMarketParser.swift:145:47: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/EnhancedMarketParser.kt: note: KickbaseCore/src/main/kotlin/kickbase/core/EnhancedMarketParser.kt (8 KB) transpilation unchanged from EnhancedMarketParser.swift (7 KB) in 26 ms
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/AuthenticationManager.swift:172:56: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/AuthenticationManager.swift:173:21: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/AuthenticationManager.kt: note: KickbaseCore/src/main/kotlin/kickbase/core/AuthenticationManager.kt (10 KB) transpilation unchanged from AuthenticationManager.swift (7 KB) in 34 ms
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/KickbaseManager.kt: note: KickbaseCore/src/main/kotlin/kickbase/core/KickbaseManager.kt (14 KB) transpilation unchanged from KickbaseManager.swift (11 KB) in 38 ms
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/ScalingUtility.kt: note: KickbaseCore/src/main/kotlin/kickbase/core/ScalingUtility.kt (2 KB) transpilation unchanged from ScalingUtility.swift (2 KB) in 13 ms
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/LoginView.kt: note: KickbaseCore/src/main/kotlin/kickbase/core/LoginView.kt (13 KB) transpilation unchanged from LoginView.swift (6 KB) in 62 ms
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/RecommendationModels.kt: note: KickbaseCore/src/main/kotlin/kickbase/core/RecommendationModels.kt (38 KB) transpilation unchanged from RecommendationModels.swift (12 KB) in 68 ms
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseDataParser.swift:103:46: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseDataParser.swift:106:47: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseDataParser.swift:109:47: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseDataParser.swift:112:43: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseDataParser.swift:115:47: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseDataParser.swift:162:36: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseDataParser.swift:165:46: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseDataParser.swift:171:44: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseDataParser.swift:181:40: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseDataParser.swift:184:46: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseDataParser.swift:190:48: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseDataParser.swift:199:38: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseDataParser.swift:202:44: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseDataParser.swift:238:57: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseDataParser.swift:239:17: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseDataParser.swift:239:57: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseDataParser.swift:240:17: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseDataParser.swift:240:57: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseDataParser.swift:291:40: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseDataParser.swift:294:43: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseDataParser.swift:297:47: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseDataParser.swift:300:47: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseDataParser.swift:303:51: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseDataParser.swift:369:44: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/KickbaseDataParser.kt: note: KickbaseCore/src/main/kotlin/kickbase/core/KickbaseDataParser.kt (22 KB) transpilation unchanged from KickbaseDataParser.swift (18 KB) in 75 ms
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:149:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:157:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:165:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:173:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:183:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:189:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:195:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:201:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:207:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:218:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:225:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:235:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:241:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:247:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:256:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:263:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:270:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:282:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:294:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:303:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:322:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:334:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:341:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:349:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:364:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:373:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:384:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:395:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:427:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:472:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:479:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:508:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:516:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:523:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:530:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:549:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:561:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:580:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:589:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:599:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:611:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:617:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:623:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:630:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:642:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:651:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:659:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:665:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:673:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:681:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift:695:65: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/KickbaseAPIService.kt: note: KickbaseCore/src/main/kotlin/kickbase/core/KickbaseAPIService.kt (33 KB) transpilation unchanged from KickbaseAPIService.swift (31 KB) in 86 ms
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Views/LigainsiderView.swift:190:18: warning: Skip is unable to match this API call to determine whether it results in a View. Consider adding additional type information
+                .overlay(
+                 ^~~~~~~
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/LigainsiderView.kt: note: KickbaseCore/src/main/kotlin/kickbase/core/LigainsiderView.kt (18 KB) transpilation unchanged from LigainsiderView.swift (11 KB) in 101 ms
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/LigainsiderService.swift:438:15: warning: Skip is unable to match this API call to determine the correct actor on which to run it. Consider adding additional type information
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/LigainsiderService.kt: note: KickbaseCore/src/main/kotlin/kickbase/core/LigainsiderService.kt (40 KB) transpilation unchanged from LigainsiderService.swift (31 KB) in 112 ms
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/Models.kt: note: KickbaseCore/src/main/kotlin/kickbase/core/Models.kt (93 KB) transpilation unchanged from Models.swift (37 KB) in 149 ms
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbasePlayerService.swift:309:46: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbasePlayerService.swift:312:49: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbasePlayerService.swift:315:47: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbasePlayerService.swift:348:46: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbasePlayerService.swift:350:52: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbasePlayerService.swift:368:54: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbasePlayerService.swift:491:38: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbasePlayerService.swift:496:44: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbasePlayerService.swift:506:36: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbasePlayerService.swift:509:53: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbasePlayerService.swift:512:51: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbasePlayerService.swift:515:47: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbasePlayerService.swift:518:57: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbasePlayerService.swift:521:49: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbasePlayerService.swift:524:47: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbasePlayerService.swift:546:63: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbasePlayerService.swift:581:46: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbasePlayerService.swift:583:52: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbasePlayerService.swift:602:48: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbasePlayerService.swift:665:43: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbasePlayerService.swift:666:41: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbasePlayerService.swift:667:45: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbasePlayerService.swift:668:41: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbasePlayerService.swift:742:51: warning: Kotlin does not preserve generics at runtime. The generic portion of this cast will act as a force cast, which may not be your desired behavior
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/KickbasePlayerService.kt: note: KickbaseCore/src/main/kotlin/kickbase/core/KickbasePlayerService.kt (39 KB) transpilation unchanged from KickbasePlayerService.swift (35 KB) in 117 ms
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/LineupComparisonView.swift:315:10: warning: Skip is unable to match this API call to determine whether it results in a View. Consider adding additional type information
+        .overlay(
+         ^~~~~~~
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/LineupComparisonView.kt: note: KickbaseCore/src/main/kotlin/kickbase/core/LineupComparisonView.kt (48 KB) transpilation unchanged from LineupComparisonView.swift (19 KB) in 205 ms
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/SaleRecommendationsView.kt: note: KickbaseCore/src/main/kotlin/kickbase/core/SaleRecommendationsView.kt (53 KB) transpilation unchanged from SaleRecommendationsView.swift (25 KB) in 235 ms
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerRecommendationService.kt: note: KickbaseCore/src/main/kotlin/kickbase/core/PlayerRecommendationService.kt (57 KB) transpilation unchanged from PlayerRecommendationService.swift (59 KB) in 154 ms
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/TeamManagementViews.kt: note: KickbaseCore/src/main/kotlin/kickbase/core/TeamManagementViews.kt (100 KB) transpilation unchanged from TeamManagementViews.swift (48 KB) in 383 ms
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/PlayerDetailView.swift:99:18: warning: Skip is unable to match this API call to determine whether it results in a View. Consider adding additional type information
+                .overlay(
+                 ^~~~~~~
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/PlayerDetailView.swift:116:22: warning: Skip is unable to match this API call to determine whether it results in a View. Consider adding additional type information
+                    .offset(x: 5, y: 5)
+                     ^~~~~~
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/PlayerDetailView.swift:932:35: warning: Skip is unable to disambiguate this function call. Consider differentiating your functions with unique parameter labels
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/PlayerDetailView.swift:1357:18: warning: Skip is unable to match this API call to determine whether it results in a View. Consider adding additional type information
+                .overlay(
+                 ^~~~~~~
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PlayerDetailView.kt: note: KickbaseCore/src/main/kotlin/kickbase/core/PlayerDetailView.kt (105 KB) transpilation unchanged from PlayerDetailView.swift (57 KB) in 395 ms
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/TransferRecommendationsView.swift:820:10: warning: Skip is unable to match this API call to determine whether it results in a View. Consider adding additional type information
+        .overlay(
+         ^~~~~~~
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/TransferRecommendationsView.kt: note: KickbaseCore/src/main/kotlin/kickbase/core/TransferRecommendationsView.kt (131 KB) transpilation saved from TransferRecommendationsView.swift (65 KB) in 450 ms
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/MainDashboardView.swift:1731:57: warning: Skip is unable to disambiguate this function call. Consider differentiating your functions with unique parameter labels
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/MainDashboardView.swift:3116:57: warning: Skip is unable to disambiguate this function call. Consider differentiating your functions with unique parameter labels
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/MainDashboardView.kt: note: KickbaseCore/src/main/kotlin/kickbase/core/MainDashboardView.kt (249 KB) transpilation unchanged from MainDashboardView.swift (136 KB) in 554 ms
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/src/main/kotlin/kickbase/core/PackageSupport.kt: note: KickbaseCore/src/main/kotlin/kickbase/core/PackageSupport.kt (2 KB) transpilation unchanged from PackageSupport.swift (Zero KB) in 0 ms
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore.skipcode.json: note: KickbaseCore.skipcode.json (308 KB) codebase unchanged
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Resources/Assets.xcassets/AccentColor.colorset/Contents.json: note: KickbaseCore/src/main/assets/kickbase/core/Resources/Assets.xcassets/AccentColor.colorset/Contents.json linking to /Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Resources/Assets.xcassets/AccentColor.colorset/Contents.json
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Resources/Assets.xcassets/AppIconImage.imageset/Contents.json: note: KickbaseCore/src/main/assets/kickbase/core/Resources/Assets.xcassets/AppIconImage.imageset/Contents.json linking to /Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Resources/Assets.xcassets/AppIconImage.imageset/Contents.json
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Resources/Assets.xcassets/AppIconImage.imageset/icon-1024.png: note: KickbaseCore/src/main/assets/kickbase/core/Resources/Assets.xcassets/AppIconImage.imageset/icon-1024.png linking to /Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Resources/Assets.xcassets/AppIconImage.imageset/icon-1024.png
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Resources/Assets.xcassets/Contents.json: note: KickbaseCore/src/main/assets/kickbase/core/Resources/Assets.xcassets/Contents.json linking to /Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Resources/Assets.xcassets/Contents.json
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Resources/kickbasev4.json: note: KickbaseCore/src/main/assets/kickbase/core/Resources/kickbasev4.json linking to /Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Resources/kickbasev4.json
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/gradle/wrapper/gradle-wrapper.properties: note: gradle/wrapper/gradle-wrapper.properties (80 bytes) gradle wrapper unchanged
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/proguard-rules.pro: note: KickbaseCore/proguard-rules.pro (354 bytes) proguard unchanged
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/KickbaseCore/build.gradle.kts: note: KickbaseCore/build.gradle.kts (3 KB) gradle project unchanged
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/gradle.properties: note: gradle.properties (78 bytes) gradle config unchanged
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/settings.gradle.kts: note: settings.gradle.kts (6 KB) gradle settings unchanged
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/.KickbaseCore.sourcehash: note: .KickbaseCore.sourcehash (3 KB) sourcehash written
+[4/6] Skip KickbaseCore
+[5/6] Copying .KickbaseCore.sourcehash
+[7/9] Emitting module KickbaseCore
+[8/9] Compiling KickbaseCore TransferRecommendationsView.swift
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/TransferRecommendationsView.swift:1389:58: [1;31merror: [1;39mcannot find 'maxPriceBinding' in scope[0;0m
+[0;36m1387 |[0;0m                         Text("Max. Preis")
+[0;36m1388 |[0;0m                         Spacer()
+[0;36m1389 |[0;0m                         TextField("€ Millionen", text: [4;39mmaxPriceBinding[0;0m)
+     [0;36m|[0;0m                                                        `- [1;31merror: [1;39mcannot find 'maxPriceBinding' in scope[0;0m
+[0;36m1390 |[0;0m                             #if os(iOS)
+[0;36m1391 |[0;0m                             .textFieldStyle(.roundedBorder)
+
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/TransferRecommendationsView.swift:1399:51: [1;31merror: [1;39mcannot find 'minPointsBinding' in scope[0;0m
+[0;36m1397 |[0;0m                         Text("Min. Punkte")
+[0;36m1398 |[0;0m                         Spacer()
+[0;36m1399 |[0;0m                         TextField("Punkte", text: [4;39mminPointsBinding[0;0m)
+     [0;36m|[0;0m                                                   `- [1;31merror: [1;39mcannot find 'minPointsBinding' in scope[0;0m
+[0;36m1400 |[0;0m                             #if os(iOS)
+[0;36m1401 |[0;0m                             .textFieldStyle(.roundedBorder)
+
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/TransferRecommendationsView.swift:1409:54: [1;31merror: [1;39mcannot find 'minConfidenceBinding' in scope[0;0m
+[0;36m1407 |[0;0m                         Text("Min. Vertrauen")
+[0;36m1408 |[0;0m                         Spacer()
+[0;36m1409 |[0;0m                         TextField("0.0 - 1.0", text: [4;39mminConfidenceBinding[0;0m)
+     [0;36m|[0;0m                                                      `- [1;31merror: [1;39mcannot find 'minConfidenceBinding' in scope[0;0m
+[0;36m1410 |[0;0m                             #if os(iOS)
+[0;36m1411 |[0;0m                             .textFieldStyle(.roundedBorder)
+[9/9] Compiling KickbaseCore LigainsiderService.swift
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/LigainsiderService.swift:500:29: [1;31merror: [1;39mexpected ',' separator[0;0m
+[0;36m498 |[0;0m             let partBeforeName = nameComponents[0]
+[0;36m499 |[0;0m             if let srcRange = partBeforeName.range(
+[0;36m500 |[0;0m                 of: "src=\""
+    [0;36m|[0;0m                             `- [1;31merror: [1;39mexpected ',' separator[0;0m
+[0;36m501 |[0;0m             {
+[0;36m502 |[0;0m                 if let quoteEnd = partBeforeName.range(
+
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/LigainsiderService.swift:514:14: [1;31merror: [1;39mexpected '{' after 'if' condition[0;0m
+[0;36m512 |[0;0m                     }
+[0;36m513 |[0;0m                 }
+[0;36m514 |[0;0m             }
+    [0;36m|[0;0m              `- [1;31merror: [1;39mexpected '{' after 'if' condition[0;0m
+[0;36m515 |[0;0m 
+[0;36m516 |[0;0m             let partAfterName = nameComponents[1]  // > Team name </h2> ...
+
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/LigainsiderService.swift:91:41: [1;33mwarning: [1;39mreference to captured var 'newCache' in concurrently-executing code; this is an error in the Swift 6 language mode[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/sendable-closure-captures\SendableClosureCaptures]8;;\]
+ [0;36m89 |[0;0m                 await MainActor.run {
+ [0;36m90 |[0;0m                     // Merge new cache into existing to preserve squad data
+ [0;36m91 |[0;0m                     for (id, player) in newCache {
+    [0;36m|[0;0m                                         `- [1;33mwarning: [1;39mreference to captured var 'newCache' in concurrently-executing code; this is an error in the Swift 6 language mode[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/sendable-closure-captures\SendableClosureCaptures]8;;\]
+ [0;36m92 |[0;0m                         self.playerCache[id] = player
+ [0;36m93 |[0;0m                     }
+
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/LigainsiderService.swift:95:32: [1;33mwarning: [1;39mreference to captured var 'newAlts' in concurrently-executing code; this is an error in the Swift 6 language mode[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/sendable-closure-captures\SendableClosureCaptures]8;;\]
+ [0;36m93 |[0;0m                     }
+ [0;36m94 |[0;0m                     // Merge alternatives
+ [0;36m95 |[0;0m                     for alt in newAlts {
+    [0;36m|[0;0m                                `- [1;33mwarning: [1;39mreference to captured var 'newAlts' in concurrently-executing code; this is an error in the Swift 6 language mode[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/sendable-closure-captures\SendableClosureCaptures]8;;\]
+ [0;36m96 |[0;0m                         self.alternativeNames.insert(alt)
+ [0;36m97 |[0;0m                     }
+
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/LigainsiderService.swift:270:70: [1;33mwarning: [1;39mreference to captured var 'allNewPlayers' in concurrently-executing code; this is an error in the Swift 6 language mode[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/sendable-closure-captures\SendableClosureCaptures]8;;\]
+[0;36m268 |[0;0m 
+[0;36m269 |[0;0m                 await MainActor.run {
+[0;36m270 |[0;0m                     print("Kader-Abruf beendet. Gefundene Spieler: \(allNewPlayers.count)")
+    [0;36m|[0;0m                                                                      `- [1;33mwarning: [1;39mreference to captured var 'allNewPlayers' in concurrently-executing code; this is an error in the Swift 6 language mode[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/sendable-closure-captures\SendableClosureCaptures]8;;\]
+[0;36m271 |[0;0m                     for player in allNewPlayers {
+[0;36m272 |[0;0m                         if let id = player.ligainsiderId {
+
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/LigainsiderService.swift:271:35: [1;33mwarning: [1;39mreference to captured var 'allNewPlayers' in concurrently-executing code; this is an error in the Swift 6 language mode[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/sendable-closure-captures\SendableClosureCaptures]8;;\]
+[0;36m269 |[0;0m                 await MainActor.run {
+[0;36m270 |[0;0m                     print("Kader-Abruf beendet. Gefundene Spieler: \(allNewPlayers.count)")
+[0;36m271 |[0;0m                     for player in allNewPlayers {
+    [0;36m|[0;0m                                   `- [1;33mwarning: [1;39mreference to captured var 'allNewPlayers' in concurrently-executing code; this is an error in the Swift 6 language mode[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/sendable-closure-captures\SendableClosureCaptures]8;;\]
+[0;36m272 |[0;0m                         if let id = player.ligainsiderId {
+[0;36m273 |[0;0m                             // Update playerCache safely
+
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/LigainsiderService.swift:503:38: [1;31merror: [1;39mcannot find 'srcRange' in scope[0;0m
+[0;36m501 |[0;0m             {
+[0;36m502 |[0;0m                 if let quoteEnd = partBeforeName.range(
+[0;36m503 |[0;0m                     of: "\"", range: [4;39msrcRange[0;0m.upperBound..<partBeforeName.endIndex)
+    [0;36m|[0;0m                                      `- [1;31merror: [1;39mcannot find 'srcRange' in scope[0;0m
+[0;36m504 |[0;0m                 {
+[0;36m505 |[0;0m                     let logoUrl = String(partBeforeName[srcRange.upperBound..<quoteEnd.lowerBound])
+
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/LigainsiderService.swift:505:57: [1;31merror: [1;39mcannot find 'srcRange' in scope[0;0m
+[0;36m503 |[0;0m                     of: "\"", range: srcRange.upperBound..<partBeforeName.endIndex)
+[0;36m504 |[0;0m                 {
+[0;36m505 |[0;0m                     let logoUrl = String(partBeforeName[[4;39msrcRange[0;0m.upperBound..<quoteEnd.lowerBound])
+    [0;36m|[0;0m                                                         `- [1;31merror: [1;39mcannot find 'srcRange' in scope[0;0m
+[0;36m506 |[0;0m                     // Validierung: sollte ligainsider domain enthalten oder relativ sein?
+[0;36m507 |[0;0m                     // Meistens absolut: https://cdn.ligainsider.de/...
+
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/LigainsiderService.swift:499:51: [1;31merror: [1;39mmissing argument label 'options:' in call[0;0m
+[0;36m497 |[0;0m             // Struktur: <div ...><a ...><img src="..."></a></div> ... <h2 ... itemprop="name">
+[0;36m498 |[0;0m             let partBeforeName = nameComponents[0]
+[0;36m499 |[0;0m             if let srcRange = partBeforeName.range(
+    [0;36m|[0;0m                                                   `- [1;31merror: [1;39mmissing argument label 'options:' in call[0;0m
+[0;36m500 |[0;0m                 of: "src=\""
+[0;36m501 |[0;0m             {
+
+/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/LigainsiderService.swift:501:13: [1;31merror: [1;39mclosure passed to parameter of type 'String.CompareOptions' (aka 'NSString.CompareOptions') that does not accept a closure[0;0m
+[0;36m499 |[0;0m             if let srcRange = partBeforeName.range(
+[0;36m500 |[0;0m                 of: "src=\""
+[0;36m501 |[0;0m             [4;39m{[0;0m
+    [0;36m|[0;0m             `- [1;31merror: [1;39mclosure passed to parameter of type 'String.CompareOptions' (aka 'NSString.CompareOptions') that does not accept a closure[0;0m
+[0;36m502 |[0;0m                 if let quoteEnd = partBeforeName.range(
+[0;36m503 |[0;0m                     of: "\"", range: srcRange.upperBound..<partBeforeName.endIndex)
+
+Foundation.StringProtocol.range:2:13: [1;39mnote: [1;39m'range(of:options:range:locale:)' declared here[0;0m
+[0;36m1 |[0;0m protocol StringProtocol {
+[0;36m2 |[0;0m public func range<T>(of aString: T, options mask: String.CompareOptions = [], range searchRange: Range<Self.Index>? = nil, locale: Locale? = nil) -> Range<Self.Index>? where T : StringProtocol}
+  [0;36m|[0;0m             `- [1;39mnote: [1;39m'range(of:options:range:locale:)' declared here[0;0m
+[0;36m3 |[0;0m 
+
+[#SendableClosureCaptures]: <https://docs.swift.org/compiler/documentation/diagnostics/sendable-closure-captures>

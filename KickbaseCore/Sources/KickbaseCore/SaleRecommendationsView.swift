@@ -49,7 +49,7 @@ struct SaleRecommendationsView: View {
                     }
                 }
                 .padding()
-                .background(Color(.systemGray6))
+                .background(Color.systemGray6Compat)
             }
 
             // Goal Selection
@@ -77,7 +77,7 @@ struct SaleRecommendationsView: View {
                 }
             }
             .padding()
-            .background(Color(.systemGray6))
+            .background(Color.systemGray6Compat)
 
             // Content
             if isLoading {
@@ -200,7 +200,7 @@ struct GoalSelectionButton: View {
             .frame(minWidth: 70, minHeight: 60)
             .padding(.horizontal, 8)
             .padding(.vertical, 6)
-            .background(isSelected ? Color.blue : Color(.systemGray5))
+            .background(isSelected ? Color.blue : Color.systemGray5Compat)
             .foregroundColor(isSelected ? .white : .primary)
             .cornerRadius(10)
         }
@@ -292,7 +292,7 @@ struct SaleRecommendationCard: View {
                             if status != .out {
                                 Image(systemName: ligainsiderService.getIcon(for: status))
                                     .foregroundColor(
-                                        Color(ligainsiderService.getColor(for: status))
+                                        ligainsiderService.getColor(for: status)
                                     )
                                     .font(.caption)
                             }
@@ -369,7 +369,7 @@ struct SaleRecommendationCard: View {
                 }
             }
             .padding()
-            .background(Color(.systemGray6))
+            .background(Color.systemGray6Compat)
             .cornerRadius(10)
 
             // Erklärung
@@ -440,12 +440,12 @@ struct SaleRecommendationCard: View {
                     }
                 }
                 .padding()
-                .background(Color(.systemGray6))
+                .background(Color.systemGray6Compat)
                 .cornerRadius(10)
             }
         }
         .padding()
-        .background(Color(.systemBackground))
+        .background(Color.systemBackgroundCompat)
         .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
     }
@@ -474,7 +474,7 @@ struct ReplacementPlayerCard: View {
                         if status != .out {
                             Image(systemName: ligainsiderService.getIcon(for: status))
                                 .foregroundColor(
-                                    Color(ligainsiderService.getColor(for: status))
+                                    ligainsiderService.getColor(for: status)
                                 )
                                 .font(.caption)
                         }
@@ -571,7 +571,7 @@ struct ComparisonItem: View {
             }
         }
         .padding(6)
-        .background(Color(.systemGray6))
+        .background(Color.systemGray6Compat)
         .cornerRadius(6)
     }
 }

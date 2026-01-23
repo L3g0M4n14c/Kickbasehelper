@@ -1,0 +1,65 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Patch Swift Files",
+			"type": "shell",
+			"command": "python3 patch_view.py",
+			"group": "build"
+		},
+		{
+			"label": "Full Android Build",
+			"type": "shell",
+			"command": "bash build_android.sh",
+			"group": "build"
+		},
+		{
+			"label": "Patch Swift Files 2",
+			"type": "shell",
+			"command": "python3 patch_view_2.py",
+			"group": "build"
+		},
+		{
+			"label": "Generate Build Log",
+			"type": "shell",
+			"command": "bash -c \"cd KickbaseCore && swift build > ../build_log.txt 2>&1\"",
+			"group": "build"
+		},
+		{
+			"label": "Run Fix Scripts",
+			"type": "shell",
+			"command": "python3 fix_transfer_view.py && python3 fix_ligainsider.py",
+			"group": "build"
+		},
+		{
+			"label": "Run Robust Fix",
+			"type": "shell",
+			"command": "python3 fix_ligainsider_robust.py",
+			"group": "build"
+		},
+		{
+			"label": "Move Props to FilterSheet",
+			"type": "shell",
+			"command": "python3 move_props_to_filtersheet.py",
+			"group": "build"
+		},
+		{
+			"label": "Get Gradle Log",
+			"type": "shell",
+			"command": "bash -c \"cd Android && ./gradlew assembleDebug >> ../gradle_log.txt 2>&1\"",
+			"group": "build"
+		},
+		{
+			"label": "Refactor Search",
+			"type": "shell",
+			"command": "python3 refactor_search.py",
+			"group": "build"
+		},
+		{
+			"label": "Tail Log",
+			"type": "shell",
+			"command": "tail -n 200 gradle_log.txt > tail_log.txt",
+			"group": "build"
+		}
+	]
+}

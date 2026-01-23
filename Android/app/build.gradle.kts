@@ -7,11 +7,11 @@ plugins {
 
 android {
     namespace = "com.kickbasehelper"
-    compileSdk = 34
+    compileSdk = 36
     
     defaultConfig {
         applicationId = "com.kickbasehelper"
-        minSdk = 24
+        minSdk = 28
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
@@ -66,4 +66,7 @@ dependencies {
     
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+
+    // Fix for Skip Foundation ProcessInfo crash
+    implementation("androidx.test:core:1.5.0")
 }

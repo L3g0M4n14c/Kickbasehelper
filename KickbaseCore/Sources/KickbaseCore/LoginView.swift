@@ -18,7 +18,7 @@ struct LoginView: View {
             }
         }
         #if !SKIP
-            .background(Color(.systemGroupedBackground))
+            .background(Color.systemGroupedBackgroundCompat)
         #else
             .background(Color.gray.opacity(0.1))
         #endif
@@ -43,7 +43,7 @@ struct LoginView: View {
 
                     if authManager.isLoading {
                         ProgressView("Anmeldung läuft...")
-                            .progressViewStyle(CircularProgressViewStyle(tint: Color.green))
+                            .tint(.green)
                     }
 
                     if let error = authManager.errorMessage {
@@ -53,7 +53,7 @@ struct LoginView: View {
                             .multilineTextAlignment(.center)
                     }
                 }
-                .frame(maxWidth: 400)  // Begrenzte Breite auf iPad
+                .frame(maxWidth: 400.0)  // Begrenzte Breite auf iPad
 
                 Spacer()
             }
@@ -79,7 +79,7 @@ struct LoginView: View {
 
                 if authManager.isLoading {
                     ProgressView("Anmeldung läuft...")
-                        .progressViewStyle(CircularProgressViewStyle(tint: Color.green))
+                        .tint(.green)
                 }
 
                 if let error = authManager.errorMessage {
@@ -101,8 +101,8 @@ struct LoginView: View {
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .frame(
-                    width: horizontalSizeClass == .regular ? 160 : 120,
-                    height: horizontalSizeClass == .regular ? 160 : 120)
+                    width: horizontalSizeClass == .regular ? 160.0 : 120.0,
+                    height: horizontalSizeClass == .regular ? 160.0 : 120.0)
 
             Text("Kickbase Helper")
                 .font(horizontalSizeClass == .regular ? .largeTitle : .title)
@@ -122,10 +122,12 @@ struct LoginView: View {
                 .foregroundColor(.primary)
 
             TextField("ihre@email.com", text: $email)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .textFieldStyle(.roundedBorder)
                 #if !SKIP
-                    .textInputAutocapitalization(.never)
-                    .keyboardType(.emailAddress)
+                    #if os(iOS)
+                        .textInputAutocapitalization(.never)
+                        .keyboardType(.emailAddress)
+                    #endif
                     .autocorrectionDisabled()
                 #endif
         }
@@ -151,7 +153,7 @@ struct LoginView: View {
                         .foregroundColor(.gray)
                 }
             }
-            .textFieldStyle(RoundedBorderTextFieldStyle())
+            .textFieldStyle(.roundedBorder)
         }
     }
 

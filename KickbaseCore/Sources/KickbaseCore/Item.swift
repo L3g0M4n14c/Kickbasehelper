@@ -5,14 +5,16 @@
 //  Created by Marco Corro on 27.08.25.
 //
 
-import Foundation
-import SwiftData
+#if !SKIP
+    import Foundation
+    import SwiftData
 
-@Model
-public final class Item {
-    public var timestamp: Date
+    @Model
+    public final class Item {
+        public var timestamp: Date
 
-    public init(timestamp: Date) {
-        self.timestamp = timestamp
+        public init(timestamp: Date) {
+            self.timestamp = timestamp
+        }
     }
-}
+#endif

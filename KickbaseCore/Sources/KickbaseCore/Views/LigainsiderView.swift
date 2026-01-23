@@ -175,38 +175,37 @@ struct LigainsiderMatchRow: View {
 // MARK: - Pitch View (Spielfeld Darstellung)
 
 struct PitchView: View {
-    let rows: [[LigainsiderPlayer]]
+    let rows: [LineupRow]
 
     var body: some View {
         ZStack {
             // Background (Spielfeldrasen Optik)
-            RoundedRectangle(cornerRadius: 12)
-                .fill(
-                    LinearGradient(
-                        gradient: Gradient(colors: [
-                            Color.green.opacity(0.8), Color.green.opacity(0.6),
-                        ]), startPoint: .top, endPoint: .bottom)
-                )
-                .overlay(
-                    // Spielfeld Linien Andeutung
-                    VStack {
-                        Divider().background(Color.white.opacity(0.5))
-                        Spacer()
-                        Circle().stroke(Color.white.opacity(0.3), lineWidth: 2)
-                            .frame(width: 80, height: 80)
-                        Spacer()
-                        Divider().background(Color.white.opacity(0.5))
-                    }
-                    .padding()
-                )
+            ZStack {
+                LinearGradient(
+                    gradient: Gradient(colors: [
+                        Color.green.opacity(0.8), Color.green.opacity(0.6),
+                    ]), startPoint: .top, endPoint: .bottom)
+
+                // Spielfeld Linien Andeutung
+                VStack {
+                    Divider().background(Color.white.opacity(0.5))
+                    Spacer()
+                    Circle().stroke(Color.white.opacity(0.3), lineWidth: 2)
+                        .frame(width: 80, height: 80)
+                    Spacer()
+                    Divider().background(Color.white.opacity(0.5))
+                }
+                .padding()
+            }
+            .cornerRadius(12)
 
             // Spieler Positionen
             VStack(spacing: 12) {
                 // Wir gehen durch die Reihen (GK bis ST)
                 // Ligainsider gibt oft GK zuerst. Row1=GK.
-                ForEach(Array(rows.enumerated()), id: \.offset) { index, rowPlayers in
+                ForEach(rows) { row in
                     HStack(spacing: 10) {
-                        ForEach(rowPlayers) { player in
+                        ForEach(row.players) { player in
                             PlayerPillView(player: player)
                         }
                     }

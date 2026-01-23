@@ -85,7 +85,7 @@ struct TeamTab: View {
     }
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ZStack {
                 VStack(spacing: 0) {
                     // Header mit Buttons
@@ -133,7 +133,9 @@ struct TeamTab: View {
                                     Image(systemName: "magnifyingglass")
                                         .foregroundColor(.gray)
                                     TextField("Spieler suchen...", text: $searchText)
-                                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                                        #if !SKIP
+                                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                                        #endif
                                 }
 
                                 HStack {
@@ -146,7 +148,9 @@ struct TeamTab: View {
                                             Text(option.rawValue).tag(option)
                                         }
                                     }
-                                    .pickerStyle(SegmentedPickerStyle())
+                                    #if !SKIP
+                                        .pickerStyle(SegmentedPickerStyle())
+                                    #endif
                                 }
                             }
                             .padding(.horizontal)
@@ -255,9 +259,9 @@ struct TeamTab: View {
             searchText.isEmpty
             ? kickbaseManager.teamPlayers
             : kickbaseManager.teamPlayers.filter { player in
-                player.firstName.localizedCaseInsensitiveContains(searchText)
-                    || player.lastName.localizedCaseInsensitiveContains(searchText)
-                    || player.fullTeamName.localizedCaseInsensitiveContains(searchText)
+                player.firstName.lowercased().contains(searchText.lowercased())
+                    || player.lastName.lowercased().contains(searchText.lowercased())
+                    || player.fullTeamName.lowercased().contains(searchText.lowercased())
             }
 
         return filtered.sorted(by: { player1, player2 in
@@ -294,7 +298,7 @@ struct TeamPlayerRow: View {
                     firstName: teamPlayer.firstName, lastName: teamPlayer.lastName)
                 if status != .out {
                     Image(systemName: ligainsiderService.getIcon(for: status))
-                        .foregroundColor(Color(ligainsiderService.getColor(for: status)))
+                        .foregroundColor(ligainsiderService.getColor(for: status))
                         .font(.caption)
                 }
 
@@ -385,7 +389,9 @@ struct TeamPlayerRow: View {
             }
             .padding(.vertical, 4)
         }
-        .buttonStyle(PlainButtonStyle())
+        #if !SKIP
+            .buttonStyle(PlainButtonStyle())
+        #endif
         .sheet(isPresented: $showingPlayerDetail) {
             if let league = kickbaseManager.selectedLeague {
                 PlayerDetailView(player: teamPlayer)
@@ -441,7 +447,7 @@ struct TeamPlayerRowWithSale: View {
                         if status != .out {
                             Image(systemName: ligainsiderService.getIcon(for: status))
                                 .foregroundColor(
-                                    Color(ligainsiderService.getColor(for: status))
+                                    ligainsiderService.getColor(for: status)
                                 )
                                 .font(.caption)
                         }
@@ -516,13 +522,17 @@ struct TeamPlayerRowWithSale: View {
                 ) {
                     // Empty label
                 }
-                .toggleStyle(SwitchToggleStyle())
+                #if !SKIP
+                    .toggleStyle(SwitchToggleStyle())
+                #endif
                 .scaleEffect(0.8)
                 .frame(width: 50)
             }
             .padding(.vertical, 4)
         }
-        .buttonStyle(PlainButtonStyle())
+        #if !SKIP
+            .buttonStyle(PlainButtonStyle())
+        #endif
         .sheet(isPresented: $showingPlayerDetail) {
             if let league = kickbaseManager.selectedLeague {
                 PlayerDetailView(player: teamPlayer)
@@ -541,7 +551,7 @@ struct MarketTab: View {
     @State private var forceRefreshId = UUID()
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack {
                 // Debug Info (nur in Debug-Builds)
                 #if DEBUG
@@ -580,7 +590,9 @@ struct MarketTab: View {
                         Image(systemName: "magnifyingglass")
                             .foregroundColor(.gray)
                         TextField("Spieler oder Verein suchen...", text: $searchText)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            #if !SKIP
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                            #endif
                     }
 
                     ScrollView(.horizontal, showsIndicators: false) {
@@ -611,7 +623,9 @@ struct MarketTab: View {
                     VStack(spacing: 20) {
                         Spacer()
                         ProgressView("Lade Transfermarkt...")
-                            .progressViewStyle(CircularProgressViewStyle())
+                            #if !SKIP
+                                .progressViewStyle(CircularProgressViewStyle())
+                            #endif
                         Text("Ladevorgang läuft...")
                             .font(.caption)
                             .foregroundColor(.secondary)
@@ -764,9 +778,10 @@ struct MarketTab: View {
     private var filteredMarketPlayers: [MarketPlayer] {
         kickbaseManager.marketPlayers.filter { player in
             let matchesSearch =
-                searchText.isEmpty || player.firstName.localizedCaseInsensitiveContains(searchText)
-                || player.lastName.localizedCaseInsensitiveContains(searchText)
-                || player.fullTeamName.localizedCaseInsensitiveContains(searchText)
+                searchText.isEmpty
+                || player.firstName.lowercased().contains(searchText.lowercased())
+                || player.lastName.lowercased().contains(searchText.lowercased())
+                || player.fullTeamName.lowercased().contains(searchText.lowercased())
 
             let matchesPosition = selectedPosition == 0 || player.position == selectedPosition
 
@@ -815,7 +830,7 @@ struct MarketPlayerRow: View {
                             if status != .out {
                                 Image(systemName: ligainsiderService.getIcon(for: status))
                                     .foregroundColor(
-                                        Color(ligainsiderService.getColor(for: status))
+                                        ligainsiderService.getColor(for: status)
                                     )
                                     .font(.caption)
                             }
@@ -883,7 +898,9 @@ struct MarketPlayerRow: View {
             }
             .padding(.vertical, 4)
         }
-        .buttonStyle(PlainButtonStyle())
+        #if !SKIP
+            .buttonStyle(PlainButtonStyle())
+        #endif
         .sheet(isPresented: $showingPlayerDetail) {
             MarketPlayerDetailView(player: marketPlayer)
                 .environmentObject(ligainsiderService)
@@ -903,7 +920,7 @@ struct FilterButton: View {
                 .fontWeight(.medium)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
-                .background(isSelected ? Color.blue : Color(.systemGray5))
+                .background(isSelected ? Color.blue : Color.systemGray5Compat)
                 .foregroundColor(isSelected ? .white : .primary)
                 .cornerRadius(8)
         }
@@ -915,7 +932,7 @@ struct MarketPlayerDetailView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     // Player Header
@@ -1022,9 +1039,11 @@ struct MarketPlayerDetailView: View {
                 .padding()
             }
             .navigationTitle("Spielerdetails")
-            .navigationBarTitleDisplayMode(.inline)
+            #if os(iOS)
+                .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .navigationBarTrailingCompat) {
                     Button("Schließen") {
                         dismiss()
                     }
@@ -1095,7 +1114,7 @@ struct TeamBudgetHeader: View {
             }
         }
         .padding()
-        .background(Color(.systemGray6))
+        .background(Color.systemGray6Compat)
         .cornerRadius(12)
     }
 }

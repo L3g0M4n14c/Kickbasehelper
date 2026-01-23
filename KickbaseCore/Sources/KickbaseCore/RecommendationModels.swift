@@ -79,6 +79,15 @@ public struct RecommendationReason: Identifiable {
     }
 }
 
+public enum RecommendationSortOption: String {
+    case recommendationScore = "Empfehlungswert"
+    case price = "Preis"
+    case points = "Punkte"
+    case valueForMoney = "Preis-Leistung"
+    case formTrend = "Form-Trend"
+    case risk = "Risiko"
+}
+
 public struct PlayerAnalysis: Codable {
     public let pointsPerGame: Double
     public let valueForMoney: Double
