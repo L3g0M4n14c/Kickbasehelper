@@ -279,6 +279,63 @@ public class KickbaseDataParser: ObservableObject {
         return currentUser
     }
 
+    // MARK: - League Ranking Parsing
+    
+    public func parseLeagueRanking(from json: [String: Any]) -> [LeagueUser] {
+        print("🏆 Parsing league ranking...")
+        
+        // The ranking is typically in a "users" or "u" array
+        guard let usersArray = json["users"] as? [[String: Any]] ?? json["u"] as? [[String: Any]] else {
+            print("⚠️ No users array found in ranking response")
+            return []
+        }
+        
+        let users = usersArray.compactMap { userData -> LeagueUser? in
+            // Parse each user in the ranking
+            let id = userData["id"] as? String ?? userData["i"] as? String ?? "unknown"
+            let name = userData["name"] as? String ?? userData["n"] as? String ?? "User"
+            
+            // Handle teamName with various possible keys
+            let possibleTeamNames = [
+                userData["teamName"] as? String,
+                userData["tn"] as? String,
+                userData["team_name"] as? String,
+                userData["tname"] as? String,
+            ].compactMap { $0 }
+            let teamName = possibleTeamNames.first ?? "Team"
+            
+            let budget = userData["budget"] as? Int ?? userData["b"] as? Int ?? 0
+            let teamValue = userData["teamValue"] as? Int ?? userData["tv"] as? Int ?? 0
+            let points = userData["points"] as? Int ?? userData["p"] as? Int ?? 0
+            let placement = userData["placement"] as? Int ?? userData["pl"] as? Int ?? 0
+            let won = userData["won"] as? Int ?? userData["w"] as? Int ?? 0
+            let drawn = userData["drawn"] as? Int ?? userData["d"] as? Int ?? 0
+            let lost = userData["lost"] as? Int ?? userData["l"] as? Int ?? 0
+            let se11 = userData["se11"] as? Int ?? userData["s"] as? Int ?? 0
+            let ttm = userData["ttm"] as? Int ?? userData["t"] as? Int ?? 0
+            let mpst = userData["mpst"] as? Int ?? userData["maxPlayersPerTeam"] as? Int
+            
+            return LeagueUser(
+                id: id,
+                name: name,
+                teamName: teamName,
+                budget: budget,
+                teamValue: teamValue,
+                points: points,
+                placement: placement,
+                won: won,
+                drawn: drawn,
+                lost: lost,
+                se11: se11,
+                ttm: ttm,
+                mpst: mpst
+            )
+        }
+        
+        print("✅ Parsed \(users.count) users from ranking")
+        return users
+    }
+
     // MARK: - User Stats Parsing
 
     public func parseUserStatsFromResponse(_ json: [String: Any], fallbackUser: LeagueUser) -> UserStats {

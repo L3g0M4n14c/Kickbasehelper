@@ -92,9 +92,14 @@ struct MainDashboardView: View {
                     .tag(5)
 
                     NavigationLink(value: 6) {
-                        Label("Live", systemImage: "sportscourt.fill")
+                        Label("Tabelle", systemImage: "list.number")
                     }
                     .tag(6)
+
+                    NavigationLink(value: 7) {
+                        Label("Live", systemImage: "sportscourt.fill")
+                    }
+                    .tag(7)
                 }
                 .navigationTitle("Kickbase Helper")
                 .navigationBarTitleDisplayMode(.large)
@@ -129,6 +134,8 @@ struct MainDashboardView: View {
                     case 5:
                         LigainsiderView()
                     case 6:
+                        LeagueTableView()
+                    case 7:
                         LiveView()
                     default:
                         TeamView()
@@ -194,13 +201,21 @@ struct MainDashboardView: View {
                     }
                     .tag(5)
 
+                // League Table Tab
+                LeagueTableView()
+                    .tabItem {
+                        Image(systemName: "list.number")
+                        Text("Tabelle")
+                    }
+                    .tag(6)
+
                 // Live View Tab
                 LiveView()
                     .tabItem {
                         Image(systemName: "sportscourt.fill")
                         Text("Live")
                     }
-                    .tag(6)
+                    .tag(7)
             }
 
             #if os(iOS)
@@ -253,6 +268,8 @@ struct MainDashboardView: View {
         case 5:
             return "Ligainsider"
         case 6:
+            return "Tabelle"
+        case 7:
             return "Live"
         default:
             return "Team"
