@@ -100,7 +100,7 @@ struct LeagueUserRow: View {
         case 1:
             return .yellow
         case 2:
-            return .gray
+            return Color(red: 0.75, green: 0.75, blue: 0.75) // Silver
         case 3:
             return Color(red: 0.8, green: 0.5, blue: 0.2) // Bronze
         default:

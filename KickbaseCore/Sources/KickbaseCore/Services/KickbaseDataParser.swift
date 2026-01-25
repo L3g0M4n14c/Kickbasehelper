@@ -292,28 +292,20 @@ public class KickbaseDataParser: ObservableObject {
         
         let users = usersArray.compactMap { userData -> LeagueUser? in
             // Parse each user in the ranking
-            let id = userData["id"] as? String ?? userData["i"] as? String ?? "unknown"
-            let name = userData["name"] as? String ?? userData["n"] as? String ?? "User"
+            let id = extractString(from: userData, keys: ["id", "i"]) ?? "unknown"
+            let name = extractString(from: userData, keys: ["name", "n"]) ?? "User"
+            let teamName = extractString(from: userData, keys: ["teamName", "tn", "team_name", "tname"]) ?? "Team"
             
-            // Handle teamName with various possible keys
-            let possibleTeamNames = [
-                userData["teamName"] as? String,
-                userData["tn"] as? String,
-                userData["team_name"] as? String,
-                userData["tname"] as? String,
-            ].compactMap { $0 }
-            let teamName = possibleTeamNames.first ?? "Team"
-            
-            let budget = userData["budget"] as? Int ?? userData["b"] as? Int ?? 0
-            let teamValue = userData["teamValue"] as? Int ?? userData["tv"] as? Int ?? 0
-            let points = userData["points"] as? Int ?? userData["p"] as? Int ?? 0
-            let placement = userData["placement"] as? Int ?? userData["pl"] as? Int ?? 0
-            let won = userData["won"] as? Int ?? userData["w"] as? Int ?? 0
-            let drawn = userData["drawn"] as? Int ?? userData["d"] as? Int ?? 0
-            let lost = userData["lost"] as? Int ?? userData["l"] as? Int ?? 0
-            let se11 = userData["se11"] as? Int ?? userData["s"] as? Int ?? 0
-            let ttm = userData["ttm"] as? Int ?? userData["t"] as? Int ?? 0
-            let mpst = userData["mpst"] as? Int ?? userData["maxPlayersPerTeam"] as? Int
+            let budget = extractInt(from: userData, keys: ["budget", "b"]) ?? 0
+            let teamValue = extractInt(from: userData, keys: ["teamValue", "tv"]) ?? 0
+            let points = extractInt(from: userData, keys: ["points", "p"]) ?? 0
+            let placement = extractInt(from: userData, keys: ["placement", "pl"]) ?? 0
+            let won = extractInt(from: userData, keys: ["won", "w"]) ?? 0
+            let drawn = extractInt(from: userData, keys: ["drawn", "d"]) ?? 0
+            let lost = extractInt(from: userData, keys: ["lost", "l"]) ?? 0
+            let se11 = extractInt(from: userData, keys: ["se11", "s"]) ?? 0
+            let ttm = extractInt(from: userData, keys: ["ttm", "t"]) ?? 0
+            let mpst = extractInt(from: userData, keys: ["mpst", "maxPlayersPerTeam"])
             
             return LeagueUser(
                 id: id,
