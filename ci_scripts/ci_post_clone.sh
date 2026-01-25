@@ -6,9 +6,9 @@
 echo "🔧 Configuring Xcode Cloud specific settings..."
 
 # 1. Fix Dependency Resolution likely caused by source.skip.tools redirects
-echo "🌐 Configuring git to use github.com instead of source.skip.tools..."
+# echo "🌐 Configuring git to use github.com instead of source.skip.tools..."
 # Skip's vanity URL just redirects to GitHub, but this fails often in CI
-git config --global url."https://github.com/skiptools/".insteadOf "https://source.skip.tools/"
+# git config --global url."https://github.com/skiptools/".insteadOf "https://source.skip.tools/"
 
 # 2. Disable Skip Plugin to avoid 'Plugin must be enabled' trust issues
 # In Xcode Cloud, this script runs inside the ci_scripts directory
