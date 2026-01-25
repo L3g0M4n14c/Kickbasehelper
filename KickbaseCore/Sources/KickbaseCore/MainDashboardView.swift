@@ -90,6 +90,11 @@ struct MainDashboardView: View {
                         Label("Ligainsider", systemImage: "list.bullet.clipboard")
                     }
                     .tag(5)
+
+                    NavigationLink(value: 6) {
+                        Label("Live", systemImage: "sportscourt.fill")
+                    }
+                    .tag(6)
                 }
                 .navigationTitle("Kickbase Helper")
                 .navigationBarTitleDisplayMode(.large)
@@ -123,6 +128,8 @@ struct MainDashboardView: View {
                         TransferRecommendationsView(kickbaseManager: kickbaseManager)
                     case 5:
                         LigainsiderView()
+                    case 6:
+                        LiveView()
                     default:
                         TeamView()
                     }
@@ -186,38 +193,47 @@ struct MainDashboardView: View {
                         Text("Ligainsider")
                     }
                     .tag(5)
-                    #if os(iOS)
-                        .navigationBarTitleDisplayMode(.inline)
-                    #endif
-                    .navigationTitle(kickbaseManager.selectedLeague?.name ?? "Kickbase Helper")
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarTrailingCompat) {
-                            Button("Logout") {
-                                authManager.logout()
-                            }
-                        }
 
-                        ToolbarItem(placement: .navigationBarLeadingCompat) {
-                            if kickbaseManager.isLoading {
-                                ProgressView()
-                                    .scaleEffect(0.8)
-                            }
-                        }
+                // Live View Tab
+                LiveView()
+                    .tabItem {
+                        Image(systemName: "sportscourt.fill")
+                        Text("Live")
                     }
-                    .onAppear {
-                        #if os(iOS) && os(iOS)
-                            // Konfiguriere Navigation Bar Appearance für iPhone (nicht transparent)
-                            let appearance = UINavigationBarAppearance()
-                            appearance.configureWithOpaqueBackground()
-                            appearance.backgroundColor = UIColor.systemBackground
-                            appearance.titleTextAttributes = [.foregroundColor: UIColor.label]
-                            appearance.largeTitleTextAttributes = [.foregroundColor: UIColor.label]
+                    .tag(6)
+            }
 
-                            UINavigationBar.appearance().standardAppearance = appearance
-                            UINavigationBar.appearance().scrollEdgeAppearance = appearance
-                            UINavigationBar.appearance().compactAppearance = appearance
-                        #endif
+            #if os(iOS)
+                .navigationBarTitleDisplayMode(.inline)
+            #endif
+            .navigationTitle(kickbaseManager.selectedLeague?.name ?? "Kickbase Helper")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailingCompat) {
+                    Button("Logout") {
+                        authManager.logout()
                     }
+                }
+
+                ToolbarItem(placement: .navigationBarLeadingCompat) {
+                    if kickbaseManager.isLoading {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                    }
+                }
+            }
+            .onAppear {
+                #if os(iOS) && os(iOS)
+                    // Konfiguriere Navigation Bar Appearance für iPhone (nicht transparent)
+                    let appearance = UINavigationBarAppearance()
+                    appearance.configureWithOpaqueBackground()
+                    appearance.backgroundColor = UIColor.systemBackground
+                    appearance.titleTextAttributes = [.foregroundColor: UIColor.label]
+                    appearance.largeTitleTextAttributes = [.foregroundColor: UIColor.label]
+
+                    UINavigationBar.appearance().standardAppearance = appearance
+                    UINavigationBar.appearance().scrollEdgeAppearance = appearance
+                    UINavigationBar.appearance().compactAppearance = appearance
+                #endif
             }
         }
     }
@@ -234,6 +250,10 @@ struct MainDashboardView: View {
             return "Aufstellung"
         case 4:
             return "Transfer-Tipps"
+        case 5:
+            return "Ligainsider"
+        case 6:
+            return "Live"
         default:
             return "Team"
         }

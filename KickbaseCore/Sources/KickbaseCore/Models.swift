@@ -100,6 +100,7 @@ public struct User: Codable, Identifiable {
 // MARK: - League Models
 public struct League: Codable, Identifiable, Hashable, Equatable {
     public let id: String
+    public let competitionId: String
     public let name: String
     public let creatorName: String
     public let adminName: String
@@ -107,6 +108,32 @@ public struct League: Codable, Identifiable, Hashable, Equatable {
     public let season: String
     public let matchDay: Int
     public let currentUser: LeagueUser
+
+    enum CodingKeys: String, CodingKey {
+        case id = "i"
+        case competitionId = "cpi"
+        case name = "n"
+        case creatorName = "cn"
+        case adminName = "an"
+        case created = "c"
+        case season = "s"
+        case matchDay = "md"
+        case currentUser = "cu"
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        // Default to "1" (Bundesliga) if missing
+        competitionId = try container.decodeIfPresent(String.self, forKey: .competitionId) ?? "1"
+        name = try container.decode(String.self, forKey: .name)
+        creatorName = try container.decode(String.self, forKey: .creatorName)
+        adminName = try container.decode(String.self, forKey: .adminName)
+        created = try container.decode(String.self, forKey: .created)
+        season = try container.decode(String.self, forKey: .season)
+        matchDay = try container.decode(Int.self, forKey: .matchDay)
+        currentUser = try container.decode(LeagueUser.self, forKey: .currentUser)
+    }
 
     // Hashable conformance
     public func hash(into hasher: inout Hasher) {
@@ -119,10 +146,12 @@ public struct League: Codable, Identifiable, Hashable, Equatable {
     }
 
     public init(
-        id: String, name: String, creatorName: String, adminName: String, created: String,
+        id: String, competitionId: String = "1", name: String, creatorName: String,
+        adminName: String, created: String,
         season: String, matchDay: Int, currentUser: LeagueUser
     ) {
         self.id = id
+        self.competitionId = competitionId
         self.name = name
         self.creatorName = creatorName
         self.adminName = adminName
