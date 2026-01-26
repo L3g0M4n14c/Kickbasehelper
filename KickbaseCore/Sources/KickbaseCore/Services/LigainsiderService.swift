@@ -177,7 +177,8 @@ public class LigainsiderService: ObservableObject {
     // MARK: - Matching Logic
 
     public func getLigainsiderPlayer(firstName: String, lastName: String) -> LigainsiderPlayer? {
-        if matches.isEmpty { return nil }
+        // Check if cache has any data (not just matches)
+        if playerCache.isEmpty { return nil }
 
         let normalizedLastName = normalize(lastName)
         let normalizedFirstName = normalize(firstName)
