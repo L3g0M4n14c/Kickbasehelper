@@ -22,7 +22,7 @@ struct LeagueTableView: View {
                     .padding(.horizontal)
                     .padding(.vertical, 8)
                     .onChange(of: tableType) { oldValue, newValue in
-                        if newValue == .currentMatchday {
+                        if newValue == .currentMatchday && kickbaseManager.matchDayUsers.isEmpty {
                             Task {
                                 await kickbaseManager.loadMatchDayRanking(for: league, matchDay: league.matchDay)
                             }
@@ -80,12 +80,13 @@ struct LeagueTableView: View {
             }
             .navigationTitle(tableType == .overall ? "Tabelle" : "Spieltag-Tabelle")
             .onAppear {
-                if displayedUsers.isEmpty,
-                   let league = kickbaseManager.selectedLeague {
-                    Task {
-                        if tableType == .overall {
+                if let league = kickbaseManager.selectedLeague {
+                    if tableType == .overall && kickbaseManager.leagueUsers.isEmpty {
+                        Task {
                             await kickbaseManager.loadLeagueRanking(for: league)
-                        } else {
+                        }
+                    } else if tableType == .currentMatchday && kickbaseManager.matchDayUsers.isEmpty {
+                        Task {
                             await kickbaseManager.loadMatchDayRanking(for: league, matchDay: league.matchDay)
                         }
                     }
