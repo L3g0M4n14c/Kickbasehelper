@@ -629,14 +629,21 @@ public class LigainsiderService: ObservableObject {
                             var matchedIndex: Int?
                             
                             // Suche in den verfügbaren Bildern nach einem Match basierend auf dem slug
+                            // Kombiniert exaktes Matching und Fallback in einer Iteration für bessere Performance
+                            var firstAvailableIndex: Int?
                             for (index, imageUrl) in allImageUrls.enumerated() {
                                 // Skip if we've already used this image
                                 if usedImageIndices.contains(index) { continue }
                                 
+                                // Speichere den ersten verfügbaren Index als Fallback
+                                if firstAvailableIndex == nil {
+                                    firstAvailableIndex = index
+                                }
+                                
                                 let normalizedImageUrl = normalize(imageUrl)
                                 let normalizedSlug = normalize(slug)
                                 
-                                // Extrahiere nur den Namen-Teil des Slugs (vor dem "_")
+                                // Extrahiere nur den Namen-Teil des Slugs (vor dem Underscore)
                                 let slugNamePart = normalizedSlug.components(separatedBy: "_").first ?? normalizedSlug
                                 
                                 // Prüfe ob der Spielername im Bild-URL vorkommt (z.B. "lars-ritzka" in "lars-ritzka-pauli-25-26.jpg")
@@ -647,15 +654,10 @@ public class LigainsiderService: ObservableObject {
                                 }
                             }
                             
-                            // Fallback: Wenn kein Match gefunden wurde, verwende das nächste verfügbare ungenutzte Bild
-                            if matchedImageUrl == nil {
-                                for (index, imageUrl) in allImageUrls.enumerated() {
-                                    if !usedImageIndices.contains(index) {
-                                        matchedImageUrl = imageUrl
-                                        matchedIndex = index
-                                        break
-                                    }
-                                }
+                            // Fallback: Verwende das erste verfügbare ungenutzte Bild wenn kein Name-Match gefunden wurde
+                            if matchedImageUrl == nil, let fallbackIndex = firstAvailableIndex {
+                                matchedImageUrl = allImageUrls[fallbackIndex]
+                                matchedIndex = fallbackIndex
                             }
                             
                             // Mark the image as used if we found one
