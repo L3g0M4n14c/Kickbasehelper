@@ -25,23 +25,18 @@ struct UserDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         #endif
         .onAppear {
+            guard let league = kickbaseManager.selectedLeague else { return }
+            
             Task {
-                await loadUserSquad()
+                isLoading = true
+                if let players = await kickbaseManager.loadUserSquad(
+                    leagueId: league.id,
+                    userId: user.id
+                ) {
+                    userPlayers = players
+                }
+                isLoading = false
             }
-        }
-    }
-    
-    private func loadUserSquad() async {
-        guard let league = kickbaseManager.selectedLeague else { return }
-        
-        isLoading = true
-        defer { isLoading = false }
-        
-        if let players = await kickbaseManager.loadUserSquad(
-            leagueId: league.id,
-            userId: user.id
-        ) {
-            userPlayers = players
         }
     }
 }
