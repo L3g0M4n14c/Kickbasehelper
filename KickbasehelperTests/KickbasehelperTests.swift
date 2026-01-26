@@ -59,6 +59,8 @@ class BackendTests {
         testInvalidEmailValidation()
         testPasswordValidation()
         testBudgetValidation()
+        testLeagueUserSortingByPoints()
+        testLeagueRankingCalculation()
     }
 
     func testBudgetCalculation() {
@@ -223,6 +225,39 @@ class BackendTests {
 
         runner.assertTrue(validBudget > 0, testName: "Valid Budget Check")
         runner.assertTrue(invalidBudget < 0, testName: "Invalid Budget Check")
+    }
+
+    func testLeagueUserSortingByPoints() {
+        var leagueUsers = [
+            (name: "User A", points: 150),
+            (name: "User B", points: 200),
+            (name: "User C", points: 180),
+            (name: "User D", points: 220),
+        ]
+
+        leagueUsers.sort { $0.points > $1.points }
+
+        runner.assertEqual(leagueUsers[0].points, 220, testName: "League User Sorting First")
+        runner.assertEqual(leagueUsers[1].points, 200, testName: "League User Sorting Second")
+        runner.assertEqual(leagueUsers[2].points, 180, testName: "League User Sorting Third")
+        runner.assertEqual(leagueUsers[3].points, 150, testName: "League User Sorting Last")
+    }
+
+    func testLeagueRankingCalculation() {
+        let users = [
+            (name: "User A", points: 150, placement: 4),
+            (name: "User B", points: 200, placement: 2),
+            (name: "User C", points: 180, placement: 3),
+            (name: "User D", points: 220, placement: 1),
+        ]
+
+        // Verify that placement matches the points ranking
+        let sortedUsers = users.sorted { $0.points > $1.points }
+        
+        runner.assertEqual(sortedUsers[0].placement, 1, testName: "Ranking First Place")
+        runner.assertEqual(sortedUsers[1].placement, 2, testName: "Ranking Second Place")
+        runner.assertEqual(sortedUsers[2].placement, 3, testName: "Ranking Third Place")
+        runner.assertEqual(sortedUsers[3].placement, 4, testName: "Ranking Fourth Place")
     }
 
     func printResults() {

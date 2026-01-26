@@ -119,9 +119,14 @@ struct MainDashboardView: View {
                     .tag(5)
 
                     NavigationLink(value: 6) {
-                        Label("Live", systemImage: "sportscourt.fill")
+                        Label("Tabelle", systemImage: "list.number")
                     }
                     .tag(6)
+
+                    NavigationLink(value: 7) {
+                        Label("Live", systemImage: "sportscourt.fill")
+                    }
+                    .tag(7)
                 }
                 .navigationTitle("Kickbase Helper")
                 .navigationBarTitleDisplayMode(.large)
@@ -156,6 +161,8 @@ struct MainDashboardView: View {
                     case 5:
                         LigainsiderView()
                     case 6:
+                        LeagueTableView()
+                    case 7:
                         LiveView(kickbaseManager: kickbaseManager)
                     default:
                         TeamView()
@@ -208,6 +215,43 @@ struct MainDashboardView: View {
             // Lineup Optimizer Tab (ersetzt Gifts Tab)
             NavigationStack {
                 LineupOptimizerView()
+                    .tabItem {
+                        Image(systemName: "person.crop.square.fill.and.at.rectangle")
+                        Text("Aufstellung")
+                    }
+                    .tag(3)
+
+                // Transfer Recommendations Tab
+                TransferRecommendationsView(kickbaseManager: kickbaseManager)
+                    .tabItem {
+                        Image(systemName: "person.crop.circle.badge.plus")
+                        Text("Transfer-Tipps")
+                    }
+                    .tag(4)
+
+                // Ligainsider Tab
+                LigainsiderView()
+                    .tabItem {
+                        Image(systemName: "list.bullet.clipboard")
+                        Text("Ligainsider")
+                    }
+                    .tag(5)
+
+                // League Table Tab
+                LeagueTableView()
+                    .tabItem {
+                        Image(systemName: "list.number")
+                        Text("Tabelle")
+                    }
+                    .tag(6)
+
+                // Live View Tab
+                LiveView()
+                    .tabItem {
+                        Image(systemName: "sportscourt.fill")
+                        Text("Live")
+                    }
+                    .tag(7)
                     .modifier(StandardNavigationModifier())
             }
             .tabItem {
@@ -273,6 +317,8 @@ struct MainDashboardView: View {
         case 5:
             return "Ligainsider"
         case 6:
+            return "Tabelle"
+        case 7:
             return "Live"
         default:
             return "Team"
