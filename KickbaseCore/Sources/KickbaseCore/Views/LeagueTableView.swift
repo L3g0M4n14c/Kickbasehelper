@@ -1,52 +1,45 @@
 import SwiftUI
 
+@MainActor
 struct LeagueTableView: View {
     @EnvironmentObject var kickbaseManager: KickbaseManager
-    @State private var tableType: TableType = .overall
-    @State private var selectedMatchDay: Int = 1
-    
-    enum TableType {
-        case overall
-        case matchday
-    }
-    
+    @StateObject var viewModel = LeagueTableViewModel()
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
                 // Segmented picker to switch between table types
-                if let league = kickbaseManager.selectedLeague {
-                    Picker("", selection: $tableType) {
-                        Text("Gesamttabelle").tag(TableType.overall)
-                        Text("Spieltag").tag(TableType.matchday)
+                if viewModel.selectedLeague != nil {
+                    Picker("", selection: $viewModel.tableType) {
+                        Text("Gesamttabelle").tag(LeagueTableViewModel.TableType.overall)
+                        Text("Spieltag").tag(LeagueTableViewModel.TableType.matchday)
                     }
                     .pickerStyle(.segmented)
                     .padding(.horizontal)
                     .padding(.top, 8)
-                    .onChange(of: tableType) { oldValue, newValue in
-                        if newValue == .matchday {
-                            Task {
-                                await kickbaseManager.loadMatchDayRanking(for: league, matchDay: selectedMatchDay)
-                            }
+                    .onChange(of: viewModel.tableType) { oldValue, newValue in
+                        Task {
+                            await viewModel.switchTableType(to: newValue)
                         }
                     }
-                    
+
                     // Matchday selector (shown only when matchday mode is selected)
-                    if tableType == .matchday {
+                    if viewModel.tableType == .matchday {
                         HStack {
                             Text("Spieltag auswählen:")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
-                            
-                            Picker("Spieltag", selection: $selectedMatchDay) {
+
+                            Picker("Spieltag", selection: $viewModel.selectedMatchDay) {
                                 // Show all 34 matchdays for Bundesliga season
                                 ForEach(1...34, id: \.self) { day in
                                     Text("Spieltag \(day)").tag(day)
                                 }
                             }
                             .pickerStyle(.menu)
-                            .onChange(of: selectedMatchDay) { oldValue, newValue in
+                            .onChange(of: viewModel.selectedMatchDay) { oldValue, newValue in
                                 Task {
-                                    await kickbaseManager.loadMatchDayRanking(for: league, matchDay: newValue)
+                                    await viewModel.selectMatchDay(newValue)
                                 }
                             }
                         }
@@ -57,11 +50,11 @@ struct LeagueTableView: View {
                             .frame(height: 8)
                     }
                 }
-                
+
                 Group {
-                    if kickbaseManager.isLoading {
+                    if viewModel.isLoading {
                         ProgressView("Lade Tabelle...")
-                    } else if displayedUsers.isEmpty {
+                    } else if viewModel.displayedUsers.isEmpty {
                         VStack {
                             Image(systemName: "list.number")
                                 .font(.system(size: 60))
@@ -78,59 +71,42 @@ struct LeagueTableView: View {
                             .padding()
                             Button("Aktualisieren") {
                                 Task {
-                                    if let league = kickbaseManager.selectedLeague {
-                                        if tableType == .overall {
-                                            await kickbaseManager.loadLeagueRanking(for: league)
-                                        } else {
-                                            await kickbaseManager.loadMatchDayRanking(for: league, matchDay: selectedMatchDay)
-                                        }
-                                    }
+                                    await viewModel.refresh()
                                 }
                             }
                         }
                     } else {
                         List {
-                            ForEach(Array(displayedUsers.enumerated()), id: \.element.id) { index, user in
+                            ForEach(Array(viewModel.displayedUsers.enumerated()), id: \.element.id)
+                            {
+                                index, user in
                                 LeagueUserRow(user: user, position: index + 1)
                             }
                         }
                         .refreshable {
-                            if let league = kickbaseManager.selectedLeague {
-                                if tableType == .overall {
-                                    await kickbaseManager.loadLeagueRanking(for: league)
-                                } else {
-                                    await kickbaseManager.loadMatchDayRanking(for: league, matchDay: selectedMatchDay)
-                                }
-                            }
+                            await viewModel.refresh()
                         }
                     }
                 }
             }
-            .navigationTitle(tableType == .overall ? "Tabelle" : "Spieltag \(selectedMatchDay)")
+            .navigationTitle(
+                viewModel.tableType == .overall
+                    ? "Tabelle" : "Spieltag \(viewModel.selectedMatchDay)"
+            )
             .onAppear {
-                if kickbaseManager.leagueUsers.isEmpty,
-                   let league = kickbaseManager.selectedLeague {
-                    Task {
-                        await kickbaseManager.loadLeagueRanking(for: league)
-                    }
-                }
-                // Set selectedMatchDay to current matchday on appear
-                if let league = kickbaseManager.selectedLeague {
-                    selectedMatchDay = league.matchDay
+                viewModel.setKickbaseManager(kickbaseManager)
+                Task {
+                    await viewModel.loadOverallRanking()
                 }
             }
         }
-    }
-    
-    private var displayedUsers: [LeagueUser] {
-        tableType == .overall ? kickbaseManager.leagueUsers : kickbaseManager.matchDayUsers
     }
 }
 
 struct LeagueUserRow: View {
     let user: LeagueUser
     let position: Int
-    
+
     var body: some View {
         HStack(spacing: 12) {
             // Position badge
@@ -140,7 +116,7 @@ struct LeagueUserRow: View {
                 .frame(width: 32, height: 32)
                 .background(positionColor)
                 .clipShape(Circle())
-            
+
             // User info
             VStack(alignment: .leading, spacing: 4) {
                 Text(user.name)
@@ -149,9 +125,9 @@ struct LeagueUserRow: View {
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }
-            
+
             Spacer()
-            
+
             // Points
             VStack(alignment: .trailing, spacing: 4) {
                 Text("\(user.points)")
@@ -164,15 +140,15 @@ struct LeagueUserRow: View {
         }
         .padding(.vertical, 4)
     }
-    
+
     private var positionColor: Color {
         switch position {
         case 1:
             return .yellow
         case 2:
-            return Color(red: 0.75, green: 0.75, blue: 0.75) // Silver
+            return Color(red: 0.75, green: 0.75, blue: 0.75)  // Silver
         case 3:
-            return Color(red: 0.8, green: 0.5, blue: 0.2) // Bronze
+            return Color(red: 0.8, green: 0.5, blue: 0.2)  // Bronze
         default:
             return .blue
         }
