@@ -246,7 +246,7 @@ struct MainDashboardView: View {
                     .tag(6)
 
                 // Live View Tab
-                LiveView()
+                LiveView(kickbaseManager: kickbaseManager)
                     .tabItem {
                         Image(systemName: "sportscourt.fill")
                         Text("Live")
