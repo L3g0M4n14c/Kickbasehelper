@@ -184,7 +184,17 @@ public class LigainsiderService: ObservableObject {
         let normalizedLastName = normalize(lastName)
         let normalizedFirstName = normalize(firstName)
 
-        // 1. Suche im Cache via ID (bester Match)
+        // 1. Zuerst prüfen ob Spieler in alternativeNames ist (wichtig für korrekte Statusanzeige)
+        let isAlternative = alternativeNames.contains { altName in
+            let normalizedAlt = normalize(altName)
+            return normalizedLastName == normalizedAlt || normalizedAlt.contains(normalizedLastName)
+        }
+        
+        if isAlternative {
+            return .isAlternative
+        }
+
+        // 2. Suche im Cache via ID (bester Match)
         // Strategie: Wir filtern Cache Keys die den normalisierten Nachnamen enthalten
 
         var foundPlayer: LigainsiderPlayer?
@@ -211,16 +221,6 @@ public class LigainsiderService: ObservableObject {
                 return .startWithAlternative
             }
             return .likelyStart
-        }
-
-        // 2. Check Alternativen (String Matching)
-        let isAlternative = alternativeNames.contains { altName in
-            let normalizedAlt = normalize(altName)
-            return normalizedLastName == normalizedAlt || normalizedAlt.contains(normalizedLastName)
-        }
-
-        if isAlternative {
-            return .isAlternative
         }
 
         return .out
