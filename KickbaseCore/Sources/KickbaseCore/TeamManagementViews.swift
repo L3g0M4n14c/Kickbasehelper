@@ -504,22 +504,109 @@ struct TeamPlayerRowWithSale: View {
             showingPlayerDetail = true
         }) {
             HStack(spacing: 12) {
-                // Position indicator
-                VStack {
-                    Text(positionAbbreviation(teamPlayer.position))
-                        .font(.caption2)
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(positionColor(teamPlayer.position))
-                        .cornerRadius(4)
-
-                    Text("\(teamPlayer.number)")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
+                // Player photo or position indicator
+                if let ligaPlayer = ligainsiderService.getLigainsiderPlayer(
+                    firstName: teamPlayer.firstName,
+                    lastName: teamPlayer.lastName),
+                   let imgString = ligaPlayer.imageUrl,
+                   let url = URL(string: imgString)
+                {
+                    // Show player photo
+                    #if !SKIP
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .empty:
+                            // Loading state - show position circle
+                            VStack {
+                                Text(positionAbbreviation(teamPlayer.position))
+                                    .font(.caption2)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(positionColor(teamPlayer.position))
+                                    .cornerRadius(4)
+                                
+                                Text("\(teamPlayer.number)")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                            .frame(minWidth: 40)
+                        case .success(let image):
+                            // Show photo with jersey number
+                            VStack(spacing: 2) {
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(width: 40, height: 40)
+                                    .clipShape(Circle())
+                                    .overlay(
+                                        Circle()
+                                            .stroke(positionColor(teamPlayer.position), lineWidth: 2)
+                                    )
+                                
+                                Text("\(teamPlayer.number)")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                            .frame(minWidth: 40)
+                        case .failure:
+                            // Fallback to position circle
+                            VStack {
+                                Text(positionAbbreviation(teamPlayer.position))
+                                    .font(.caption2)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(positionColor(teamPlayer.position))
+                                    .cornerRadius(4)
+                                
+                                Text("\(teamPlayer.number)")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                            .frame(minWidth: 40)
+                        @unknown default:
+                            EmptyView()
+                        }
+                    }
+                    #else
+                    // Fallback for non-Apple platforms
+                    VStack {
+                        Text(positionAbbreviation(teamPlayer.position))
+                            .font(.caption2)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(positionColor(teamPlayer.position))
+                            .cornerRadius(4)
+                        
+                        Text("\(teamPlayer.number)")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(minWidth: 40)
+                    #endif
+                } else {
+                    // Fallback: No photo available, show position circle
+                    VStack {
+                        Text(positionAbbreviation(teamPlayer.position))
+                            .font(.caption2)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(positionColor(teamPlayer.position))
+                            .cornerRadius(4)
+                        
+                        Text("\(teamPlayer.number)")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(minWidth: 40)
                 }
-                .frame(minWidth: 40)
 
                 // Player Info - erweiterte Breite für Namen
                 VStack(alignment: .leading, spacing: 2) {
