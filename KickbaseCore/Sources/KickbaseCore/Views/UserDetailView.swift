@@ -290,7 +290,7 @@ struct UserSquadPlayerRow: View {
 }
 
 // MARK: - Helper Functions
-private func positionColor(_ position: Int) -> Color {
+func positionColor(_ position: Int) -> Color {
     switch position {
     case 1: return .yellow
     case 2: return .blue
