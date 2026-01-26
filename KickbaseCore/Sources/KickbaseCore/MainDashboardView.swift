@@ -156,7 +156,7 @@ struct MainDashboardView: View {
                     case 5:
                         LigainsiderView()
                     case 6:
-                        LiveView()
+                        LiveView(kickbaseManager: kickbaseManager)
                     default:
                         TeamView()
                     }
@@ -235,8 +235,7 @@ struct MainDashboardView: View {
                 .tag(5)
 
             // Live View Tab
-            LiveView()
-                .modifier(StandardNavigationModifier())
+            LiveView(kickbaseManager: kickbaseManager)
                 .tabItem {
                     Image(systemName: "sportscourt.fill")
                     Text("Live")
