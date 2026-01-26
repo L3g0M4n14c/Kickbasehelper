@@ -43,35 +43,60 @@ struct MainDashboardView: View {
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
 
     var body: some View {
-        Group {
-            if horizontalSizeClass == .regular {
-                // iPad Layout - Sidebar Navigation
-                iPadLayout
+        ZStack {
+            if !ligainsiderService.isLigainsiderReady {
+                // Loading State - warte bis Ligainsider Cache fertig ist
+                VStack(spacing: 20) {
+                    ProgressView()
+                        .scaleEffect(1.5)
+                    Text("Ligainsider-Daten werden geladen...")
+                        .foregroundColor(.secondary)
+                        .font(.headline)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color(.systemBackground))
             } else {
-                // iPhone Layout - Tab Navigation
-                iPhoneLayout
+                // Normale Layouts wenn Ligainsider fertig ist
+                Group {
+                    if horizontalSizeClass == .regular {
+                        // iPad Layout - Sidebar Navigation
+                        iPadLayout
+                    } else {
+                        // iPhone Layout - Tab Navigation
+                        iPhoneLayout
+                    }
+                }
+                .environmentObject(kickbaseManager)
+                .macOSOptimized()
             }
         }
-        .environmentObject(kickbaseManager)
-        .macOSOptimized()
         .onAppear {
             // Automatisches Laden aller Daten beim ersten Start
             Task {
-                // Starte Ligainsider Fetch im Hintergrund (für Bilder und Status)
-                if ligainsiderService.matches.isEmpty {
-                    ligainsiderService.fetchLineups()
-                    // Lade zusätzlich alle Kader für Bilder von Spielern, die nicht in S11 sind
-                    ligainsiderService.fetchAllSquads()
-                }
+                // 1. Lade ZUERST Ligainsider Daten (mit await für vollständigen Cache)
+                print("🔄 MainDashboard: Starting Ligainsider data load...")
+                await ligainsiderService.fetchLineupsAsync()
+                print(
+                    "✅ MainDashboard: Lineups loaded with cache size: \(ligainsiderService.playerCacheCount)"
+                )
+                // NOTE: fetchAllSquadsAsync() is disabled because:
+                // - Squad data is already loaded from fetchLineupsAsync() (match.homeSquad + match.awaySquad)
+                // - fetchAllSquadsAsync() was finding 0 players anyway
+                // await ligainsiderService.fetchAllSquadsAsync()
+                print(
+                    "✅ MainDashboard: Ligainsider cache is complete with \(ligainsiderService.playerCacheCount) players"
+                )
 
-                // Warte auf Liga-Auswahl und lade dann alle Daten
+                // 2. Lade danach die Kickbase-Daten (Team + Market Players)
+                print("🔄 MainDashboard: Now loading Kickbase data...")
                 await kickbaseManager.loadUserData()
 
-                // Zusätzlich: Lade Team-Daten wenn Liga verfügbar
+                // 3. Zusätzlich: Lade Team-Daten wenn Liga verfügbar
                 if let league = kickbaseManager.selectedLeague {
                     await kickbaseManager.loadTeamPlayers(for: league)
                     await kickbaseManager.loadMarketPlayers(for: league)
                 }
+                print("✅ MainDashboard: All data loaded completely")
             }
         }
     }
@@ -157,6 +182,7 @@ struct MainDashboardView: View {
                         LigainsiderView()
                     case 6:
                         LiveView(kickbaseManager: kickbaseManager)
+                            .environmentObject(ligainsiderService)
                     default:
                         TeamView()
                     }
@@ -236,6 +262,7 @@ struct MainDashboardView: View {
 
             // Live View Tab
             LiveView(kickbaseManager: kickbaseManager)
+                .environmentObject(ligainsiderService)
                 .tabItem {
                     Image(systemName: "sportscourt.fill")
                     Text("Live")
@@ -283,6 +310,7 @@ struct MainDashboardView: View {
 // MARK: - Team View mit prominenten Punktzahlen
 struct TeamView: View {
     @EnvironmentObject var kickbaseManager: KickbaseManager
+    @EnvironmentObject var ligainsiderService: LigainsiderService
     @State private var sortBy: SortOption = .marketValue
     @State private var playersForSale: Set<String> = []
     @State private var showRecommendations = false
@@ -386,6 +414,8 @@ struct TeamView: View {
                             )
                         }
                     }
+                    .environmentObject(kickbaseManager)
+                    .environmentObject(ligainsiderService)
                     .refreshable {
                         if let league = kickbaseManager.selectedLeague {
                             await kickbaseManager.loadTeamPlayers(for: league)
@@ -573,10 +603,41 @@ struct PlayerRowViewWithSale: View {
     @EnvironmentObject var kickbaseManager: KickbaseManager
     @EnvironmentObject var ligainsiderService: LigainsiderService
 
+    private var photoUrl: URL? {
+        if let ligaPlayer = ligainsiderService.getLigainsiderPlayer(
+            firstName: player.firstName, lastName: player.lastName),
+            let imgString = ligaPlayer.imageUrl,
+            let url = URL(string: imgString)
+        {
+            return url
+        }
+        return player.imageUrl
+    }
+
     var body: some View {
         HStack(spacing: 12) {
-            // Position Badge
-            PositionBadge(position: player.position)
+            // Spieler-Foto oder Position Badge
+            if let url = photoUrl {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .empty:
+                        PositionBadge(position: player.position)
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: 32, height: 32)
+                            .clipShape(Circle())
+                    case .failure:
+                        PositionBadge(position: player.position)
+                    @unknown default:
+                        PositionBadge(position: player.position)
+                    }
+                }
+                .frame(width: 32, height: 32)
+            } else {
+                PositionBadge(position: player.position)
+            }
 
             // Spieler-Info Bereich (klickbar für Details)
             Button(action: {
@@ -908,14 +969,45 @@ struct MarketPlayerRowView: View {
     @EnvironmentObject var kickbaseManager: KickbaseManager
     @EnvironmentObject var ligainsiderService: LigainsiderService
 
+    private var photoUrl: URL? {
+        if let ligaPlayer = ligainsiderService.getLigainsiderPlayer(
+            firstName: player.firstName, lastName: player.lastName),
+            let imgString = ligaPlayer.imageUrl,
+            let url = URL(string: imgString)
+        {
+            return url
+        }
+        return player.imageUrl
+    }
+
     var body: some View {
         Button(action: {
             print("🔄 MarketPlayerRowView: Tapped on player \(player.fullName)")
             showingPlayerDetail = true
         }) {
             HStack(spacing: 12) {
-                // Position Badge
-                PositionBadge(position: player.position)
+                // Spieler-Foto oder Position Badge
+                if let url = photoUrl {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .empty:
+                            PositionBadge(position: player.position)
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: 32, height: 32)
+                                .clipShape(Circle())
+                        case .failure:
+                            PositionBadge(position: player.position)
+                        @unknown default:
+                            PositionBadge(position: player.position)
+                        }
+                    }
+                    .frame(width: 32, height: 32)
+                } else {
+                    PositionBadge(position: player.position)
+                }
 
                 VStack(alignment: .leading, spacing: 4) {
                     // Name mit Status-Icons
