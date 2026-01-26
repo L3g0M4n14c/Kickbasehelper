@@ -25,8 +25,12 @@ struct UserDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         #endif
         .task {
-            guard let league = kickbaseManager.selectedLeague else { return }
+            guard let league = kickbaseManager.selectedLeague else {
+                print("⚠️ UserDetailView: No league selected")
+                return
+            }
             
+            print("🔍 UserDetailView: Loading squad for user \(user.id) in league \(league.id)")
             isLoading = true
             defer { isLoading = false }
             
@@ -34,7 +38,10 @@ struct UserDetailView: View {
                 leagueId: league.id,
                 userId: user.id
             ) {
+                print("✅ UserDetailView: Received \(players.count) players")
                 userPlayers = players
+            } else {
+                print("❌ UserDetailView: No players received from loadUserSquad")
             }
         }
     }
@@ -99,9 +106,6 @@ struct UserStatsSection: View {
                 UserStatCard(title: "Platzierung", value: "\(user.placement).")
                 UserStatCard(title: "Budget", value: formatCurrency(user.budget))
                 UserStatCard(title: "Teamwert", value: formatCurrency(user.teamValue))
-                UserStatCard(title: "Siege", value: "\(user.won)")
-                UserStatCard(title: "Unentschieden", value: "\(user.drawn)")
-                UserStatCard(title: "Niederlagen", value: "\(user.lost)")
             }
         }
         .padding()

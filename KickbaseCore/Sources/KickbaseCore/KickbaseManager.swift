@@ -444,13 +444,27 @@ public class KickbaseManager: ObservableObject {
         
         /// Finds the array of players in the JSON response by checking common field names
         private func findPlayersArray(in json: [String: Any]) -> [[String: Any]] {
-            let possibleKeys = ["players", "squad", "data"]
+            print("🔍 findPlayersArray: JSON keys present: \(json.keys.sorted())")
+            let possibleKeys = ["players", "squad", "data", "p", "pl"]
             for key in possibleKeys {
                 if let array = json[key] as? [[String: Any]] {
                     print("✅ Found players in '\(key)' field with \(array.count) entries")
                     return array
                 }
             }
+            print("⚠️ No players array found. Checking nested structures...")
+            // Check for nested data structures
+            for (topKey, topValue) in json {
+                if let nestedDict = topValue as? [String: Any] {
+                    for nestedKey in possibleKeys {
+                        if let array = nestedDict[nestedKey] as? [[String: Any]] {
+                            print("✅ Found players in nested '\(topKey).\(nestedKey)' with \(array.count) entries")
+                            return array
+                        }
+                    }
+                }
+            }
+            print("❌ No players array found in any location")
             return []
         }
         
