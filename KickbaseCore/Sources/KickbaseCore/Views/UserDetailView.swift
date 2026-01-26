@@ -29,13 +29,14 @@ struct UserDetailView: View {
             
             Task {
                 isLoading = true
+                defer { isLoading = false }
+                
                 if let players = await kickbaseManager.loadUserSquad(
                     leagueId: league.id,
                     userId: user.id
                 ) {
                     userPlayers = players
                 }
-                isLoading = false
             }
         }
     }
