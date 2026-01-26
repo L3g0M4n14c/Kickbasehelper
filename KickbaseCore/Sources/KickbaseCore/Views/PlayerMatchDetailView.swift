@@ -4,11 +4,23 @@ struct PlayerMatchDetailView: View {
     let player: LivePlayer  // From LiveModels.swift
     let league: League  // From Models.swift
     @ObservedObject var kickbaseManager: KickbaseManager
+    @EnvironmentObject var ligainsiderService: LigainsiderService
     @Environment(\.dismiss) var dismiss
 
     @State private var details: PlayerMatchDetailResponse?
     @State private var isLoading = false
     @State private var error: String?
+
+    private var photoUrl: URL? {
+        if let ligaPlayer = ligainsiderService.getLigainsiderPlayer(
+            firstName: player.firstName, lastName: player.lastName),
+            let imgString = ligaPlayer.imageUrl,
+            let url = URL(string: imgString)
+        {
+            return url
+        }
+        return player.imageUrl
+    }
 
     var body: some View {
         NavigationStack {
@@ -32,7 +44,7 @@ struct PlayerMatchDetailView: View {
                         // Header
                         Section {
                             HStack {
-                                AsyncImage(url: player.imageUrl) { image in
+                                AsyncImage(url: photoUrl) { image in
                                     image.resizable().scaledToFit()
                                 } placeholder: {
                                     Image(systemName: "person.fill")

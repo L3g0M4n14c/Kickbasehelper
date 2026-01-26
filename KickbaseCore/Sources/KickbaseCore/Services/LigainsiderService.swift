@@ -40,6 +40,7 @@ public enum LigainsiderStatus {
     case likelyStart  // S11 ohne Alternative
     case startWithAlternative  // S11 mit Alternative (1. Option)
     case isAlternative  // Ist die Alternative (2. Option)
+    case bench  // Auf der Bank / im Kader aber nicht in S11
     case out  // Nicht im Kader / nicht gefunden
 }
 
@@ -47,6 +48,8 @@ public class LigainsiderService: ObservableObject {
     @Published public var matches: [LigainsiderMatch] = []
     @Published public var isLoading = false
     @Published public var errorMessage: String?
+    @Published public var cacheUpdateTrigger = UUID()  // Triggert Re-Render wenn Cache sich ändert
+    @Published public var isLigainsiderReady = false  // true wenn Cache vollständig geladen ist
 
     // Basis URL
     private let overviewURL = "https://www.ligainsider.de/bundesliga/spieltage/"
@@ -54,71 +57,121 @@ public class LigainsiderService: ObservableObject {
     // Cache für schnellen Zugriff: LigainsiderId -> LigainsiderPlayer
     // Wir speichern alle Spieler die in S11 oder als Alternative gelistet sind
     private var playerCache: [String: LigainsiderPlayer] = [:]
+
+    // Public readonly access for debugging
+    public var playerCacheCount: Int {
+        return playerCache.count
+    }
+
     // Cache für Alternativen (Namen)
     private var alternativeNames: Set<String> = []
+    // Cache für Spieler in der Startelf (IDs)
+    private var startingLineupIds: Set<String> = []
 
     public init() {}
+
+    // MARK: - Async variant for initialization (waits for completion)
+    public func fetchLineupsAsync() async {
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            let fetchedMatches = try await scrapeLigaInsider()
+
+            // Cache aufbauen
+            var newCache: [String: LigainsiderPlayer] = [:]
+            var newAlts: Set<String> = []
+            var newLineupIds: Set<String> = []
+
+            for match in fetchedMatches {
+                // Zuerst Kader zum Cache hinzufügen (für Bilder von Bankspielern/Alternativen)
+                let allSquad = match.homeSquad + match.awaySquad
+                for player in allSquad {
+                    if let id = player.ligainsiderId {
+                        newCache[id] = player
+                    }
+                }
+
+                let allRows = match.homeLineup + match.awayLineup
+                for row in allRows {
+                    for player in row.players {
+                        // Speichere Hauptspieler (überschreibt Kader-Eintrag -> wichtig wegen 'alternative' Property)
+                        if let id = player.ligainsiderId {
+                            newCache[id] = player
+                            newLineupIds.insert(id)  // Markiere als Startelfspieler
+                        }
+                        // Speichere Alternative falls vorhanden
+                        if let altName = player.alternative {
+                            newAlts.insert(altName.lowercased())
+                        }
+                    }
+                }
+            }
+
+            await MainActor.run {
+                // Merge new cache into existing to preserve squad data
+                for (id, player) in newCache {
+                    // Preserve existing imageUrl if new player doesn't have one
+                    if let existingPlayer = self.playerCache[id],
+                        let existingImageUrl = existingPlayer.imageUrl,
+                        player.imageUrl == nil
+                    {
+                        // Keep existing image
+                        self.playerCache[id] = LigainsiderPlayer(
+                            name: player.name,
+                            alternative: player.alternative,
+                            ligainsiderId: player.ligainsiderId,
+                            imageUrl: existingImageUrl
+                        )
+                    } else {
+                        self.playerCache[id] = player
+                    }
+                }
+                // Merge alternatives
+                for alt in newAlts {
+                    self.alternativeNames.insert(alt)
+                }
+                // Merge lineup IDs
+                for id in newLineupIds {
+                    self.startingLineupIds.insert(id)
+                }
+
+                print(
+                    "[Ligainsider] fetchLineupsAsync complete: newCache had \(newCache.count) players, total playerCache now: \(self.playerCache.count)"
+                )
+                print("[Ligainsider] Alternative names found: \(self.alternativeNames.count)")
+                print("[Ligainsider] Starting lineup IDs: \(self.startingLineupIds.count)")
+
+                self.matches = fetchedMatches
+                self.isLoading = false
+                // Trigger UI-Updates durch Cache-Signal auf Main Thread
+                print("[DEBUG] 🔔 Setting cacheUpdateTrigger on Main Thread")
+                self.cacheUpdateTrigger = UUID()
+                print("[DEBUG] ✅ cacheUpdateTrigger set: \(self.cacheUpdateTrigger)")
+                // Mark as ready - Cache ist vollständig geladen
+                self.isLigainsiderReady = true
+                print("[DEBUG] ✅ Ligainsider is ready: \(self.playerCache.count) players loaded")
+
+                // Backup speichern (kann im Background sein)
+                self.saveToLocal(matches: fetchedMatches)
+            }
+        } catch {
+            await MainActor.run {
+                print("Fehler beim Scrapen: \(error)")
+                self.errorMessage = "Fehler beim Laden: \(error.localizedDescription)"
+                self.isLoading = false
+                // Versuch lokale Daten zu laden
+                self.loadFromLocal()
+            }
+        }
+    }
 
     public func fetchLineups() {
         isLoading = true
         errorMessage = nil
 
         Task {
-            do {
-                let fetchedMatches = try await scrapeLigaInsider()
-
-                // Cache aufbauen
-                var newCache: [String: LigainsiderPlayer] = [:]
-                var newAlts: Set<String> = []
-
-                for match in fetchedMatches {
-                    // Zuerst Kader zum Cache hinzufügen (für Bilder von Bankspielern/Alternativen)
-                    let allSquad = match.homeSquad + match.awaySquad
-                    for player in allSquad {
-                        if let id = player.ligainsiderId {
-                            newCache[id] = player
-                        }
-                    }
-
-                    let allRows = match.homeLineup + match.awayLineup
-                    for row in allRows {
-                        for player in row.players {
-                            // Speichere Hauptspieler (überschreibt Kader-Eintrag -> wichtig wegen 'alternative' Property)
-                            if let id = player.ligainsiderId {
-                                newCache[id] = player
-                            }
-                            // Speichere Alternative falls vorhanden
-                            if let altName = player.alternative {
-                                newAlts.insert(altName.lowercased())
-                            }
-                        }
-                    }
-                }
-
-                await MainActor.run {
-                    // Merge new cache into existing to preserve squad data
-                    for (id, player) in newCache {
-                        self.playerCache[id] = player
-                    }
-                    // Merge alternatives
-                    for alt in newAlts {
-                        self.alternativeNames.insert(alt)
-                    }
-
-                    self.matches = fetchedMatches
-                    self.isLoading = false
-                    // Backup speichern
-                    self.saveToLocal(matches: fetchedMatches)
-                }
-            } catch {
-                await MainActor.run {
-                    print("Fehler beim Scrapen: \(error)")
-                    self.errorMessage = "Fehler beim Laden: \(error.localizedDescription)"
-                    self.isLoading = false
-                    // Versuch lokale Daten zu laden
-                    self.loadFromLocal()
-                }
-            }
+            await fetchLineupsAsync()
         }
     }
 
@@ -155,26 +208,98 @@ public class LigainsiderService: ObservableObject {
     // MARK: - Matching Logic
 
     public func getLigainsiderPlayer(firstName: String, lastName: String) -> LigainsiderPlayer? {
-        if matches.isEmpty { return nil }
+        // Check if cache has any data (not just matches)
+        if playerCache.isEmpty {
+            print("[MATCHING] ❌ Cache EMPTY for \(firstName) \(lastName)")
+            return nil
+        }
 
         let normalizedLastName = normalize(lastName)
         let normalizedFirstName = normalize(firstName)
+        print(
+            "[MATCHING] 🔍 Searching: '\(firstName)' '\(lastName)' (normalized: '\(normalizedFirstName)' '\(normalizedLastName)') in cache of \(playerCache.count) players"
+        )
 
+        // First try: exact lastName match (as separate word)
         let candidates = playerCache.filter { key, _ in
+            let normalizedKey = normalize(key)
+            // Split by space and underscore to get name parts
+            let keyParts = normalizedKey.components(separatedBy: CharacterSet(charactersIn: " _-"))
+            return keyParts.contains(normalizedLastName)
+        }
+
+        print(
+            "   → Step 1: Found \(candidates.count) candidates by last name '\(normalizedLastName)'"
+        )
+        if candidates.count > 0 && candidates.count <= 3 {
+            candidates.forEach { print("[Ligainsider]   - \($0.key)") }
+        }
+
+        if candidates.count == 1 {
+            print(
+                "[Ligainsider] FOUND (exact): \(firstName) \(lastName) -> \(candidates.first?.key ?? "")"
+            )
+            return candidates.first?.1
+        } else if candidates.count > 1 {
+            // Multiple matches: use firstName to disambiguate
+            let bestMatch = candidates.first(where: { key, _ in
+                let normalizedKey = normalize(key)
+                let keyParts = normalizedKey.components(
+                    separatedBy: CharacterSet(charactersIn: " _-"))
+                return keyParts.contains(normalizedFirstName)
+            })
+            if let match = bestMatch {
+                print(
+                    "[Ligainsider] FOUND (firstName disamb): \(firstName) \(lastName) -> \(match.key)"
+                )
+                return match.1
+            }
+            // If no firstName match, try to find one where lastName is first in the key
+            let firstLastNameMatch = candidates.first(where: { key, _ in
+                let normalizedKey = normalize(key)
+                return normalizedKey.hasPrefix(normalizedLastName)
+                    || normalizedKey.hasPrefix(normalizedFirstName)
+            })
+            if let match = firstLastNameMatch {
+                print(
+                    "[Ligainsider] FOUND (prefix match): \(firstName) \(lastName) -> \(match.key)")
+                return match.1
+            }
+            if let match = candidates.first {
+                print(
+                    "[Ligainsider] FOUND (first of many): \(firstName) \(lastName) -> \(match.key)")
+                return match.1
+            }
+        }
+
+        // Fallback: loose contains matching (for partial names)
+        print("[Ligainsider] Step2: Trying loose contains matching for '\(normalizedLastName)'")
+        let looseCandidates = playerCache.filter { key, _ in
             let normalizedKey = normalize(key)
             return normalizedKey.contains(normalizedLastName)
         }
 
-        if candidates.count == 1 {
-            return candidates.first?.1
-        } else if candidates.count > 1 {
-            let bestMatch = candidates.first(where: { key, _ in
+        print("[Ligainsider] Found \(looseCandidates.count) loose candidates")
+        if looseCandidates.count == 1 {
+            print(
+                "[Ligainsider] FOUND (loose exact): \(firstName) \(lastName) -> \(looseCandidates.first?.key ?? "")"
+            )
+            return looseCandidates.first?.1
+        } else if looseCandidates.count > 1 {
+            let bestMatch = looseCandidates.first(where: { key, _ in
                 let normalizedKey = normalize(key)
                 return normalizedKey.contains(normalizedFirstName)
             })
-            // Fallback: Einfach den ersten nehmen, wenn Vorname nicht matcht (lockereres Matching)
-            return bestMatch?.1 ?? candidates.first?.1
+            if let match = bestMatch {
+                print(
+                    "[Ligainsider] FOUND (loose firstName): \(firstName) \(lastName) -> \(match.key)"
+                )
+                return match.1
+            }
+            print("[Ligainsider] NOT FOUND: Multiple loose matches and no firstName match")
         }
+
+        print("[Ligainsider] NOT FOUND: \(firstName) \(lastName)")
         return nil
     }
 
@@ -184,10 +309,21 @@ public class LigainsiderService: ObservableObject {
         let normalizedLastName = normalize(lastName)
         let normalizedFirstName = normalize(firstName)
 
-        // 1. Suche im Cache via ID (bester Match)
+        // 1. Zuerst prüfen ob Spieler in alternativeNames ist (wichtig für korrekte Statusanzeige)
+        let isAlternative = alternativeNames.contains { altName in
+            let normalizedAlt = normalize(altName)
+            return normalizedLastName == normalizedAlt || normalizedAlt.contains(normalizedLastName)
+        }
+
+        if isAlternative {
+            return .isAlternative
+        }
+
+        // 2. Suche im Cache via ID (bester Match)
         // Strategie: Wir filtern Cache Keys die den normalisierten Nachnamen enthalten
 
         var foundPlayer: LigainsiderPlayer?
+        var foundId: String?
 
         let candidates = playerCache.filter { key, _ in
             let normalizedKey = normalize(key)  // key ist z.B. "adam-dzwigala_25807"
@@ -196,31 +332,32 @@ public class LigainsiderService: ObservableObject {
 
         if candidates.count == 1 {
             foundPlayer = candidates.first?.1
+            foundId = candidates.first?.0
         } else if candidates.count > 1 {
             let bestMatch = candidates.first(where: { key, _ in
                 let normalizedKey = normalize(key)
                 return normalizedKey.contains(normalizedFirstName)
             })
             // Fallback: Lockereres Matching bei Statusabfrage
-            foundPlayer = bestMatch?.1 ?? candidates.first?.1
+            if let match = bestMatch ?? candidates.first {
+                foundPlayer = match.1
+                foundId = match.0
+            }
         }
 
         // Wenn Spieler gefunden: Check Status
-        if let player = foundPlayer {
-            if player.alternative != nil {
-                return .startWithAlternative
+        if let player = foundPlayer, let id = foundId {
+            // Prüfe ob Spieler in der Startelf ist
+            if startingLineupIds.contains(id) {
+                // Spieler ist in Startelf
+                if player.alternative != nil {
+                    return .startWithAlternative
+                }
+                return .likelyStart
+            } else {
+                // Spieler ist im Kader aber nicht in Startelf -> Bank
+                return .bench
             }
-            return .likelyStart
-        }
-
-        // 2. Check Alternativen (String Matching)
-        let isAlternative = alternativeNames.contains { altName in
-            let normalizedAlt = normalize(altName)
-            return normalizedLastName == normalizedAlt || normalizedAlt.contains(normalizedLastName)
-        }
-
-        if isAlternative {
-            return .isAlternative
         }
 
         return .out
@@ -232,6 +369,7 @@ public class LigainsiderService: ObservableObject {
         case .likelyStart: return "checkmark.circle.fill"
         case .startWithAlternative: return "1.circle.fill"
         case .isAlternative: return "2.circle.fill"
+        case .bench: return "person.fill.badge.minus"
         case .out: return "xmark.circle.fill"
         }
     }
@@ -241,6 +379,7 @@ public class LigainsiderService: ObservableObject {
         case .likelyStart: return .green
         case .startWithAlternative: return .orange
         case .isAlternative: return .orange
+        case .bench: return .gray
         case .out: return .red
         }
     }
@@ -268,47 +407,52 @@ public class LigainsiderService: ObservableObject {
         "Holstein Kiel": "/holstein-kiel/321/kader/",
     ]
 
-    public func fetchAllSquads() {
-        Task {
-            print("Starte Kader-Abruf für alle Teams...")
-            await withTaskGroup(of: [LigainsiderPlayer].self) { group in
-                for (teamName, path) in teamSquadPaths {
-                    group.addTask {
-                        return await self.fetchSquad(path: path, teamName: teamName)
-                    }
+    // MARK: - Async variant for initialization (waits for completion)
+    public func fetchAllSquadsAsync() async {
+        print("Starte Kader-Abruf für alle Teams...")
+        await withTaskGroup(of: [LigainsiderPlayer].self) { group in
+            for (teamName, path) in teamSquadPaths {
+                group.addTask {
+                    return await self.fetchSquad(path: path, teamName: teamName)
                 }
+            }
 
-                var accumulatedPlayers: [LigainsiderPlayer] = []
-                for await squad in group {
-                    // Start manually iterating to avoid Sequence type issues
-                    for player in squad {
-                        let p = player as LigainsiderPlayer
-                        accumulatedPlayers.append(p)
-                    }
+            var accumulatedPlayers: [LigainsiderPlayer] = []
+            for await squad in group {
+                // Start manually iterating to avoid Sequence type issues
+                for player in squad {
+                    let p = player as LigainsiderPlayer
+                    accumulatedPlayers.append(p)
                 }
+            }
 
-                await MainActor.run {
-                    print("Kader-Abruf beendet. Gefundene Spieler: \(accumulatedPlayers.count)")
-                    for player in accumulatedPlayers {
-                        if let id = player.ligainsiderId {
-                            // Update playerCache safely
-                            if let existing = self.playerCache[id] {
-                                // Update image if we found one and existing didn't have one
-                                if existing.imageUrl == nil && player.imageUrl != nil {
-                                    self.playerCache[id] = LigainsiderPlayer(
-                                        name: existing.name,  // Keep existing name logic
-                                        alternative: existing.alternative,
-                                        ligainsiderId: existing.ligainsiderId,
-                                        imageUrl: player.imageUrl
-                                    )
-                                }
-                            } else {
-                                self.playerCache[id] = player
+            await MainActor.run {
+                print("Kader-Abruf beendet. Gefundene Spieler: \(accumulatedPlayers.count)")
+                for player in accumulatedPlayers {
+                    if let id = player.ligainsiderId {
+                        // Update playerCache safely
+                        if let existing = self.playerCache[id] {
+                            // Update image if we found one and existing didn't have one
+                            if existing.imageUrl == nil && player.imageUrl != nil {
+                                self.playerCache[id] = LigainsiderPlayer(
+                                    name: existing.name,  // Keep existing name logic
+                                    alternative: existing.alternative,
+                                    ligainsiderId: existing.ligainsiderId,
+                                    imageUrl: player.imageUrl
+                                )
                             }
+                        } else {
+                            self.playerCache[id] = player
                         }
                     }
                 }
             }
+        }
+    }
+
+    public func fetchAllSquads() {
+        Task {
+            await fetchAllSquadsAsync()
         }
     }
 
@@ -325,7 +469,7 @@ public class LigainsiderService: ObservableObject {
             // Robustere Suche: Wir suchen nach allen Links auf Spielerprofile
             // Pattern: href="/(name)_(id)/"
 
-            let components = html.splitBy("href=\"/")
+            let components = html.components(separatedBy: "href=\"/")
 
             // Wir iterieren mit Index, um auf vorherige Komponenten zugreifen zu können (für Bilder davor)
             for i in 1..<components.count {
@@ -528,6 +672,7 @@ public class LigainsiderService: ObservableObject {
         }
 
         var formationRows: [[LigainsiderPlayer]] = []
+        var allParsedPlayers: [LigainsiderPlayer] = []  // Sammelt ALLE gefundenen Spieler (inkl. Alternativen)
 
         // Parsing Logik für Aufstellung
         // Support for both Pre-Match (VORAUSSICHTLICHE AUFSTELLUNG) and Live/Post-Match (Voraussichtliche Aufstellung und Ergebnisse) headers
@@ -565,15 +710,17 @@ public class LigainsiderService: ObservableObject {
                 for j in 1..<colComponents.count {
                     let colHtml = colComponents[j]
 
-                    // Bild URL extrahieren
-                    var extractedImageUrl: String?
+                    // Extrahiere ALLE Bild URLs in dieser Spalte
+                    // Struktur: main player photo + sub_pic photos für Alternativen
+                    var allImageUrls: [String] = []
                     let srcComponents = colHtml.splitBy("src=\"")
                     for srcPart in srcComponents.dropFirst() {
                         if let urlCandidate = srcPart.substringBefore("\"") {
-                            // Wir akzeptieren Bilder die "ligainsider.de" enthalten
-                            if urlCandidate.contains("ligainsider.de") {
-                                extractedImageUrl = urlCandidate
-                                break
+                            // Akzeptiere Bilder die "ligainsider.de" enthalten und player/team Pfad haben
+                            if urlCandidate.contains("ligainsider.de")
+                                && urlCandidate.contains("/player/team/")
+                            {
+                                allImageUrls.append(urlCandidate)
                             }
                         }
                     }
@@ -581,8 +728,9 @@ public class LigainsiderService: ObservableObject {
                     // Suche: <a ... href="/id/" ... >Name</a>
                     let linkComponents = colHtml.splitBy("<a ")
 
-                    var namesInColumn: [(String, String)] = []
+                    var namesInColumn: [(name: String, slug: String, imageUrl: String?)] = []
                     var seen = Set<String>()
+                    var usedImageIndices = Set<Int>()  // Track which images we've already matched
 
                     for linkPart in linkComponents.dropFirst() {
                         // href finden
@@ -621,36 +769,84 @@ public class LigainsiderService: ObservableObject {
 
                         if name.count > 1 && !seen.contains(name) {
                             seen.insert(name)
-                            namesInColumn.append((name, slug))
+
+                            // Versuche das passende Bild für diesen Spieler zu finden
+                            var matchedImageUrl: String?
+                            var matchedIndex: Int?
+
+                            // Suche in den verfügbaren Bildern nach einem Match basierend auf dem slug
+                            // Kombiniert exaktes Matching und Fallback in einer Iteration für bessere Performance
+                            var firstAvailableIndex: Int?
+                            for (index, imageUrl) in allImageUrls.enumerated() {
+                                // Skip if we've already used this image
+                                if usedImageIndices.contains(index) { continue }
+
+                                // Speichere den ersten verfügbaren Index als Fallback
+                                if firstAvailableIndex == nil {
+                                    firstAvailableIndex = index
+                                }
+
+                                let normalizedImageUrl = normalize(imageUrl)
+                                let normalizedSlug = normalize(slug)
+
+                                // Extrahiere nur den Namen-Teil des Slugs (vor dem Underscore)
+                                let slugNamePart =
+                                    normalizedSlug.components(separatedBy: "_").first
+                                    ?? normalizedSlug
+
+                                // Prüfe ob der Spielername im Bild-URL vorkommt (z.B. "lars-ritzka" in "lars-ritzka-pauli-25-26.jpg")
+                                if normalizedImageUrl.contains(slugNamePart) {
+                                    matchedImageUrl = imageUrl
+                                    matchedIndex = index
+                                    break
+                                }
+                            }
+
+                            // Fallback: Verwende das erste verfügbare ungenutzte Bild wenn kein Name-Match gefunden wurde
+                            if matchedImageUrl == nil, let fallbackIndex = firstAvailableIndex {
+                                matchedImageUrl = allImageUrls[fallbackIndex]
+                                matchedIndex = fallbackIndex
+                            }
+
+                            // Mark the image as used if we found one
+                            if let index = matchedIndex {
+                                usedImageIndices.insert(index)
+                            }
+
+                            namesInColumn.append(
+                                (name: name, slug: slug, imageUrl: matchedImageUrl))
                         }
                     }
 
-                    // Alle gefundenen Spieler in der Spalte zur "Squad" hinzufügen (damit IDs bekannt sind)
-                    for (pName, pSlug) in namesInColumn {
-                        // Prüfen ob wir für diesen Spieler schon ein Bild haben (aus dem srcComponents check oben, gilt aber meist nur für den Ersten)
-                        // Alternativ: Einfach als Spieler anlegen. Wenn Bild fehlt, fehlt es halt. Hauptsache ID ist da für Matching.
-                        // Im Cache wird später eh gemerged.
-                        // HACK: Wir nutzen extractedImageUrl für den ersten Spieler. Für Alternativen nil?
-                        // Oder besser: Da extractedImageUrl nur EINMAL pro Column gefunden wird (meist S11 Spieler), vergeben wir es nur beim passenden Match?
-                        // Meist ist extractedImageUrl das Bild des S11 Spielers (namesInColumn.first).
-
-                        let img = (pName == namesInColumn.first?.0) ? extractedImageUrl : nil
-
-                        // Zu "Squad" hinzufügen via temporärer Liste? Wir fügen es direkt zu squad (via Rückgabe) zu?
-                        // Geht nicht direkt, da squad variable unten lokal ist.
-                        // Wir sammeln sie in 'extraPlayers'
-                    }
-
                     if let firstEntry = namesInColumn.first {
-                        let mainName = firstEntry.0
-                        let mainSlug = firstEntry.1
-                        let alternativeName = namesInColumn.count > 1 ? namesInColumn[1].0 : nil
+                        let mainName = firstEntry.name
+                        let mainSlug = firstEntry.slug
+                        let mainImageUrl = firstEntry.imageUrl
+                        let alternativeName = namesInColumn.count > 1 ? namesInColumn[1].name : nil
                         currentRowPlayers.append(
                             LigainsiderPlayer(
                                 name: mainName,
                                 alternative: alternativeName,
                                 ligainsiderId: mainSlug,
-                                imageUrl: extractedImageUrl
+                                imageUrl: mainImageUrl
+                            )
+                        )
+                    }
+
+                    // Füge ALLE Spieler (Haupt + Alternativen) zur allParsedPlayers Liste hinzu
+                    // WICHTIG: Für den Hauptspieler muss das 'alternative' Feld erhalten bleiben für korrekte Statusanzeige
+                    // Alternativen werden als separate Spieler ohne alternative-Link gespeichert
+                    for (index, playerData) in namesInColumn.enumerated() {
+                        let isMainPlayer = (index == 0)
+                        let alternativeField =
+                            isMainPlayer && namesInColumn.count > 1 ? namesInColumn[1].name : nil
+
+                        allParsedPlayers.append(
+                            LigainsiderPlayer(
+                                name: playerData.name,
+                                alternative: alternativeField,  // Hauptspieler behält alternative-Link
+                                ligainsiderId: playerData.slug,
+                                imageUrl: playerData.imageUrl
                             )
                         )
                     }
@@ -660,30 +856,47 @@ public class LigainsiderService: ObservableObject {
                     formationRows.append(currentRowPlayers)
                 }
             }
-
-            // Collect all players from formationRows into a flat list to append to squad
-            // This ensures alternatives (if explicitly parsed as rows? no)
-            // Wait, we need to add the ALTERNATIVES to the squad list explicitly if they are not in formationRows as main players.
-            // Currently formationRows only contains valid MAIN players.
-
-            // Re-scan for alternatives to add to squad:
-            // The logic above is inside a loop. We need a way to output them.
-            // Let's iterate formationRows afterwards? No, we don't have the IDs there (only alternative name string).
-
-            // We need to capture the IDs during the parsing loop.
-            // Let's modify the parsing loop to collect `extraSquadPlayers`.
         }
 
-        // HIER MÜSSEN WIR NOCHMAL PARSEN ODER DIE LOGIK VERBESSERN, UM ALTERNATIVEN ZU RETTEN.
-        // Da ich den Code oben nicht komplett umschreiben will (zu viele Änderungen), nutzen wir fetchSquad für "alles was auf der Seite ist".
-        // Da fetchSquad nun robuster ist ("alle Links"), sollte es die Alternativen auf der Match-Seite finden,
-        // SOFERN sie verlinkt sind. (Ligainsider verlinkt Alternativen im Text meistens).
-
-        // Kader laden (via fetchSquad)
+        // Kader laden: Kombiniere geparste Spieler mit fetchSquad (für zusätzliche Spieler die nicht in Aufstellung sind)
         let path = URL(string: url)?.path ?? ""
-        let squad = await fetchSquad(path: path, teamName: teamName)
+        var fetchedSquad = await fetchSquad(path: path, teamName: teamName)
 
-        return TeamDataResult(name: teamName, logo: teamLogo, lineup: formationRows, squad: squad)
+        // Merge allParsedPlayers mit fetchedSquad
+        // Strategie: Priorisiere Spieler mit Bildern aus allParsedPlayers (Aufstellungsseite),
+        // behalte aber fetchedSquad-Einträge für Spieler die nicht in der Aufstellung sind
+        var squadMap: [String: LigainsiderPlayer] = [:]
+
+        // Zuerst fetchedSquad einfügen (Basis-Daten)
+        for player in fetchedSquad {
+            if let id = player.ligainsiderId {
+                squadMap[id] = player
+            }
+        }
+
+        // Dann allParsedPlayers einfügen (überschreibt nur wenn wir bessere Daten haben)
+        for player in allParsedPlayers {
+            if let id = player.ligainsiderId {
+                if let existingPlayer = squadMap[id] {
+                    // Überschreibe nur wenn der neue Spieler ein Bild hat und der alte nicht
+                    if player.imageUrl != nil && existingPlayer.imageUrl == nil {
+                        squadMap[id] = player
+                    }
+                    // Wenn beide Bilder haben, behalte allParsedPlayers (Aufstellungsseite ist aktueller)
+                    else if player.imageUrl != nil {
+                        squadMap[id] = player
+                    }
+                } else {
+                    // Neuer Spieler, füge hinzu
+                    squadMap[id] = player
+                }
+            }
+        }
+
+        let finalSquad = Array(squadMap.values)
+
+        return TeamDataResult(
+            name: teamName, logo: teamLogo, lineup: formationRows, squad: finalSquad)
     }
 
     // Helper zum Entfernen von HTML Tags

@@ -3,6 +3,7 @@ import SwiftUI
 struct LiveView: View {
     @ObservedObject var kickbaseManager: KickbaseManager
     @EnvironmentObject var authManager: AuthenticationManager
+    @EnvironmentObject var ligainsiderService: LigainsiderService
     @State private var selectedPlayer: LivePlayer?
 
     var body: some View {
@@ -125,11 +126,23 @@ struct LiveView: View {
 
 struct LivePlayerRow: View {
     let player: LivePlayer
+    @EnvironmentObject var ligainsiderService: LigainsiderService
+
+    private var photoUrl: URL? {
+        if let ligaPlayer = ligainsiderService.getLigainsiderPlayer(
+            firstName: player.firstName, lastName: player.lastName),
+            let imgString = ligaPlayer.imageUrl,
+            let url = URL(string: imgString)
+        {
+            return url
+        }
+        return player.imageUrl
+    }
 
     var body: some View {
         HStack {
             // Player Image or Placeholder
-            AsyncImage(url: player.imageUrl) { image in
+            AsyncImage(url: photoUrl) { image in
                 image.resizable()
             } placeholder: {
                 Image(systemName: "person.fill")
