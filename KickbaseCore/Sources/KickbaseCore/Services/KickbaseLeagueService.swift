@@ -38,7 +38,7 @@ public class KickbaseLeagueService: ObservableObject {
         
         do {
             let json = try await apiService.getLeagueRanking(leagueId: league.id)
-            let users = dataParser.parseLeagueRanking(from: json)
+            let users = dataParser.parseLeagueRanking(from: json, isMatchDayQuery: false)
             
             // Sort by points descending
             let sortedUsers = users.sorted { $0.points > $1.points }
@@ -60,7 +60,7 @@ public class KickbaseLeagueService: ObservableObject {
         
         do {
             let json = try await apiService.getLeagueRanking(leagueId: league.id, matchDay: matchDay)
-            let users = dataParser.parseLeagueRanking(from: json)
+            let users = dataParser.parseLeagueRanking(from: json, isMatchDayQuery: true)
             
             // Sort by points descending
             let sortedUsers = users.sorted { $0.points > $1.points }
