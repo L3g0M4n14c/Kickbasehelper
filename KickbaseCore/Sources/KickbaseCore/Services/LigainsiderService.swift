@@ -266,7 +266,7 @@ public class LigainsiderService: ObservableObject {
         case .likelyStart: return "checkmark.circle.fill"
         case .startWithAlternative: return "1.circle.fill"
         case .isAlternative: return "2.circle.fill"
-        case .bench: return "person.fill.questionmark"
+        case .bench: return "person.fill.badge.minus"
         case .out: return "xmark.circle.fill"
         }
     }
