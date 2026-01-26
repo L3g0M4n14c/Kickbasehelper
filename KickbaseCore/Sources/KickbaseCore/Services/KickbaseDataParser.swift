@@ -302,10 +302,11 @@ public class KickbaseDataParser: ObservableObject {
             
             let budget = extractInt(from: userData, keys: ["b", "budget"]) ?? 0
             let teamValue = extractInt(from: userData, keys: ["tv", "teamValue"]) ?? 0
-            // Use 'sp' (season points) for total points
-            let points = extractInt(from: userData, keys: ["sp", "p", "points"]) ?? 0
-            // Use 'spl' (season placement) for placement
-            let placement = extractInt(from: userData, keys: ["spl", "pl", "placement"]) ?? 0
+            
+            // When matchDay parameter is used, API returns 'mdp' (matchday points) and 'mdpl' (matchday placement)
+            // Otherwise, use 'sp' (season points) and 'spl' (season placement)
+            let points = extractInt(from: userData, keys: ["mdp", "sp", "p", "points"]) ?? 0
+            let placement = extractInt(from: userData, keys: ["mdpl", "spl", "pl", "placement"]) ?? 0
             
             // These fields don't exist in ranking API, set to 0 as defaults
             let won = 0
