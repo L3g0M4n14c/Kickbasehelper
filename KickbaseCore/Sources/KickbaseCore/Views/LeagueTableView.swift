@@ -38,7 +38,8 @@ struct LeagueTableView: View {
                                 .foregroundColor(.secondary)
                             
                             Picker("Spieltag", selection: $selectedMatchDay) {
-                                ForEach(1...league.matchDay, id: \.self) { day in
+                                // Show all 34 matchdays for Bundesliga season
+                                ForEach(1...34, id: \.self) { day in
                                     Text("Spieltag \(day)").tag(day)
                                 }
                             }
