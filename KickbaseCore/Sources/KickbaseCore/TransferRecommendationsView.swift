@@ -543,18 +543,25 @@ struct EnhancedRecommendationCard: View {
     let recommendation: TransferRecommendation
     let onTap: () -> Void
     @EnvironmentObject var ligainsiderService: LigainsiderService
+    
+    private var playerImageUrl: URL? {
+        guard let ligaPlayer = ligainsiderService.getLigainsiderPlayer(
+            firstName: recommendation.player.firstName,
+            lastName: recommendation.player.lastName),
+              let imgString = ligaPlayer.imageUrl,
+              let url = URL(string: imgString)
+        else {
+            return nil
+        }
+        return url
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             // Player Header with Enhanced Info
             HStack(alignment: .top, spacing: 12) {
                 // Player Photo from Ligainsider
-                if let ligaPlayer = ligainsiderService.getLigainsiderPlayer(
-                    firstName: recommendation.player.firstName,
-                    lastName: recommendation.player.lastName),
-                   let imgString = ligaPlayer.imageUrl,
-                   let url = URL(string: imgString)
-                {
+                if let url = playerImageUrl {
                     #if !SKIP
                     AsyncImage(url: url) { phase in
                         switch phase {
@@ -593,7 +600,7 @@ struct EnhancedRecommendationCard: View {
                         }
                     #endif
                 }
-                
+
                 VStack(alignment: .leading, spacing: 6) {
                     // Name with Form Trend
                     HStack {
