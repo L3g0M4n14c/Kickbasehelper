@@ -1,7 +1,8 @@
 import SwiftUI
 
 struct LiveView: View {
-    @EnvironmentObject var kickbaseManager: KickbaseManager
+    @ObservedObject var kickbaseManager: KickbaseManager
+    @EnvironmentObject var authManager: AuthenticationManager
     @State private var selectedPlayer: LivePlayer?
 
     var body: some View {
@@ -17,6 +18,13 @@ struct LiveView: View {
                         Text("Keine Live-Daten verfügbar")
                             .font(.headline)
                             .padding(.top)
+                        if let error = kickbaseManager.errorMessage {
+                            Text("Fehler: \(error)")
+                                .foregroundColor(.red)
+                                .multilineTextAlignment(.center)
+                                .padding()
+                        }
+
                         Text(
                             "Möglicherweise läuft gerade kein Spieltag oder die Aufstellung ist leer."
                         )
@@ -74,7 +82,6 @@ struct LiveView: View {
                     }
                 }
             }
-            .navigationTitle("Live Matchday")
             .sheet(item: $selectedPlayer) { player in
                 if let league = kickbaseManager.selectedLeague {
                     PlayerMatchDetailView(
@@ -86,9 +93,16 @@ struct LiveView: View {
                     Text("Keine Liga ausgewählt")
                 }
             }
-            .onAppear {
-                Task {
+            .task(id: kickbaseManager.selectedLeague?.id) {
+                if kickbaseManager.selectedLeague != nil {
                     await kickbaseManager.loadLivePoints()
+                }
+            }
+            .onAppear {
+                if kickbaseManager.selectedLeague != nil {
+                    Task {
+                        await kickbaseManager.loadLivePoints()
+                    }
                 }
             }
         }

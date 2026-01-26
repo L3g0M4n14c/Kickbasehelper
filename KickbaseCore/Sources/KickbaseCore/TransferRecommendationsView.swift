@@ -13,9 +13,6 @@ struct TransferRecommendationsView: View {
     @State private var sortOption: RecommendationSortOption = .recommendationScore
     @State private var showFilterSheet = false
     @State private var selectedRecommendation: TransferRecommendation?
-    #if os(iOS)
-        @State private var columnVisibility = NavigationSplitViewVisibility.all
-    #endif
 
     init(kickbaseManager: KickbaseManager) {
         self.kickbaseManager = kickbaseManager
@@ -24,44 +21,13 @@ struct TransferRecommendationsView: View {
     }
 
     var body: some View {
-        #if os(iOS)
-            if isLargeScreen() {
-                // iPad/macOS Version mit NavigationSplitView
-                NavigationSplitView(columnVisibility: $columnVisibility) {
-                    // Sidebar Content
-                    sidebarContent
-                } detail: {
-                    // Detail Content
-                    if let selectedRecommendation = selectedRecommendation {
-                        RecommendationPlayerDetailView(recommendation: selectedRecommendation)
-                    } else {
-                        defaultDetailView
-                    }
-                }
-                .navigationSplitViewStyle(.balanced)
-            } else {
-                // iPhone Version mit NavigationView (Original Verhalten)
-                NavigationStack {
-                    mainContent
-                }
-                .sheet(isPresented: $showFilterSheet) {
-                    FilterSheet(filters: $filters)
-                }
-                .sheet(item: $selectedRecommendation) { recommendation in
-                    PlayerDetailSheet(recommendation: recommendation)
-                }
-            }
-        #else
-            NavigationStack {
-                mainContent
-            }
+        mainContent
             .sheet(isPresented: $showFilterSheet) {
                 FilterSheet(filters: $filters)
             }
             .sheet(item: $selectedRecommendation) { recommendation in
                 PlayerDetailSheet(recommendation: recommendation)
             }
-        #endif
     }
 
     private var sidebarContent: some View {

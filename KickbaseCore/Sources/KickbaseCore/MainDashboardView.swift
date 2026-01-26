@@ -1,5 +1,32 @@
 import SwiftUI
 
+struct StandardNavigationModifier: ViewModifier {
+    @EnvironmentObject var kickbaseManager: KickbaseManager
+    @EnvironmentObject var authManager: AuthenticationManager
+
+    func body(content: Content) -> some View {
+        content
+            .navigationTitle(kickbaseManager.selectedLeague?.name ?? "Kickbase Helper")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailingCompat) {
+                    Button("Logout") {
+                        authManager.logout()
+                    }
+                }
+
+                ToolbarItem(placement: .navigationBarLeadingCompat) {
+                    if kickbaseManager.isLoading {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                    }
+                }
+            }
+            #if os(iOS)
+                .navigationBarTitleDisplayMode(.inline)
+            #endif
+    }
+}
+
 struct TeamPlayerCounts {
     let total: Int
     let goalkeepers: Int
@@ -134,9 +161,7 @@ struct MainDashboardView: View {
                     case 5:
                         LigainsiderView()
                     case 6:
-                        LeagueTableView()
-                    case 7:
-                        LiveView()
+                        LiveView(kickbaseManager: kickbaseManager)
                     default:
                         TeamView()
                     }
@@ -151,33 +176,42 @@ struct MainDashboardView: View {
 
     // iPhone-spezifisches Layout mit Tabs
     private var iPhoneLayout: some View {
-        NavigationStack {
-            TabView(selection: $selectedTab) {
-                // Team Tab mit Punktzahlen
+        TabView(selection: $selectedTab) {
+            // Team Tab mit Punktzahlen
+            NavigationStack {
                 TeamView()
-                    .tabItem {
-                        Image(systemName: "person.3.fill")
-                        Text("Team")
-                    }
-                    .tag(0)
+                    .modifier(StandardNavigationModifier())
+            }
+            .tabItem {
+                Image(systemName: "person.3.fill")
+                Text("Team")
+            }
+            .tag(0)
 
-                // Market Tab
+            // Market Tab
+            NavigationStack {
                 MarketView()
-                    .tabItem {
-                        Image(systemName: "cart.fill")
-                        Text("Markt")
-                    }
-                    .tag(1)
+                    .modifier(StandardNavigationModifier())
+            }
+            .tabItem {
+                Image(systemName: "cart.fill")
+                Text("Markt")
+            }
+            .tag(1)
 
-                // Sales Recommendation Tab (ersetzt Stats Tab)
+            // Sales Recommendation Tab (ersetzt Stats Tab)
+            NavigationStack {
                 SalesRecommendationView()
-                    .tabItem {
-                        Image(systemName: "dollarsign.circle.fill")
-                        Text("Verkaufen")
-                    }
-                    .tag(2)
+                    .modifier(StandardNavigationModifier())
+            }
+            .tabItem {
+                Image(systemName: "dollarsign.circle.fill")
+                Text("Verkaufen")
+            }
+            .tag(2)
 
-                // Lineup Optimizer Tab (ersetzt Gifts Tab)
+            // Lineup Optimizer Tab (ersetzt Gifts Tab)
+            NavigationStack {
                 LineupOptimizerView()
                     .tabItem {
                         Image(systemName: "person.crop.square.fill.and.at.rectangle")
@@ -216,40 +250,53 @@ struct MainDashboardView: View {
                         Text("Live")
                     }
                     .tag(7)
+                    .modifier(StandardNavigationModifier())
             }
+            .tabItem {
+                Image(systemName: "person.crop.square.fill.and.at.rectangle")
+                Text("Aufstellung")
+            }
+            .tag(3)
 
-            #if os(iOS)
-                .navigationBarTitleDisplayMode(.inline)
+            // Transfer Recommendations Tab
+            TransferRecommendationsView(kickbaseManager: kickbaseManager)
+                .modifier(StandardNavigationModifier())
+                .tabItem {
+                    Image(systemName: "person.crop.circle.badge.plus")
+                    Text("Transfer-Tipps")
+                }
+                .tag(4)
+
+            // Ligainsider Tab
+            LigainsiderView()
+                .modifier(StandardNavigationModifier())
+                .tabItem {
+                    Image(systemName: "list.bullet.clipboard")
+                    Text("Ligainsider")
+                }
+                .tag(5)
+
+            // Live View Tab
+            LiveView(kickbaseManager: kickbaseManager)
+                .tabItem {
+                    Image(systemName: "sportscourt.fill")
+                    Text("Live")
+                }
+                .tag(6)
+        }
+        .onAppear {
+            #if os(iOS) && os(iOS)
+                // Konfiguriere Navigation Bar Appearance für iPhone (nicht transparent)
+                let appearance = UINavigationBarAppearance()
+                appearance.configureWithOpaqueBackground()
+                appearance.backgroundColor = UIColor.systemBackground
+                appearance.titleTextAttributes = [.foregroundColor: UIColor.label]
+                appearance.largeTitleTextAttributes = [.foregroundColor: UIColor.label]
+
+                UINavigationBar.appearance().standardAppearance = appearance
+                UINavigationBar.appearance().scrollEdgeAppearance = appearance
+                UINavigationBar.appearance().compactAppearance = appearance
             #endif
-            .navigationTitle(kickbaseManager.selectedLeague?.name ?? "Kickbase Helper")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailingCompat) {
-                    Button("Logout") {
-                        authManager.logout()
-                    }
-                }
-
-                ToolbarItem(placement: .navigationBarLeadingCompat) {
-                    if kickbaseManager.isLoading {
-                        ProgressView()
-                            .scaleEffect(0.8)
-                    }
-                }
-            }
-            .onAppear {
-                #if os(iOS) && os(iOS)
-                    // Konfiguriere Navigation Bar Appearance für iPhone (nicht transparent)
-                    let appearance = UINavigationBarAppearance()
-                    appearance.configureWithOpaqueBackground()
-                    appearance.backgroundColor = UIColor.systemBackground
-                    appearance.titleTextAttributes = [.foregroundColor: UIColor.label]
-                    appearance.largeTitleTextAttributes = [.foregroundColor: UIColor.label]
-
-                    UINavigationBar.appearance().standardAppearance = appearance
-                    UINavigationBar.appearance().scrollEdgeAppearance = appearance
-                    UINavigationBar.appearance().compactAppearance = appearance
-                #endif
-            }
         }
     }
 
