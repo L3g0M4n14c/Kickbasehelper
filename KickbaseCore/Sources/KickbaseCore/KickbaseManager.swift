@@ -129,13 +129,14 @@ public class KickbaseManager: ObservableObject {
     }
 
     public func loadMatchDayRanking(for league: League, matchDay: Int) async {
+        print("📊 KickbaseManager: Loading ranking for matchday \(matchDay)")
         isLoading = true
         errorMessage = nil
 
         do {
             let users = try await leagueService.loadMatchDayRanking(for: league, matchDay: matchDay)
             self.matchDayUsers = users
-            print("✅ Loaded \(users.count) matchday users")
+            print("✅ Loaded \(users.count) matchday users for matchday \(matchDay)")
         } catch {
             print("❌ Error loading matchday ranking: \(error)")
             errorMessage = "Fehler beim Laden der Spieltag-Tabelle: \(error.localizedDescription)"

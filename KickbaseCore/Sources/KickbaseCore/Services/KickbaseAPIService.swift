@@ -245,6 +245,9 @@ public class KickbaseAPIService: ObservableObject {
         var endpoint = "/v4/leagues/\(leagueId)/ranking"
         if let matchDay = matchDay {
             endpoint += "?matchDay=\(matchDay)"
+            print("🌐 API: Calling ranking endpoint with matchDay parameter: \(endpoint)")
+        } else {
+            print("🌐 API: Calling ranking endpoint without matchDay: \(endpoint)")
         }
         let (data, _) = try await makeRequest(endpoint: endpoint)
         return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
