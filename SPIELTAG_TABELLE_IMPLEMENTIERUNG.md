@@ -4,27 +4,36 @@
 
 Die LeagueTableView wurde erweitert, um zwischen zwei Ansichten zu wechseln:
 1. **Gesamttabelle** - Zeigt die kumulierten Punkte der gesamten Saison
-2. **Spieltag-Tabelle** - Zeigt nur die Punkte des aktuellen Spieltags
+2. **Spieltag-Tabelle** - Zeigt die Punkte eines beliebigen Spieltags (wählbar von 1 bis aktueller Spieltag)
 
 ---
 
-## Implementierung (26. Januar 2026)
+## Implementierung (26. Januar 2026, aktualisiert)
+
+### Update: Spieltag-Auswahl hinzugefügt
+
+**Neue Funktionalität:**
+- Dropdown-Menü zur Auswahl eines beliebigen Spieltags
+- Anzeige der Punkte für den ausgewählten Spieltag
+- Dynamischer Titel zeigt "Spieltag X" an
 
 ### 1. **LeagueTableView - UI-Komponente**
 
 **Neue Funktionalität:**
 - Segmented Picker am oberen Bildschirmrand
-- Dynamischer Wechsel zwischen zwei Tabellen-Ansichten
-- Automatisches Laden der Spieltag-Daten beim ersten Wechsel
+- Dropdown-Menü zur Spieltag-Auswahl (erscheint bei Auswahl von "Spieltag")
+- Dynamischer Wechsel zwischen Ansichten
+- Automatisches Laden der Spieltag-Daten beim Wechsel
 
 ```swift
 struct LeagueTableView: View {
     @EnvironmentObject var kickbaseManager: KickbaseManager
     @State private var tableType: TableType = .overall
+    @State private var selectedMatchDay: Int = 1
     
     enum TableType {
-        case overall         // Gesamttabelle
-        case currentMatchday // Aktueller Spieltag
+        case overall   // Gesamttabelle
+        case matchday  // Beliebiger Spieltag
     }
     
     var body: some View {
@@ -34,20 +43,30 @@ struct LeagueTableView: View {
                 if let league = kickbaseManager.selectedLeague {
                     Picker("", selection: $tableType) {
                         Text("Gesamttabelle").tag(TableType.overall)
-                        Text("Spieltag \(league.matchDay)").tag(TableType.currentMatchday)
+                        Text("Spieltag").tag(TableType.matchday)
                     }
                     .pickerStyle(.segmented)
-                    .padding(.horizontal)
-                    .padding(.vertical, 8)
-                    .onChange(of: tableType) { oldValue, newValue in
-                        if newValue == .currentMatchday {
-                            Task {
-                                await kickbaseManager.loadMatchDayRanking(
-                                    for: league, 
-                                    matchDay: league.matchDay
-                                )
+                    
+                    // Spieltag-Auswahl (nur sichtbar im Spieltag-Modus)
+                    if tableType == .matchday {
+                        HStack {
+                            Text("Spieltag auswählen:")
+                            Picker("Spieltag", selection: $selectedMatchDay) {
+                                ForEach(1...league.matchDay, id: \.self) { day in
+                                    Text("Spieltag \(day)").tag(day)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                            .onChange(of: selectedMatchDay) { _, newValue in
+                                Task {
+                                    await kickbaseManager.loadMatchDayRanking(
+                                        for: league, 
+                                        matchDay: newValue
+                                    )
+                                }
                             }
                         }
+                    }
                     }
                 }
                 
@@ -217,22 +236,28 @@ GET /v4/leagues/{leagueId}/ranking?matchDay={matchDay}
 ## Features
 
 ### ✅ Segmented Picker
-- Zwei Optionen: "Gesamttabelle" und "Spieltag X"
-- X ist die aktuelle Spieltag-Nummer aus `league.matchDay`
+- Zwei Optionen: "Gesamttabelle" und "Spieltag"
 - Standard-Auswahl: "Gesamttabelle"
 
+### ✅ Spieltag-Auswahl-Dropdown
+- Erscheint nur wenn "Spieltag" ausgewählt ist
+- Zeigt "Spieltag auswählen:" Label
+- Dropdown-Menü mit allen Spieltagen (1 bis aktueller Spieltag)
+- Standard-Auswahl: Aktueller Spieltag
+- Lädt Daten automatisch bei Änderung
+
 ### ✅ Dynamisches Daten-Laden
-- Gesamttabelle wird beim ersten Erscheinen geladen (wie vorher)
-- Spieltag-Tabelle wird erst beim ersten Wechsel zum Segment geladen
-- Beide Datensätze werden unabhängig voneinander gecacht
+- Gesamttabelle wird beim ersten Erscheinen geladen
+- Spieltag-Daten werden beim Wechsel zu "Spieltag" geladen
+- Daten werden beim Wechsel des Spieltags neu geladen
 
 ### ✅ Pull-to-Refresh
 - Funktioniert für beide Tabellen
-- Lädt jeweils die richtigen Daten (overall oder matchday)
+- Lädt jeweils die richtigen Daten (overall oder ausgewählter matchday)
 
 ### ✅ Dynamischer Titel
 - "Tabelle" für Gesamttabelle
-- "Spieltag-Tabelle" für Spieltag-Ansicht
+- "Spieltag X" für Spieltag-Ansicht (X = ausgewählter Spieltag)
 
 ### ✅ Fehlerbehandlung
 - Zeigt Fehlermeldungen bei API-Fehlern
@@ -247,7 +272,7 @@ GET /v4/leagues/{leagueId}/ranking?matchDay={matchDay}
 ┌────────────────────────────────────────┐
 │ ← Tabelle                              │
 ├────────────────────────────────────────┤
-│ [Gesamttabelle] [Spieltag 15]          │ ← Segmented Picker
+│ [Gesamttabelle] [Spieltag]             │ ← Segmented Picker
 ├────────────────────────────────────────┤
 │  1  Max Mustermann    FC Awesome  850  │
 │  2  Hans Beispiel     Team Stark  820  │
@@ -257,22 +282,43 @@ GET /v4/leagues/{leagueId}/ranking?matchDay={matchDay}
 └────────────────────────────────────────┘
 ```
 
-### Spieltag-Tabelle
+### Spieltag-Tabelle (mit Dropdown)
 ```
 ┌────────────────────────────────────────┐
-│ ← Spieltag-Tabelle                     │
+│ ← Spieltag 10                          │
 ├────────────────────────────────────────┤
-│ [Gesamttabelle] [Spieltag 15]          │ ← Segmented Picker
+│ [Gesamttabelle] [Spieltag]             │ ← Segmented Picker
 ├────────────────────────────────────────┤
-│  1  Anna Schmidt      Top Players  48  │
-│  2  Max Mustermann    FC Awesome   45  │
-│  3  Peter Test        Die Kicker   42  │
-│  4  Tom Müller        Goal United  40  │
+│ Spieltag auswählen: [Spieltag 10 ▼]   │ ← Dropdown
+├────────────────────────────────────────┤
+│  1  Peter Test        Die Kicker   52  │
+│  2  Tom Müller        Goal United  49  │
+│  3  Max Mustermann    FC Awesome   46  │
+│  4  Anna Schmidt      Top Players  43  │
 │  5  Hans Beispiel     Team Stark   38  │
 └────────────────────────────────────────┘
 ```
 
 **Beachte:** Die Reihenfolge kann unterschiedlich sein, da die Spieltag-Punkte unabhängig von den Gesamt-Punkten sind.
+
+### Dropdown erweitert
+```
+┌────────────────────────────────────────┐
+│ ← Spieltag 10                          │
+├────────────────────────────────────────┤
+│ [Gesamttabelle] [Spieltag]             │
+├────────────────────────────────────────┤
+│ Spieltag auswählen: ┌──────────────┐  │
+│                     │ Spieltag 1   │  │
+│                     │ Spieltag 2   │  │
+│                     │ ...          │  │
+│                     │ ✓ Spieltag 10│  │
+│                     │ Spieltag 11  │  │
+│                     │ ...          │  │
+│                     │ Spieltag 15  │  │
+│                     └──────────────┘  │
+└────────────────────────────────────────┘
+```
 
 ---
 
