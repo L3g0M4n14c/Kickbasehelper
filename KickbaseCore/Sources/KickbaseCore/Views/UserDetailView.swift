@@ -293,8 +293,8 @@ struct UserSquadPlayerRow: View {
 func positionColor(_ position: Int) -> Color {
     switch position {
     case 1: return .yellow
-    case 2: return .blue
-    case 3: return .green
+    case 2: return .green
+    case 3: return .blue
     case 4: return .red
     default: return .gray
     }
