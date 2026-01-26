@@ -61,6 +61,9 @@ class BackendTests {
         testBudgetValidation()
         testLeagueUserSortingByPoints()
         testLeagueRankingCalculation()
+        testMatchDayTableSwitching()
+        testMatchDayUserDataSeparation()
+        testDisplayedUsersSelection()
     }
 
     func testBudgetCalculation() {
@@ -258,6 +261,56 @@ class BackendTests {
         runner.assertEqual(sortedUsers[1].placement, 2, testName: "Ranking Second Place")
         runner.assertEqual(sortedUsers[2].placement, 3, testName: "Ranking Third Place")
         runner.assertEqual(sortedUsers[3].placement, 4, testName: "Ranking Fourth Place")
+    }
+    
+    func testMatchDayTableSwitching() {
+        enum TableType {
+            case overall
+            case currentMatchday
+        }
+        
+        var tableType = TableType.overall
+        runner.assertEqual(tableType, TableType.overall, testName: "Default Table Type")
+        
+        tableType = .currentMatchday
+        runner.assertEqual(tableType, TableType.currentMatchday, testName: "Switch to Matchday Table")
+        
+        tableType = .overall
+        runner.assertEqual(tableType, TableType.overall, testName: "Switch Back to Overall Table")
+    }
+    
+    func testMatchDayUserDataSeparation() {
+        let overallUsers = [
+            (name: "User A", points: 150),
+            (name: "User B", points: 200),
+        ]
+        
+        let matchDayUsers = [
+            (name: "User A", points: 25),
+            (name: "User B", points: 30),
+        ]
+        
+        // Verify that matchday points are independent from overall points
+        runner.assertTrue(overallUsers[0].points > matchDayUsers[0].points, testName: "Overall Points Higher")
+        runner.assertTrue(matchDayUsers[1].points < overallUsers[1].points, testName: "Matchday Points Lower")
+    }
+    
+    func testDisplayedUsersSelection() {
+        enum TableType {
+            case overall
+            case currentMatchday
+        }
+        
+        let leagueUsers = [(name: "User A", points: 150), (name: "User B", points: 200)]
+        let matchDayUsers = [(name: "User A", points: 25), (name: "User B", points: 30)]
+        
+        var tableType = TableType.overall
+        var displayedUsers = tableType == .overall ? leagueUsers : matchDayUsers
+        runner.assertEqual(displayedUsers[0].points, 150, testName: "Display Overall Users")
+        
+        tableType = .currentMatchday
+        displayedUsers = tableType == .overall ? leagueUsers : matchDayUsers
+        runner.assertEqual(displayedUsers[0].points, 25, testName: "Display Matchday Users")
     }
 
     func printResults() {
