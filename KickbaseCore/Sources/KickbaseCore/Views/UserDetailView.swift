@@ -24,19 +24,17 @@ struct UserDetailView: View {
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
-        .onAppear {
+        .task {
             guard let league = kickbaseManager.selectedLeague else { return }
             
-            Task {
-                isLoading = true
-                defer { isLoading = false }
-                
-                if let players = await kickbaseManager.loadUserSquad(
-                    leagueId: league.id,
-                    userId: user.id
-                ) {
-                    userPlayers = players
-                }
+            isLoading = true
+            defer { isLoading = false }
+            
+            if let players = await kickbaseManager.loadUserSquad(
+                leagueId: league.id,
+                userId: user.id
+            ) {
+                userPlayers = players
             }
         }
     }
