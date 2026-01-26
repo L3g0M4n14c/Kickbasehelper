@@ -284,25 +284,35 @@ public class KickbaseDataParser: ObservableObject {
     public func parseLeagueRanking(from json: [String: Any]) -> [LeagueUser] {
         print("🏆 Parsing league ranking...")
         
-        // The ranking is typically in a "users" or "u" array
-        guard let usersArray = json["users"] as? [[String: Any]] ?? json["u"] as? [[String: Any]] else {
+        // The ranking uses "us" array according to API documentation
+        guard let usersArray = json["us"] as? [[String: Any]] else {
             print("⚠️ No users array found in ranking response")
+            print("📋 Available keys: \(json.keys.sorted())")
             return []
         }
         
         let users = usersArray.compactMap { userData -> LeagueUser? in
-            // Parse each user in the ranking
-            let id = extractString(from: userData, keys: ["id", "i"]) ?? "unknown"
-            let name = extractString(from: userData, keys: ["name", "n"]) ?? "User"
-            let teamName = extractString(from: userData, keys: ["teamName", "tn", "team_name", "tname"]) ?? "Team"
+            print("👤 User data keys: \(userData.keys.sorted())")
             
-            let budget = extractInt(from: userData, keys: ["budget", "b"]) ?? 0
-            let teamValue = extractInt(from: userData, keys: ["teamValue", "tv"]) ?? 0
-            let points = extractInt(from: userData, keys: ["points", "p"]) ?? 0
-            let placement = extractInt(from: userData, keys: ["placement", "pl"]) ?? 0
-            let won = extractInt(from: userData, keys: ["won", "w"]) ?? 0
-            let drawn = extractInt(from: userData, keys: ["drawn", "d"]) ?? 0
-            let lost = extractInt(from: userData, keys: ["lost", "l"]) ?? 0
+            // Parse each user in the ranking using actual API field names
+            let id = extractString(from: userData, keys: ["i", "id"]) ?? "unknown"
+            let name = extractString(from: userData, keys: ["n", "name"]) ?? "User"
+            // Note: ranking API doesn't include teamName, so we'll use an empty default
+            let teamName = extractString(from: userData, keys: ["tn", "teamName"]) ?? ""
+            
+            let budget = extractInt(from: userData, keys: ["b", "budget"]) ?? 0
+            let teamValue = extractInt(from: userData, keys: ["tv", "teamValue"]) ?? 0
+            // Use 'sp' (season points) for total points
+            let points = extractInt(from: userData, keys: ["sp", "p", "points"]) ?? 0
+            // Use 'spl' (season placement) for placement
+            let placement = extractInt(from: userData, keys: ["spl", "pl", "placement"]) ?? 0
+            
+            // These fields don't exist in ranking API, set to 0 as defaults
+            let won = 0
+            let drawn = 0
+            let lost = 0
+            
+            // se11, ttm may not be in ranking response either
             let se11 = extractInt(from: userData, keys: ["se11", "s"]) ?? 0
             let ttm = extractInt(from: userData, keys: ["ttm", "t"]) ?? 0
             let mpst = extractInt(from: userData, keys: ["mpst", "maxPlayersPerTeam"])
