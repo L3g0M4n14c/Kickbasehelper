@@ -3,10 +3,11 @@ import SwiftUI
 struct LeagueTableView: View {
     @EnvironmentObject var kickbaseManager: KickbaseManager
     @State private var tableType: TableType = .overall
+    @State private var selectedMatchDay: Int = 1
     
     enum TableType {
         case overall
-        case currentMatchday
+        case matchday
     }
     
     var body: some View {
@@ -16,17 +17,43 @@ struct LeagueTableView: View {
                 if let league = kickbaseManager.selectedLeague {
                     Picker("", selection: $tableType) {
                         Text("Gesamttabelle").tag(TableType.overall)
-                        Text("Spieltag \(league.matchDay)").tag(TableType.currentMatchday)
+                        Text("Spieltag").tag(TableType.matchday)
                     }
                     .pickerStyle(.segmented)
                     .padding(.horizontal)
-                    .padding(.vertical, 8)
+                    .padding(.top, 8)
                     .onChange(of: tableType) { oldValue, newValue in
-                        if newValue == .currentMatchday && kickbaseManager.matchDayUsers.isEmpty {
+                        if newValue == .matchday {
                             Task {
-                                await kickbaseManager.loadMatchDayRanking(for: league, matchDay: league.matchDay)
+                                await kickbaseManager.loadMatchDayRanking(for: league, matchDay: selectedMatchDay)
                             }
                         }
+                    }
+                    
+                    // Matchday selector (shown only when matchday mode is selected)
+                    if tableType == .matchday {
+                        HStack {
+                            Text("Spieltag auswählen:")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            
+                            Picker("Spieltag", selection: $selectedMatchDay) {
+                                ForEach(1...league.matchDay, id: \.self) { day in
+                                    Text("Spieltag \(day)").tag(day)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                            .onChange(of: selectedMatchDay) { oldValue, newValue in
+                                Task {
+                                    await kickbaseManager.loadMatchDayRanking(for: league, matchDay: newValue)
+                                }
+                            }
+                        }
+                        .padding(.horizontal)
+                        .padding(.bottom, 8)
+                    } else {
+                        Spacer()
+                            .frame(height: 8)
                     }
                 }
                 
@@ -54,7 +81,7 @@ struct LeagueTableView: View {
                                         if tableType == .overall {
                                             await kickbaseManager.loadLeagueRanking(for: league)
                                         } else {
-                                            await kickbaseManager.loadMatchDayRanking(for: league, matchDay: league.matchDay)
+                                            await kickbaseManager.loadMatchDayRanking(for: league, matchDay: selectedMatchDay)
                                         }
                                     }
                                 }
@@ -71,20 +98,24 @@ struct LeagueTableView: View {
                                 if tableType == .overall {
                                     await kickbaseManager.loadLeagueRanking(for: league)
                                 } else {
-                                    await kickbaseManager.loadMatchDayRanking(for: league, matchDay: league.matchDay)
+                                    await kickbaseManager.loadMatchDayRanking(for: league, matchDay: selectedMatchDay)
                                 }
                             }
                         }
                     }
                 }
             }
-            .navigationTitle(tableType == .overall ? "Tabelle" : "Spieltag-Tabelle")
+            .navigationTitle(tableType == .overall ? "Tabelle" : "Spieltag \(selectedMatchDay)")
             .onAppear {
                 if kickbaseManager.leagueUsers.isEmpty,
                    let league = kickbaseManager.selectedLeague {
                     Task {
                         await kickbaseManager.loadLeagueRanking(for: league)
                     }
+                }
+                // Set selectedMatchDay to current matchday on appear
+                if let league = kickbaseManager.selectedLeague {
+                    selectedMatchDay = league.matchDay
                 }
             }
         }

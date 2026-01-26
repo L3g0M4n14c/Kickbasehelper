@@ -266,14 +266,14 @@ class BackendTests {
     func testMatchDayTableSwitching() {
         enum TableType {
             case overall
-            case currentMatchday
+            case matchday
         }
         
         var tableType = TableType.overall
         runner.assertEqual(tableType, TableType.overall, testName: "Default Table Type")
         
-        tableType = .currentMatchday
-        runner.assertEqual(tableType, TableType.currentMatchday, testName: "Switch to Matchday Table")
+        tableType = .matchday
+        runner.assertEqual(tableType, TableType.matchday, testName: "Switch to Matchday Table")
         
         tableType = .overall
         runner.assertEqual(tableType, TableType.overall, testName: "Switch Back to Overall Table")
@@ -298,7 +298,7 @@ class BackendTests {
     func testDisplayedUsersSelection() {
         enum TableType {
             case overall
-            case currentMatchday
+            case matchday
         }
         
         let leagueUsers = [(name: "User A", points: 150), (name: "User B", points: 200)]
@@ -308,7 +308,7 @@ class BackendTests {
         var displayedUsers = tableType == .overall ? leagueUsers : matchDayUsers
         runner.assertEqual(displayedUsers[0].points, 150, testName: "Display Overall Users")
         
-        tableType = .currentMatchday
+        tableType = .matchday
         displayedUsers = tableType == .overall ? leagueUsers : matchDayUsers
         runner.assertEqual(displayedUsers[0].points, 25, testName: "Display Matchday Users")
     }
