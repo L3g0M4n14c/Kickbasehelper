@@ -80,15 +80,10 @@ struct LeagueTableView: View {
             }
             .navigationTitle(tableType == .overall ? "Tabelle" : "Spieltag-Tabelle")
             .onAppear {
-                if let league = kickbaseManager.selectedLeague {
-                    if tableType == .overall && kickbaseManager.leagueUsers.isEmpty {
-                        Task {
-                            await kickbaseManager.loadLeagueRanking(for: league)
-                        }
-                    } else if tableType == .currentMatchday && kickbaseManager.matchDayUsers.isEmpty {
-                        Task {
-                            await kickbaseManager.loadMatchDayRanking(for: league, matchDay: league.matchDay)
-                        }
+                if kickbaseManager.leagueUsers.isEmpty,
+                   let league = kickbaseManager.selectedLeague {
+                    Task {
+                        await kickbaseManager.loadLeagueRanking(for: league)
                     }
                 }
             }
