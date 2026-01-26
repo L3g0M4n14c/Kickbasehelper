@@ -405,22 +405,20 @@ public class KickbaseManager: ObservableObject {
         
         // MARK: - User Squad Loading
         
+        /// Loads the squad (list of players) for a specific user in a league
+        /// API Response Format: The getManagerSquad endpoint returns a JSON object with one of:
+        /// - "players": [[String: Any]] - array of player objects
+        /// - "squad": [[String: Any]] - alternative field name
+        /// - "data": [[String: Any]] - another alternative field name
+        /// Each player object contains fields like id/i, firstName/fn, lastName/ln, etc.
         public func loadUserSquad(leagueId: String, userId: String) async -> [Player]? {
             print("👤 Loading squad for user \(userId) in league \(leagueId)")
             
             do {
                 let json = try await apiService.getManagerSquad(leagueId: leagueId, userId: userId)
                 
-                // Parse players from response - the structure should be similar to team players
-                var playersArray: [[String: Any]] = []
-                
-                if let players = json["players"] as? [[String: Any]] {
-                    playersArray = players
-                } else if let squad = json["squad"] as? [[String: Any]] {
-                    playersArray = squad
-                } else if let data = json["data"] as? [[String: Any]] {
-                    playersArray = data
-                }
+                // Parse players from response - try common field names used across the API
+                let playersArray = findPlayersArray(in: json)
                 
                 if playersArray.isEmpty {
                     print("⚠️ No player data found for user \(userId)")
@@ -431,45 +429,9 @@ public class KickbaseManager: ObservableObject {
                 var parsedPlayers: [Player] = []
                 
                 for playerData in playersArray {
-                    let playerId = playerData["id"] as? String ?? playerData["i"] as? String ?? ""
-                    let firstName = playerData["firstName"] as? String ?? playerData["fn"] as? String ?? ""
-                    let lastName = playerData["lastName"] as? String ?? playerData["ln"] as? String ?? ""
-                    let profileBigUrl = playerData["profileBigUrl"] as? String ?? playerData["pim"] as? String ?? ""
-                    let teamName = playerData["teamName"] as? String ?? playerData["tn"] as? String ?? ""
-                    let teamId = playerData["teamId"] as? String ?? playerData["tid"] as? String ?? ""
-                    let position = playerData["position"] as? Int ?? playerData["p"] as? Int ?? 0
-                    let number = playerData["number"] as? Int ?? playerData["n"] as? Int ?? 0
-                    let averagePoints = playerData["averagePoints"] as? Double ?? Double(playerData["ap"] as? Int ?? 0)
-                    let totalPoints = dataParser.extractTotalPoints(from: playerData)
-                    let marketValue = playerData["marketValue"] as? Int ?? playerData["mv"] as? Int ?? 0
-                    let marketValueTrend = playerData["marketValueTrend"] as? Int ?? playerData["mvt"] as? Int ?? 0
-                    let tfhmvt = playerData["tfhmvt"] as? Int ?? 0
-                    let prlo = playerData["prlo"] as? Int ?? 0
-                    let stl = playerData["stl"] as? Int ?? 0
-                    let status = playerData["status"] as? Int ?? playerData["st"] as? Int ?? 0
-                    let userOwnsPlayer = playerData["userOwnsPlayer"] as? Bool ?? false
-                    
-                    let player = Player(
-                        id: playerId,
-                        firstName: firstName,
-                        lastName: lastName,
-                        profileBigUrl: profileBigUrl,
-                        teamName: teamName,
-                        teamId: teamId,
-                        position: position,
-                        number: number,
-                        averagePoints: averagePoints,
-                        totalPoints: totalPoints,
-                        marketValue: marketValue,
-                        marketValueTrend: marketValueTrend,
-                        tfhmvt: tfhmvt,
-                        prlo: prlo,
-                        stl: stl,
-                        status: status,
-                        userOwnsPlayer: userOwnsPlayer
-                    )
-                    
-                    parsedPlayers.append(player)
+                    if let player = parsePlayer(from: playerData) {
+                        parsedPlayers.append(player)
+                    }
                 }
                 
                 print("✅ Successfully loaded \(parsedPlayers.count) players for user \(userId)")
@@ -478,6 +440,64 @@ public class KickbaseManager: ObservableObject {
                 print("❌ Error loading user squad: \(error)")
                 return nil
             }
+        }
+        
+        /// Finds the array of players in the JSON response by checking common field names
+        private func findPlayersArray(in json: [String: Any]) -> [[String: Any]] {
+            let possibleKeys = ["players", "squad", "data"]
+            for key in possibleKeys {
+                if let array = json[key] as? [[String: Any]] {
+                    print("✅ Found players in '\(key)' field with \(array.count) entries")
+                    return array
+                }
+            }
+            return []
+        }
+        
+        /// Parses a player from a dictionary, handling both short and long field names
+        private func parsePlayer(from playerData: [String: Any]) -> Player? {
+            let playerId = playerData["id"] as? String ?? playerData["i"] as? String ?? ""
+            guard !playerId.isEmpty else {
+                print("⚠️ Skipping player with no ID")
+                return nil
+            }
+            
+            let firstName = playerData["firstName"] as? String ?? playerData["fn"] as? String ?? ""
+            let lastName = playerData["lastName"] as? String ?? playerData["ln"] as? String ?? ""
+            let profileBigUrl = playerData["profileBigUrl"] as? String ?? playerData["pim"] as? String ?? ""
+            let teamName = playerData["teamName"] as? String ?? playerData["tn"] as? String ?? ""
+            let teamId = playerData["teamId"] as? String ?? playerData["tid"] as? String ?? ""
+            let position = playerData["position"] as? Int ?? playerData["p"] as? Int ?? 0
+            let number = playerData["number"] as? Int ?? playerData["n"] as? Int ?? 0
+            let averagePoints = playerData["averagePoints"] as? Double ?? Double(playerData["ap"] as? Int ?? 0)
+            let totalPoints = dataParser.extractTotalPoints(from: playerData)
+            let marketValue = playerData["marketValue"] as? Int ?? playerData["mv"] as? Int ?? 0
+            let marketValueTrend = playerData["marketValueTrend"] as? Int ?? playerData["mvt"] as? Int ?? 0
+            let tfhmvt = playerData["tfhmvt"] as? Int ?? 0
+            let prlo = playerData["prlo"] as? Int ?? 0
+            let stl = playerData["stl"] as? Int ?? 0
+            let status = playerData["status"] as? Int ?? playerData["st"] as? Int ?? 0
+            let userOwnsPlayer = playerData["userOwnsPlayer"] as? Bool ?? false
+            
+            return Player(
+                id: playerId,
+                firstName: firstName,
+                lastName: lastName,
+                profileBigUrl: profileBigUrl,
+                teamName: teamName,
+                teamId: teamId,
+                position: position,
+                number: number,
+                averagePoints: averagePoints,
+                totalPoints: totalPoints,
+                marketValue: marketValue,
+                marketValueTrend: marketValueTrend,
+                tfhmvt: tfhmvt,
+                prlo: prlo,
+                stl: stl,
+                status: status,
+                userOwnsPlayer: userOwnsPlayer
+            )
         }
     }
 
