@@ -31,4 +31,28 @@ public class KickbaseLeagueService: ObservableObject {
         }
     }
     
+    // MARK: - League Ranking
+    
+    public func loadLeagueRanking(for league: League) async throws -> [LeagueUser] {
+        print("🏆 Loading league ranking for: \(league.name)")
+        
+        do {
+            let json = try await apiService.getLeagueRanking(leagueId: league.id)
+            let users = dataParser.parseLeagueRanking(from: json)
+            
+            // Sort by points descending
+            let sortedUsers = users.sorted { $0.points > $1.points }
+            
+            if sortedUsers.isEmpty {
+                print("⚠️ No users found in ranking")
+            } else {
+                print("✅ Loaded \(sortedUsers.count) users in ranking")
+            }
+            return sortedUsers
+        } catch {
+            print("❌ Failed to load league ranking: \(error.localizedDescription)")
+            throw error
+        }
+    }
+    
 }
