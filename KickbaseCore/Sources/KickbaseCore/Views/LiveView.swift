@@ -5,91 +5,96 @@ struct LiveView: View {
     @State private var selectedPlayer: LivePlayer?
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if kickbaseManager.isLoading {
-                    ProgressView("Lade Live-Daten...")
-                } else if kickbaseManager.livePlayers.isEmpty {
-                    VStack {
-                        Image(systemName: "sportscourt")
-                            .font(.system(size: 60))
-                            .foregroundColor(.gray)
-                        Text("Keine Live-Daten verfügbar")
-                            .font(.headline)
-                            .padding(.top)
-                        Text(
-                            "Möglicherweise läuft gerade kein Spieltag oder die Aufstellung ist leer."
-                        )
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                        .multilineTextAlignment(.center)
-                        .padding()
-                        Button("Aktualisieren") {
-                            Task {
-                                await kickbaseManager.loadLivePoints()
-                            }
-                        }
-                    }
-                } else {
-                    List {
-                        // Summary Section
-                        Section {
-                            HStack {
-                                VStack(alignment: .leading) {
-                                    Text("Gesamtpunkte")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                    Text("\(calculateTotalPoints())")
-                                        .font(.system(size: 34, weight: .bold))
-                                        .foregroundColor(
-                                            calculateTotalPoints() >= 0 ? .green : .red)
-                                }
-                                Spacer()
-                                VStack(alignment: .trailing) {
-                                    Text("Spieler im Einsatz")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                    Text("\(kickbaseManager.livePlayers.count)")
-                                        .font(.title2)
-                                        .fontWeight(.semibold)
-                                }
-                            }
-                            .padding(.vertical, 8)
-                        }
+        // Explicitly capture state to ensure dependency tracking works reliably
+        let players = kickbaseManager.livePlayers
+        let isLoading = kickbaseManager.isLoading
 
-                        // Players List
-                        Section(header: Text("Meine Aufstellung")) {
-                            ForEach(sortedPlayers) { player in
-                                Button {
-                                    selectedPlayer = player
-                                } label: {
-                                    LivePlayerRow(player: player)
-                                }
-                                .buttonStyle(.plain)
-                            }
+        Group {
+            if isLoading {
+                ProgressView("Lade Live-Daten...")
+            } else if players.isEmpty {
+                VStack {
+                    Image(systemName: "sportscourt")
+                        .font(.system(size: 60))
+                        .foregroundColor(.gray)
+                    Text("Keine Live-Daten verfügbar")
+                        .font(.headline)
+                        .padding(.top)
+                    Text("Live Count: \(players.count)")
+                        .font(.caption)
+                        .foregroundColor(.red)
+                    Text(
+                        "Möglicherweise läuft gerade kein Spieltag oder die Aufstellung ist leer."
+                    )
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+                    .multilineTextAlignment(.center)
+                    .padding()
+                    Button("Aktualisieren") {
+                        Task {
+                            await kickbaseManager.loadLivePoints()
                         }
                     }
-                    .refreshable {
-                        await kickbaseManager.loadLivePoints()
+                }
+            } else {
+                List {
+                    // Summary Section
+                    Section {
+                        HStack {
+                            VStack(alignment: .leading) {
+                                Text("Gesamtpunkte")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Text("\(calculateTotalPoints())")
+                                    .font(.system(size: 34, weight: .bold))
+                                    .foregroundColor(
+                                        calculateTotalPoints() >= 0 ? .green : .red)
+                            }
+                            Spacer()
+                            VStack(alignment: .trailing) {
+                                Text("Spieler im Einsatz")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Text("\(kickbaseManager.livePlayers.count)")
+                                    .font(.title2)
+                                    .fontWeight(.semibold)
+                            }
+                        }
+                        .padding(.vertical, 8)
+                    }
+
+                    // Players List
+                    Section(header: Text("Meine Aufstellung")) {
+                        ForEach(sortedPlayers) { player in
+                            Button {
+                                selectedPlayer = player
+                            } label: {
+                                LivePlayerRow(player: player)
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
                 }
-            }
-            .navigationTitle("Live Matchday")
-            .sheet(item: $selectedPlayer) { player in
-                if let league = kickbaseManager.selectedLeague {
-                    PlayerMatchDetailView(
-                        player: player,
-                        league: league,
-                        kickbaseManager: kickbaseManager
-                    )
-                } else {
-                    Text("Keine Liga ausgewählt")
-                }
-            }
-            .onAppear {
-                Task {
+                .refreshable {
                     await kickbaseManager.loadLivePoints()
                 }
+            }
+        }
+        .navigationTitle("Live Matchday")
+        .sheet(item: $selectedPlayer) { player in
+            if let league = kickbaseManager.selectedLeague {
+                PlayerMatchDetailView(
+                    player: player,
+                    league: league,
+                    kickbaseManager: kickbaseManager
+                )
+            } else {
+                Text("Keine Liga ausgewählt")
+            }
+        }
+        .task(id: kickbaseManager.selectedLeague?.id) {
+            if kickbaseManager.selectedLeague != nil {
+                await kickbaseManager.loadLivePoints()
             }
         }
     }
