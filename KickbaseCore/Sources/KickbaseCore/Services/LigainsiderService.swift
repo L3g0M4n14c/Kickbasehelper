@@ -528,6 +528,7 @@ public class LigainsiderService: ObservableObject {
         }
 
         var formationRows: [[LigainsiderPlayer]] = []
+        var allParsedPlayers: [LigainsiderPlayer] = []  // Sammelt ALLE gefundenen Spieler (inkl. Alternativen)
 
         // Parsing Logik für Aufstellung
         // Support for both Pre-Match (VORAUSSICHTLICHE AUFSTELLUNG) and Live/Post-Match (Voraussichtliche Aufstellung und Ergebnisse) headers
@@ -565,15 +566,15 @@ public class LigainsiderService: ObservableObject {
                 for j in 1..<colComponents.count {
                     let colHtml = colComponents[j]
 
-                    // Bild URL extrahieren
-                    var extractedImageUrl: String?
+                    // Extrahiere ALLE Bild URLs in dieser Spalte
+                    // Struktur: main player photo + sub_pic photos für Alternativen
+                    var allImageUrls: [String] = []
                     let srcComponents = colHtml.splitBy("src=\"")
                     for srcPart in srcComponents.dropFirst() {
                         if let urlCandidate = srcPart.substringBefore("\"") {
-                            // Wir akzeptieren Bilder die "ligainsider.de" enthalten
-                            if urlCandidate.contains("ligainsider.de") {
-                                extractedImageUrl = urlCandidate
-                                break
+                            // Akzeptiere Bilder die "ligainsider.de" enthalten und player/team Pfad haben
+                            if urlCandidate.contains("ligainsider.de") && urlCandidate.contains("/player/team/") {
+                                allImageUrls.append(urlCandidate)
                             }
                         }
                     }
@@ -581,7 +582,7 @@ public class LigainsiderService: ObservableObject {
                     // Suche: <a ... href="/id/" ... >Name</a>
                     let linkComponents = colHtml.splitBy("<a ")
 
-                    var namesInColumn: [(String, String)] = []
+                    var namesInColumn: [(name: String, slug: String, imageUrl: String?)] = []
                     var seen = Set<String>()
 
                     for linkPart in linkComponents.dropFirst() {
@@ -621,36 +622,55 @@ public class LigainsiderService: ObservableObject {
 
                         if name.count > 1 && !seen.contains(name) {
                             seen.insert(name)
-                            namesInColumn.append((name, slug))
+                            
+                            // Versuche das passende Bild für diesen Spieler zu finden
+                            // Die Bilder sollten in der gleichen Reihenfolge wie die Links sein
+                            var matchedImageUrl: String?
+                            
+                            // Suche in den verfügbaren Bildern nach einem Match basierend auf dem slug
+                            for imageUrl in allImageUrls {
+                                let normalizedImageUrl = normalize(imageUrl)
+                                let normalizedSlug = normalize(slug)
+                                
+                                // Prüfe ob der slug im Bild-URL vorkommt (z.B. "lars-ritzka-pauli" enthält "lars-ritzka")
+                                if normalizedImageUrl.contains(normalizedSlug.replacingOccurrences(of: "_", with: "-")) {
+                                    matchedImageUrl = imageUrl
+                                    break
+                                }
+                            }
+                            
+                            // Fallback: Wenn kein Match gefunden wurde, verwende das nächste verfügbare Bild
+                            if matchedImageUrl == nil && namesInColumn.count < allImageUrls.count {
+                                matchedImageUrl = allImageUrls[namesInColumn.count]
+                            }
+                            
+                            namesInColumn.append((name: name, slug: slug, imageUrl: matchedImageUrl))
                         }
                     }
 
-                    // Alle gefundenen Spieler in der Spalte zur "Squad" hinzufügen (damit IDs bekannt sind)
-                    for (pName, pSlug) in namesInColumn {
-                        // Prüfen ob wir für diesen Spieler schon ein Bild haben (aus dem srcComponents check oben, gilt aber meist nur für den Ersten)
-                        // Alternativ: Einfach als Spieler anlegen. Wenn Bild fehlt, fehlt es halt. Hauptsache ID ist da für Matching.
-                        // Im Cache wird später eh gemerged.
-                        // HACK: Wir nutzen extractedImageUrl für den ersten Spieler. Für Alternativen nil?
-                        // Oder besser: Da extractedImageUrl nur EINMAL pro Column gefunden wird (meist S11 Spieler), vergeben wir es nur beim passenden Match?
-                        // Meist ist extractedImageUrl das Bild des S11 Spielers (namesInColumn.first).
-
-                        let img = (pName == namesInColumn.first?.0) ? extractedImageUrl : nil
-
-                        // Zu "Squad" hinzufügen via temporärer Liste? Wir fügen es direkt zu squad (via Rückgabe) zu?
-                        // Geht nicht direkt, da squad variable unten lokal ist.
-                        // Wir sammeln sie in 'extraPlayers'
-                    }
-
                     if let firstEntry = namesInColumn.first {
-                        let mainName = firstEntry.0
-                        let mainSlug = firstEntry.1
-                        let alternativeName = namesInColumn.count > 1 ? namesInColumn[1].0 : nil
+                        let mainName = firstEntry.name
+                        let mainSlug = firstEntry.slug
+                        let mainImageUrl = firstEntry.imageUrl
+                        let alternativeName = namesInColumn.count > 1 ? namesInColumn[1].name : nil
                         currentRowPlayers.append(
                             LigainsiderPlayer(
                                 name: mainName,
                                 alternative: alternativeName,
                                 ligainsiderId: mainSlug,
-                                imageUrl: extractedImageUrl
+                                imageUrl: mainImageUrl
+                            )
+                        )
+                    }
+                    
+                    // Füge ALLE Spieler (Haupt + Alternativen) zur allParsedPlayers Liste hinzu
+                    for playerData in namesInColumn {
+                        allParsedPlayers.append(
+                            LigainsiderPlayer(
+                                name: playerData.name,
+                                alternative: nil,  // Alternativen werden separat als eigene Spieler gespeichert
+                                ligainsiderId: playerData.slug,
+                                imageUrl: playerData.imageUrl
                             )
                         )
                     }
@@ -660,30 +680,36 @@ public class LigainsiderService: ObservableObject {
                     formationRows.append(currentRowPlayers)
                 }
             }
-
-            // Collect all players from formationRows into a flat list to append to squad
-            // This ensures alternatives (if explicitly parsed as rows? no)
-            // Wait, we need to add the ALTERNATIVES to the squad list explicitly if they are not in formationRows as main players.
-            // Currently formationRows only contains valid MAIN players.
-
-            // Re-scan for alternatives to add to squad:
-            // The logic above is inside a loop. We need a way to output them.
-            // Let's iterate formationRows afterwards? No, we don't have the IDs there (only alternative name string).
-
-            // We need to capture the IDs during the parsing loop.
-            // Let's modify the parsing loop to collect `extraSquadPlayers`.
         }
 
-        // HIER MÜSSEN WIR NOCHMAL PARSEN ODER DIE LOGIK VERBESSERN, UM ALTERNATIVEN ZU RETTEN.
-        // Da ich den Code oben nicht komplett umschreiben will (zu viele Änderungen), nutzen wir fetchSquad für "alles was auf der Seite ist".
-        // Da fetchSquad nun robuster ist ("alle Links"), sollte es die Alternativen auf der Match-Seite finden,
-        // SOFERN sie verlinkt sind. (Ligainsider verlinkt Alternativen im Text meistens).
-
-        // Kader laden (via fetchSquad)
+        // Kader laden: Kombiniere geparste Spieler mit fetchSquad (für zusätzliche Spieler die nicht in Aufstellung sind)
         let path = URL(string: url)?.path ?? ""
-        let squad = await fetchSquad(path: path, teamName: teamName)
+        var fetchedSquad = await fetchSquad(path: path, teamName: teamName)
+        
+        // Merge allParsedPlayers mit fetchedSquad
+        // Priorität: allParsedPlayers (da diese die Bilder aus der Aufstellungsseite haben)
+        var squadMap: [String: LigainsiderPlayer] = [:]
+        
+        // Zuerst fetchedSquad einfügen
+        for player in fetchedSquad {
+            if let id = player.ligainsiderId {
+                squadMap[id] = player
+            }
+        }
+        
+        // Dann allParsedPlayers einfügen (überschreibt mit besseren Bildern)
+        for player in allParsedPlayers {
+            if let id = player.ligainsiderId {
+                // Überschreibe nur wenn wir ein Bild haben oder noch kein Eintrag existiert
+                if player.imageUrl != nil || squadMap[id] == nil {
+                    squadMap[id] = player
+                }
+            }
+        }
+        
+        let finalSquad = Array(squadMap.values)
 
-        return TeamDataResult(name: teamName, logo: teamLogo, lineup: formationRows, squad: squad)
+        return TeamDataResult(name: teamName, logo: teamLogo, lineup: formationRows, squad: finalSquad)
     }
 
     // Helper zum Entfernen von HTML Tags
