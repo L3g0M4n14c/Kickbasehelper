@@ -584,6 +584,7 @@ public class LigainsiderService: ObservableObject {
 
                     var namesInColumn: [(name: String, slug: String, imageUrl: String?)] = []
                     var seen = Set<String>()
+                    var usedImageIndices = Set<Int>()  // Track which images we've already matched
 
                     for linkPart in linkComponents.dropFirst() {
                         // href finden
@@ -624,24 +625,42 @@ public class LigainsiderService: ObservableObject {
                             seen.insert(name)
                             
                             // Versuche das passende Bild für diesen Spieler zu finden
-                            // Die Bilder sollten in der gleichen Reihenfolge wie die Links sein
                             var matchedImageUrl: String?
+                            var matchedIndex: Int?
                             
                             // Suche in den verfügbaren Bildern nach einem Match basierend auf dem slug
-                            for imageUrl in allImageUrls {
+                            for (index, imageUrl) in allImageUrls.enumerated() {
+                                // Skip if we've already used this image
+                                if usedImageIndices.contains(index) { continue }
+                                
                                 let normalizedImageUrl = normalize(imageUrl)
                                 let normalizedSlug = normalize(slug)
                                 
-                                // Prüfe ob der slug im Bild-URL vorkommt (z.B. "lars-ritzka-pauli" enthält "lars-ritzka")
-                                if normalizedImageUrl.contains(normalizedSlug.replacingOccurrences(of: "_", with: "-")) {
+                                // Extrahiere nur den Namen-Teil des Slugs (vor dem "_")
+                                let slugNamePart = normalizedSlug.components(separatedBy: "_").first ?? normalizedSlug
+                                
+                                // Prüfe ob der Spielername im Bild-URL vorkommt (z.B. "lars-ritzka" in "lars-ritzka-pauli-25-26.jpg")
+                                if normalizedImageUrl.contains(slugNamePart) {
                                     matchedImageUrl = imageUrl
+                                    matchedIndex = index
                                     break
                                 }
                             }
                             
-                            // Fallback: Wenn kein Match gefunden wurde, verwende das nächste verfügbare Bild
-                            if matchedImageUrl == nil && namesInColumn.count < allImageUrls.count {
-                                matchedImageUrl = allImageUrls[namesInColumn.count]
+                            // Fallback: Wenn kein Match gefunden wurde, verwende das nächste verfügbare ungenutzte Bild
+                            if matchedImageUrl == nil {
+                                for (index, imageUrl) in allImageUrls.enumerated() {
+                                    if !usedImageIndices.contains(index) {
+                                        matchedImageUrl = imageUrl
+                                        matchedIndex = index
+                                        break
+                                    }
+                                }
+                            }
+                            
+                            // Mark the image as used if we found one
+                            if let index = matchedIndex {
+                                usedImageIndices.insert(index)
                             }
                             
                             namesInColumn.append((name: name, slug: slug, imageUrl: matchedImageUrl))
@@ -664,11 +683,14 @@ public class LigainsiderService: ObservableObject {
                     }
                     
                     // Füge ALLE Spieler (Haupt + Alternativen) zur allParsedPlayers Liste hinzu
+                    // WICHTIG: Alternativen werden als separate Spieler ohne alternative-Link gespeichert,
+                    // damit sie eigene Cache-Einträge mit ihren Bildern bekommen.
+                    // Die Verknüpfung über das 'alternative' Feld bleibt in formationRows erhalten (siehe oben).
                     for playerData in namesInColumn {
                         allParsedPlayers.append(
                             LigainsiderPlayer(
                                 name: playerData.name,
-                                alternative: nil,  // Alternativen werden separat als eigene Spieler gespeichert
+                                alternative: nil,  // Kein alternative-Link hier, da Squad nur IDs+Bilder cached
                                 ligainsiderId: playerData.slug,
                                 imageUrl: playerData.imageUrl
                             )
@@ -687,21 +709,31 @@ public class LigainsiderService: ObservableObject {
         var fetchedSquad = await fetchSquad(path: path, teamName: teamName)
         
         // Merge allParsedPlayers mit fetchedSquad
-        // Priorität: allParsedPlayers (da diese die Bilder aus der Aufstellungsseite haben)
+        // Strategie: Priorisiere Spieler mit Bildern aus allParsedPlayers (Aufstellungsseite),
+        // behalte aber fetchedSquad-Einträge für Spieler die nicht in der Aufstellung sind
         var squadMap: [String: LigainsiderPlayer] = [:]
         
-        // Zuerst fetchedSquad einfügen
+        // Zuerst fetchedSquad einfügen (Basis-Daten)
         for player in fetchedSquad {
             if let id = player.ligainsiderId {
                 squadMap[id] = player
             }
         }
         
-        // Dann allParsedPlayers einfügen (überschreibt mit besseren Bildern)
+        // Dann allParsedPlayers einfügen (überschreibt nur wenn wir bessere Daten haben)
         for player in allParsedPlayers {
             if let id = player.ligainsiderId {
-                // Überschreibe nur wenn wir ein Bild haben oder noch kein Eintrag existiert
-                if player.imageUrl != nil || squadMap[id] == nil {
+                if let existingPlayer = squadMap[id] {
+                    // Überschreibe nur wenn der neue Spieler ein Bild hat und der alte nicht
+                    if player.imageUrl != nil && existingPlayer.imageUrl == nil {
+                        squadMap[id] = player
+                    }
+                    // Wenn beide Bilder haben, behalte allParsedPlayers (Aufstellungsseite ist aktueller)
+                    else if player.imageUrl != nil {
+                        squadMap[id] = player
+                    }
+                } else {
+                    // Neuer Spieler, füge hinzu
                     squadMap[id] = player
                 }
             }
