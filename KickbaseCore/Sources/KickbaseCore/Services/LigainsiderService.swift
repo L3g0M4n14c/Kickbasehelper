@@ -103,7 +103,20 @@ public class LigainsiderService: ObservableObject {
                 await MainActor.run {
                     // Merge new cache into existing to preserve squad data
                     for (id, player) in newCache {
-                        self.playerCache[id] = player
+                        // Preserve existing imageUrl if new player doesn't have one
+                        if let existingPlayer = self.playerCache[id],
+                           let existingImageUrl = existingPlayer.imageUrl,
+                           player.imageUrl == nil {
+                            // Keep existing image
+                            self.playerCache[id] = LigainsiderPlayer(
+                                name: player.name,
+                                alternative: player.alternative,
+                                ligainsiderId: player.ligainsiderId,
+                                imageUrl: existingImageUrl
+                            )
+                        } else {
+                            self.playerCache[id] = player
+                        }
                     }
                     // Merge alternatives
                     for alt in newAlts {
