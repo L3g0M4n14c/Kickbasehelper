@@ -34,7 +34,9 @@ struct LeagueTableView: View {
                 } else {
                     List {
                         ForEach(Array(kickbaseManager.leagueUsers.enumerated()), id: \.element.id) { index, user in
-                            LeagueUserRow(user: user, position: index + 1)
+                            NavigationLink(destination: UserDetailView(user: user)) {
+                                LeagueUserRow(user: user, position: index + 1)
+                            }
                         }
                     }
                     .refreshable {

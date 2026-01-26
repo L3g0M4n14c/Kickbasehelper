@@ -402,5 +402,82 @@ public class KickbaseManager: ObservableObject {
                 print("   \(id): \(name)")
             }
         }
+        
+        // MARK: - User Squad Loading
+        
+        public func loadUserSquad(leagueId: String, userId: String) async -> [Player]? {
+            print("👤 Loading squad for user \(userId) in league \(leagueId)")
+            
+            do {
+                let json = try await apiService.getManagerSquad(leagueId: leagueId, userId: userId)
+                
+                // Parse players from response - the structure should be similar to team players
+                var playersArray: [[String: Any]] = []
+                
+                if let players = json["players"] as? [[String: Any]] {
+                    playersArray = players
+                } else if let squad = json["squad"] as? [[String: Any]] {
+                    playersArray = squad
+                } else if let data = json["data"] as? [[String: Any]] {
+                    playersArray = data
+                }
+                
+                if playersArray.isEmpty {
+                    print("⚠️ No player data found for user \(userId)")
+                    return nil
+                }
+                
+                print("🎯 Processing \(playersArray.count) players for user...")
+                var parsedPlayers: [Player] = []
+                
+                for playerData in playersArray {
+                    let playerId = playerData["id"] as? String ?? playerData["i"] as? String ?? ""
+                    let firstName = playerData["firstName"] as? String ?? playerData["fn"] as? String ?? ""
+                    let lastName = playerData["lastName"] as? String ?? playerData["ln"] as? String ?? ""
+                    let profileBigUrl = playerData["profileBigUrl"] as? String ?? playerData["pim"] as? String ?? ""
+                    let teamName = playerData["teamName"] as? String ?? playerData["tn"] as? String ?? ""
+                    let teamId = playerData["teamId"] as? String ?? playerData["tid"] as? String ?? ""
+                    let position = playerData["position"] as? Int ?? playerData["p"] as? Int ?? 0
+                    let number = playerData["number"] as? Int ?? playerData["n"] as? Int ?? 0
+                    let averagePoints = playerData["averagePoints"] as? Double ?? Double(playerData["ap"] as? Int ?? 0)
+                    let totalPoints = dataParser.extractTotalPoints(from: playerData)
+                    let marketValue = playerData["marketValue"] as? Int ?? playerData["mv"] as? Int ?? 0
+                    let marketValueTrend = playerData["marketValueTrend"] as? Int ?? playerData["mvt"] as? Int ?? 0
+                    let tfhmvt = playerData["tfhmvt"] as? Int ?? 0
+                    let prlo = playerData["prlo"] as? Int ?? 0
+                    let stl = playerData["stl"] as? Int ?? 0
+                    let status = playerData["status"] as? Int ?? playerData["st"] as? Int ?? 0
+                    let userOwnsPlayer = playerData["userOwnsPlayer"] as? Bool ?? false
+                    
+                    let player = Player(
+                        id: playerId,
+                        firstName: firstName,
+                        lastName: lastName,
+                        profileBigUrl: profileBigUrl,
+                        teamName: teamName,
+                        teamId: teamId,
+                        position: position,
+                        number: number,
+                        averagePoints: averagePoints,
+                        totalPoints: totalPoints,
+                        marketValue: marketValue,
+                        marketValueTrend: marketValueTrend,
+                        tfhmvt: tfhmvt,
+                        prlo: prlo,
+                        stl: stl,
+                        status: status,
+                        userOwnsPlayer: userOwnsPlayer
+                    )
+                    
+                    parsedPlayers.append(player)
+                }
+                
+                print("✅ Successfully loaded \(parsedPlayers.count) players for user \(userId)")
+                return parsedPlayers
+            } catch {
+                print("❌ Error loading user squad: \(error)")
+                return nil
+            }
+        }
     }
 
