@@ -183,21 +183,50 @@ public class LigainsiderService: ObservableObject {
         let normalizedLastName = normalize(lastName)
         let normalizedFirstName = normalize(firstName)
 
+        // First try: exact lastName match (as separate word)
         let candidates = playerCache.filter { key, _ in
             let normalizedKey = normalize(key)
-            return normalizedKey.contains(normalizedLastName)
+            // Split by space and underscore to get name parts
+            let keyParts = normalizedKey.components(separatedBy: CharacterSet(charactersIn: " _-"))
+            return keyParts.contains(normalizedLastName)
         }
 
         if candidates.count == 1 {
             return candidates.first?.1
         } else if candidates.count > 1 {
+            // Multiple matches: use firstName to disambiguate
             let bestMatch = candidates.first(where: { key, _ in
+                let normalizedKey = normalize(key)
+                let keyParts = normalizedKey.components(separatedBy: CharacterSet(charactersIn: " _-"))
+                return keyParts.contains(normalizedFirstName)
+            })
+            if let match = bestMatch {
+                return match.1
+            }
+            // If no firstName match, try to find one where lastName is first in the key
+            let firstLastNameMatch = candidates.first(where: { key, _ in
+                let normalizedKey = normalize(key)
+                return normalizedKey.hasPrefix(normalizedLastName) || normalizedKey.hasPrefix(normalizedFirstName)
+            })
+            return firstLastNameMatch?.1 ?? candidates.first?.1
+        }
+        
+        // Fallback: loose contains matching (for partial names)
+        let looseCandidates = playerCache.filter { key, _ in
+            let normalizedKey = normalize(key)
+            return normalizedKey.contains(normalizedLastName)
+        }
+        
+        if looseCandidates.count == 1 {
+            return looseCandidates.first?.1
+        } else if looseCandidates.count > 1 {
+            let bestMatch = looseCandidates.first(where: { key, _ in
                 let normalizedKey = normalize(key)
                 return normalizedKey.contains(normalizedFirstName)
             })
-            // Fallback: Einfach den ersten nehmen, wenn Vorname nicht matcht (lockereres Matching)
-            return bestMatch?.1 ?? candidates.first?.1
+            return bestMatch?.1
         }
+        
         return nil
     }
 
