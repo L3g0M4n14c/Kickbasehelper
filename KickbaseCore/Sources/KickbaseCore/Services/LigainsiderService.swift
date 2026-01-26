@@ -685,14 +685,16 @@ public class LigainsiderService: ObservableObject {
                     }
                     
                     // Füge ALLE Spieler (Haupt + Alternativen) zur allParsedPlayers Liste hinzu
-                    // WICHTIG: Alternativen werden als separate Spieler ohne alternative-Link gespeichert,
-                    // damit sie eigene Cache-Einträge mit ihren Bildern bekommen.
-                    // Die Verknüpfung über das 'alternative' Feld bleibt in formationRows erhalten (siehe oben).
-                    for playerData in namesInColumn {
+                    // WICHTIG: Für den Hauptspieler muss das 'alternative' Feld erhalten bleiben für korrekte Statusanzeige
+                    // Alternativen werden als separate Spieler ohne alternative-Link gespeichert
+                    for (index, playerData) in namesInColumn.enumerated() {
+                        let isMainPlayer = (index == 0)
+                        let alternativeField = isMainPlayer && namesInColumn.count > 1 ? namesInColumn[1].name : nil
+                        
                         allParsedPlayers.append(
                             LigainsiderPlayer(
                                 name: playerData.name,
-                                alternative: nil,  // Kein alternative-Link hier, da Squad nur IDs+Bilder cached
+                                alternative: alternativeField,  // Hauptspieler behält alternative-Link
                                 ligainsiderId: playerData.slug,
                                 imageUrl: playerData.imageUrl
                             )
