@@ -161,6 +161,8 @@ struct MainDashboardView: View {
                     case 5:
                         LigainsiderView()
                     case 6:
+                        LeagueTableView()
+                    case 7:
                         LiveView(kickbaseManager: kickbaseManager)
                     default:
                         TeamView()
