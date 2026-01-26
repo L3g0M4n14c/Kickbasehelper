@@ -101,12 +101,7 @@ struct LiveView: View {
 
     // Sort players by position (GK -> DEF -> MID -> FWD) then points
     private var sortedPlayers: [LivePlayer] {
-        kickbaseManager.livePlayers.sorted {
-            if $0.position == $1.position {
-                return $0.p > $1.p
-            }
-            return $0.position < $1.position
-        }
+        kickbaseManager.livePlayers.sorted { $0.p > $1.p }
     }
 
     private func calculateTotalPoints() -> Int {

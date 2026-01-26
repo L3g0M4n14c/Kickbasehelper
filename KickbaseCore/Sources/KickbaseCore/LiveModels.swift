@@ -53,11 +53,11 @@ public struct LivePlayer: Codable, Identifiable {
     public var eventIcons: String {
         return k.compactMap { eventId -> String? in
             switch eventId {
-            case 1: return "🅰️"
-            case 3: return "⚽️"
+            case 1: return "⚽️"
+            case 3: return "👟"
             case 5: return "🟨🟥"
             case 6: return "🟥"
-            case 7: return "❌"
+            case 7: return "🧤"
             default: return nil
             }
         }.joined()
@@ -107,13 +107,13 @@ public struct PlayerMatchEvent: Codable, Identifiable {
 
     public var icon: String {
         switch type {
-        case 1: return "🅰️"
+        case 1: return "⚽️"
         case 2: return "🧤"
-        case 3: return "⚽️"
+        case 3: return "👟"
         case 4: return "🟨"
         case 5: return "🟨🟥"
         case 6: return "🟥"
-        case 7: return "❌" // Missed Penalty
+        case 7: return "🧤" // Saved Penalty
         case 8: return "💀" // Own Goal
         case 12: return "📺" // VAR
         default: return "🔹" // Generic
