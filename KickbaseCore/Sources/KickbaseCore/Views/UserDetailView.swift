@@ -96,12 +96,12 @@ struct UserStatsSection: View {
                 GridItem(.flexible()),
                 GridItem(.flexible())
             ], spacing: 16) {
-                StatCard(title: "Platzierung", value: "\(user.placement).")
-                StatCard(title: "Budget", value: formatCurrency(user.budget))
-                StatCard(title: "Teamwert", value: formatCurrency(user.teamValue))
-                StatCard(title: "Siege", value: "\(user.won)")
-                StatCard(title: "Unentschieden", value: "\(user.drawn)")
-                StatCard(title: "Niederlagen", value: "\(user.lost)")
+                UserStatCard(title: "Platzierung", value: "\(user.placement).")
+                UserStatCard(title: "Budget", value: formatCurrency(user.budget))
+                UserStatCard(title: "Teamwert", value: formatCurrency(user.teamValue))
+                UserStatCard(title: "Siege", value: "\(user.won)")
+                UserStatCard(title: "Unentschieden", value: "\(user.drawn)")
+                UserStatCard(title: "Niederlagen", value: "\(user.lost)")
             }
         }
         .padding()
@@ -118,8 +118,8 @@ struct UserStatsSection: View {
     }
 }
 
-// MARK: - Stat Card
-struct StatCard: View {
+// MARK: - User Stat Card
+struct UserStatCard: View {
     let title: String
     let value: String
     
@@ -194,7 +194,17 @@ struct UserSquadSection: View {
     }
     
     private var groupedPlayers: [Int: [Player]] {
-        Dictionary(grouping: players, by: { $0.position })
+        #if !SKIP
+        return Dictionary(grouping: players, by: { $0.position })
+        #else
+        var grouped: [Int: [Player]] = [:]
+        for player in players {
+            var list = grouped[player.position] ?? []
+            list.append(player)
+            grouped[player.position] = list
+        }
+        return grouped
+        #endif
     }
     
     private func positionName(for position: Int) -> String {
@@ -241,9 +251,9 @@ struct UserSquadPlayerRow: View {
             } placeholder: {
                 ZStack {
                     Circle()
-                        .fill(positionColor(player.position).opacity(0.3))
+                        .fill(userDetailPositionColor(player.position).opacity(0.3))
                     Image(systemName: "person.fill")
-                        .foregroundColor(positionColor(player.position))
+                        .foregroundColor(userDetailPositionColor(player.position))
                 }
             }
             .frame(width: 50, height: 50)
@@ -290,7 +300,7 @@ struct UserSquadPlayerRow: View {
 }
 
 // MARK: - Helper Functions
-func positionColor(_ position: Int) -> Color {
+func userDetailPositionColor(_ position: Int) -> Color {
     switch position {
     case 1: return .yellow
     case 2: return .green
