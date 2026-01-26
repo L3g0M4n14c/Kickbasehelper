@@ -40,6 +40,7 @@ public enum LigainsiderStatus {
     case likelyStart  // S11 ohne Alternative
     case startWithAlternative  // S11 mit Alternative (1. Option)
     case isAlternative  // Ist die Alternative (2. Option)
+    case bench  // Auf der Bank / im Kader aber nicht in S11
     case out  // Nicht im Kader / nicht gefunden
 }
 
@@ -56,6 +57,8 @@ public class LigainsiderService: ObservableObject {
     private var playerCache: [String: LigainsiderPlayer] = [:]
     // Cache für Alternativen (Namen)
     private var alternativeNames: Set<String> = []
+    // Cache für Spieler in der Startelf (IDs)
+    private var startingLineupIds: Set<String> = []
 
     public init() {}
 
@@ -70,6 +73,7 @@ public class LigainsiderService: ObservableObject {
                 // Cache aufbauen
                 var newCache: [String: LigainsiderPlayer] = [:]
                 var newAlts: Set<String> = []
+                var newLineupIds: Set<String> = []
 
                 for match in fetchedMatches {
                     // Zuerst Kader zum Cache hinzufügen (für Bilder von Bankspielern/Alternativen)
@@ -86,6 +90,7 @@ public class LigainsiderService: ObservableObject {
                             // Speichere Hauptspieler (überschreibt Kader-Eintrag -> wichtig wegen 'alternative' Property)
                             if let id = player.ligainsiderId {
                                 newCache[id] = player
+                                newLineupIds.insert(id)  // Markiere als Startelfspieler
                             }
                             // Speichere Alternative falls vorhanden
                             if let altName = player.alternative {
@@ -103,6 +108,10 @@ public class LigainsiderService: ObservableObject {
                     // Merge alternatives
                     for alt in newAlts {
                         self.alternativeNames.insert(alt)
+                    }
+                    // Merge lineup IDs
+                    for id in newLineupIds {
+                        self.startingLineupIds.insert(id)
                     }
 
                     self.matches = fetchedMatches
@@ -198,6 +207,7 @@ public class LigainsiderService: ObservableObject {
         // Strategie: Wir filtern Cache Keys die den normalisierten Nachnamen enthalten
 
         var foundPlayer: LigainsiderPlayer?
+        var foundId: String?
 
         let candidates = playerCache.filter { key, _ in
             let normalizedKey = normalize(key)  // key ist z.B. "adam-dzwigala_25807"
@@ -206,21 +216,32 @@ public class LigainsiderService: ObservableObject {
 
         if candidates.count == 1 {
             foundPlayer = candidates.first?.1
+            foundId = candidates.first?.0
         } else if candidates.count > 1 {
             let bestMatch = candidates.first(where: { key, _ in
                 let normalizedKey = normalize(key)
                 return normalizedKey.contains(normalizedFirstName)
             })
             // Fallback: Lockereres Matching bei Statusabfrage
-            foundPlayer = bestMatch?.1 ?? candidates.first?.1
+            if let match = bestMatch ?? candidates.first {
+                foundPlayer = match.1
+                foundId = match.0
+            }
         }
 
         // Wenn Spieler gefunden: Check Status
-        if let player = foundPlayer {
-            if player.alternative != nil {
-                return .startWithAlternative
+        if let player = foundPlayer, let id = foundId {
+            // Prüfe ob Spieler in der Startelf ist
+            if startingLineupIds.contains(id) {
+                // Spieler ist in Startelf
+                if player.alternative != nil {
+                    return .startWithAlternative
+                }
+                return .likelyStart
+            } else {
+                // Spieler ist im Kader aber nicht in Startelf -> Bank
+                return .bench
             }
-            return .likelyStart
         }
 
         return .out
@@ -232,6 +253,7 @@ public class LigainsiderService: ObservableObject {
         case .likelyStart: return "checkmark.circle.fill"
         case .startWithAlternative: return "1.circle.fill"
         case .isAlternative: return "2.circle.fill"
+        case .bench: return "person.fill.questionmark"
         case .out: return "xmark.circle.fill"
         }
     }
@@ -241,6 +263,7 @@ public class LigainsiderService: ObservableObject {
         case .likelyStart: return .green
         case .startWithAlternative: return .orange
         case .isAlternative: return .orange
+        case .bench: return .gray
         case .out: return .red
         }
     }
