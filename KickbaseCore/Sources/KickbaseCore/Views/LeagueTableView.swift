@@ -2,58 +2,100 @@ import SwiftUI
 
 struct LeagueTableView: View {
     @EnvironmentObject var kickbaseManager: KickbaseManager
+    @State private var tableType: TableType = .overall
+    
+    enum TableType {
+        case overall
+        case currentMatchday
+    }
     
     var body: some View {
         NavigationStack {
-            Group {
-                if kickbaseManager.isLoading {
-                    ProgressView("Lade Tabelle...")
-                } else if kickbaseManager.leagueUsers.isEmpty {
-                    VStack {
-                        Image(systemName: "list.number")
-                            .font(.system(size: 60))
-                            .foregroundColor(.gray)
-                        Text("Keine Tabellendaten verfügbar")
-                            .font(.headline)
-                            .padding(.top)
-                        Text(
-                            "Bitte wähle eine Liga aus oder aktualisiere die Daten."
-                        )
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                        .multilineTextAlignment(.center)
-                        .padding()
-                        Button("Aktualisieren") {
+            VStack(spacing: 0) {
+                // Segmented picker to switch between table types
+                if let league = kickbaseManager.selectedLeague {
+                    Picker("", selection: $tableType) {
+                        Text("Gesamttabelle").tag(TableType.overall)
+                        Text("Spieltag \(league.matchDay)").tag(TableType.currentMatchday)
+                    }
+                    .pickerStyle(.segmented)
+                    .padding(.horizontal)
+                    .padding(.vertical, 8)
+                    .onChange(of: tableType) { oldValue, newValue in
+                        if newValue == .currentMatchday {
                             Task {
-                                if let league = kickbaseManager.selectedLeague {
+                                await kickbaseManager.loadMatchDayRanking(for: league, matchDay: league.matchDay)
+                            }
+                        }
+                    }
+                }
+                
+                Group {
+                    if kickbaseManager.isLoading {
+                        ProgressView("Lade Tabelle...")
+                    } else if displayedUsers.isEmpty {
+                        VStack {
+                            Image(systemName: "list.number")
+                                .font(.system(size: 60))
+                                .foregroundColor(.gray)
+                            Text("Keine Tabellendaten verfügbar")
+                                .font(.headline)
+                                .padding(.top)
+                            Text(
+                                "Bitte wähle eine Liga aus oder aktualisiere die Daten."
+                            )
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
+                            .multilineTextAlignment(.center)
+                            .padding()
+                            Button("Aktualisieren") {
+                                Task {
+                                    if let league = kickbaseManager.selectedLeague {
+                                        if tableType == .overall {
+                                            await kickbaseManager.loadLeagueRanking(for: league)
+                                        } else {
+                                            await kickbaseManager.loadMatchDayRanking(for: league, matchDay: league.matchDay)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        List {
+                            ForEach(Array(displayedUsers.enumerated()), id: \.element.id) { index, user in
+                                LeagueUserRow(user: user, position: index + 1)
+                            }
+                        }
+                        .refreshable {
+                            if let league = kickbaseManager.selectedLeague {
+                                if tableType == .overall {
                                     await kickbaseManager.loadLeagueRanking(for: league)
+                                } else {
+                                    await kickbaseManager.loadMatchDayRanking(for: league, matchDay: league.matchDay)
                                 }
                             }
                         }
                     }
-                } else {
-                    List {
-                        ForEach(Array(kickbaseManager.leagueUsers.enumerated()), id: \.element.id) { index, user in
-                            LeagueUserRow(user: user, position: index + 1)
-                        }
-                    }
-                    .refreshable {
-                        if let league = kickbaseManager.selectedLeague {
-                            await kickbaseManager.loadLeagueRanking(for: league)
-                        }
-                    }
                 }
             }
-            .navigationTitle("Tabelle")
+            .navigationTitle(tableType == .overall ? "Tabelle" : "Spieltag-Tabelle")
             .onAppear {
-                if kickbaseManager.leagueUsers.isEmpty,
+                if displayedUsers.isEmpty,
                    let league = kickbaseManager.selectedLeague {
                     Task {
-                        await kickbaseManager.loadLeagueRanking(for: league)
+                        if tableType == .overall {
+                            await kickbaseManager.loadLeagueRanking(for: league)
+                        } else {
+                            await kickbaseManager.loadMatchDayRanking(for: league, matchDay: league.matchDay)
+                        }
                     }
                 }
             }
         }
+    }
+    
+    private var displayedUsers: [LeagueUser] {
+        tableType == .overall ? kickbaseManager.leagueUsers : kickbaseManager.matchDayUsers
     }
 }
 

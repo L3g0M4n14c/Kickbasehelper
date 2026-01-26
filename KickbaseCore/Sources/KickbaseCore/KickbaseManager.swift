@@ -12,6 +12,7 @@ public class KickbaseManager: ObservableObject {
     @Published public var marketPlayers: [MarketPlayer] = []
     @Published public var userStats: UserStats?
     @Published public var leagueUsers: [LeagueUser] = []
+    @Published public var matchDayUsers: [LeagueUser] = []
     @Published public var isLoading = false
     @Published public var errorMessage: String?
     
@@ -122,6 +123,22 @@ public class KickbaseManager: ObservableObject {
         } catch {
             print("❌ Error loading league ranking: \(error)")
             errorMessage = "Fehler beim Laden der Liga-Tabelle: \(error.localizedDescription)"
+        }
+
+        isLoading = false
+    }
+
+    public func loadMatchDayRanking(for league: League, matchDay: Int) async {
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            let users = try await leagueService.loadMatchDayRanking(for: league, matchDay: matchDay)
+            self.matchDayUsers = users
+            print("✅ Loaded \(users.count) matchday users")
+        } catch {
+            print("❌ Error loading matchday ranking: \(error)")
+            errorMessage = "Fehler beim Laden der Spieltag-Tabelle: \(error.localizedDescription)"
         }
 
         isLoading = false
