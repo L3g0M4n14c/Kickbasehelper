@@ -20,9 +20,6 @@ struct LiveView: View {
                     Text("Keine Live-Daten verfügbar")
                         .font(.headline)
                         .padding(.top)
-                    Text("Live Count: \(players.count)")
-                        .font(.caption)
-                        .foregroundColor(.red)
                     Text(
                         "Möglicherweise läuft gerade kein Spieltag oder die Aufstellung ist leer."
                     )

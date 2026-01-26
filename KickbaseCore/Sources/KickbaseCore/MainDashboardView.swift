@@ -235,15 +235,13 @@ struct MainDashboardView: View {
                 .tag(5)
 
             // Live View Tab
-            NavigationStack {
-                LiveView()
-                    .modifier(StandardNavigationModifier())
-            }
-            .tabItem {
-                Image(systemName: "sportscourt.fill")
-                Text("Live")
-            }
-            .tag(6)
+            LiveView()
+                .modifier(StandardNavigationModifier())
+                .tabItem {
+                    Image(systemName: "sportscourt.fill")
+                    Text("Live")
+                }
+                .tag(6)
         }
         .onAppear {
             #if os(iOS) && os(iOS)
