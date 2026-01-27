@@ -4,7 +4,7 @@ import Foundation
 public struct LiveEventTypesResponse: Codable {
     public let types: [LiveEventType]
     public let formulas: [String: String]?
-    
+
     enum CodingKeys: String, CodingKey {
         case types = "it"
         case formulas = "dds"
@@ -14,7 +14,7 @@ public struct LiveEventTypesResponse: Codable {
 public struct LiveEventType: Codable, Identifiable {
     public let id: Int
     public let name: String
-    
+
     enum CodingKeys: String, CodingKey {
         case id = "i"
         case name = "ti"
@@ -61,6 +61,17 @@ public struct LivePlayer: Codable, Identifiable {
             default: return nil
             }
         }.joined()
+    }
+
+    // Berechnet firstName und lastName aus dem vollständigen Namen
+    public var firstName: String {
+        let components = name.split(separator: " ", maxSplits: 1, omittingEmptySubsequences: true)
+        return components.count > 1 ? String(components[0]) : ""
+    }
+
+    public var lastName: String {
+        let components = name.split(separator: " ", maxSplits: 1, omittingEmptySubsequences: true)
+        return components.count > 1 ? String(components[1]) : name
     }
 
     enum CodingKeys: String, CodingKey {
@@ -113,10 +124,10 @@ public struct PlayerMatchEvent: Codable, Identifiable {
         case 4: return "🟨"
         case 5: return "🟨🟥"
         case 6: return "🟥"
-        case 7: return "🧤" // Saved Penalty
-        case 8: return "💀" // Own Goal
-        case 12: return "📺" // VAR
-        default: return "🔹" // Generic
+        case 7: return "🧤"  // Saved Penalty
+        case 8: return "💀"  // Own Goal
+        case 12: return "📺"  // VAR
+        default: return "🔹"  // Generic
         }
     }
 
@@ -143,7 +154,7 @@ public struct PlayerMatchEvent: Codable, Identifiable {
         // Try to decode V4 first
         let v4Type = try v4Container.decodeIfPresent(Int.self, forKey: .type)
         let v4Minute = try v4Container.decodeIfPresent(Int.self, forKey: .minute)
-        
+
         if v4Type != nil || v4Minute != nil {
             self.type = v4Type
             self.minute = v4Minute

@@ -12,8 +12,12 @@ public class KickbaseManager: ObservableObject {
     @Published public var marketPlayers: [MarketPlayer] = []
     @Published public var userStats: UserStats?
     @Published public var leagueUsers: [LeagueUser] = []
+    @Published public var matchDayUsers: [LeagueUser] = []
     @Published public var isLoading = false
     @Published public var errorMessage: String?
+
+    // Track current matchday to prevent race conditions
+    private var currentRequestedMatchDay: Int?
 
     // Services
     private let apiService: KickbaseAPIService
@@ -125,6 +129,38 @@ public class KickbaseManager: ObservableObject {
         }
 
         isLoading = false
+    }
+
+    public func loadMatchDayRanking(for league: League, matchDay: Int) async {
+        print("📊 KickbaseManager: Loading ranking for matchday \(matchDay)")
+
+        // Clear old data immediately when new matchday is requested
+        self.matchDayUsers = []
+        self.currentRequestedMatchDay = matchDay
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            let users = try await leagueService.loadMatchDayRanking(for: league, matchDay: matchDay)
+
+            // Only update if this is still the requested matchday (prevents race conditions)
+            if self.currentRequestedMatchDay == matchDay {
+                self.matchDayUsers = users
+                print("✅ Loaded \(users.count) matchday users for matchday \(matchDay)")
+                print("🔄 matchDayUsers updated in KickbaseManager - triggering UI update")
+            } else {
+                print(
+                    "⚠️ Ignoring response for matchday \(matchDay) - newer request pending for \(self.currentRequestedMatchDay ?? -1)"
+                )
+            }
+        } catch {
+            print("❌ Error loading matchday ranking: \(error)")
+            errorMessage = "Fehler beim Laden der Spieltag-Tabelle: \(error.localizedDescription)"
+        }
+
+        // Always clear loading state when request completes (even if not the current one)
+        isLoading = false
+        print("📊 KickbaseManager: isLoading set to false")
     }
 
     public func loadLivePoints() async {

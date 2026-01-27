@@ -221,18 +221,76 @@ struct PitchView: View {
 
 struct PlayerPillView: View {
     let player: LigainsiderPlayer
+    @EnvironmentObject var service: LigainsiderService
 
     var body: some View {
         VStack(spacing: 4) {
-            // Spieler Icon / Kreis
-            ZStack {
-                Circle()
-                    .fill(Color.white)
-                    .frame(width: 30, height: 30)
+            // Spieler Foto oder Icon / Kreis
+            if let imgString = player.imageUrl, let url = URL(string: imgString) {
+                // Show player photo
+                #if !SKIP
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .empty:
+                        // Loading - show initial letter
+                        ZStack {
+                            Circle()
+                                .fill(Color.white)
+                                .frame(width: 30, height: 30)
 
-                Text(String(player.name.prefix(1)))
-                    .font(.caption).bold()
-                    .foregroundColor(.black)
+                            Text(String(player.name.prefix(1)))
+                                .font(.caption).bold()
+                                .foregroundColor(.black)
+                        }
+                    case .success(let image):
+                        // Show photo
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: 30, height: 30)
+                            .clipShape(Circle())
+                            .overlay(
+                                Circle()
+                                    .stroke(Color.white, lineWidth: 2)
+                            )
+                    case .failure:
+                        // Fallback to initial letter
+                        ZStack {
+                            Circle()
+                                .fill(Color.white)
+                                .frame(width: 30, height: 30)
+
+                            Text(String(player.name.prefix(1)))
+                                .font(.caption).bold()
+                                .foregroundColor(.black)
+                        }
+                    @unknown default:
+                        EmptyView()
+                    }
+                }
+                #else
+                // Fallback for non-Apple platforms
+                ZStack {
+                    Circle()
+                        .fill(Color.white)
+                        .frame(width: 30, height: 30)
+
+                    Text(String(player.name.prefix(1)))
+                        .font(.caption).bold()
+                        .foregroundColor(.black)
+                }
+                #endif
+            } else {
+                // No photo available - show initial letter
+                ZStack {
+                    Circle()
+                        .fill(Color.white)
+                        .frame(width: 30, height: 30)
+
+                    Text(String(player.name.prefix(1)))
+                        .font(.caption).bold()
+                        .foregroundColor(.black)
+                }
             }
 
             // Name

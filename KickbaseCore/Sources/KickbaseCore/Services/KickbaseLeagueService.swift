@@ -38,7 +38,7 @@ public class KickbaseLeagueService: ObservableObject {
         
         do {
             let json = try await apiService.getLeagueRanking(leagueId: league.id)
-            let users = dataParser.parseLeagueRanking(from: json)
+            let users = dataParser.parseLeagueRanking(from: json, isMatchDayQuery: false)
             
             // Sort by points descending
             let sortedUsers = users.sorted { $0.points > $1.points }
@@ -51,6 +51,28 @@ public class KickbaseLeagueService: ObservableObject {
             return sortedUsers
         } catch {
             print("❌ Failed to load league ranking: \(error.localizedDescription)")
+            throw error
+        }
+    }
+    
+    public func loadMatchDayRanking(for league: League, matchDay: Int) async throws -> [LeagueUser] {
+        print("🏆 Loading matchday \(matchDay) ranking for: \(league.name)")
+        
+        do {
+            let json = try await apiService.getLeagueRanking(leagueId: league.id, matchDay: matchDay)
+            let users = dataParser.parseLeagueRanking(from: json, isMatchDayQuery: true)
+            
+            // Sort by points descending
+            let sortedUsers = users.sorted { $0.points > $1.points }
+            
+            if sortedUsers.isEmpty {
+                print("⚠️ No users found in matchday ranking")
+            } else {
+                print("✅ Loaded \(sortedUsers.count) users in matchday ranking")
+            }
+            return sortedUsers
+        } catch {
+            print("❌ Failed to load matchday ranking: \(error.localizedDescription)")
             throw error
         }
     }

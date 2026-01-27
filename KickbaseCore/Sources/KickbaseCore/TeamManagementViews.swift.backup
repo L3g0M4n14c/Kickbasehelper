@@ -12,6 +12,7 @@ struct TeamTab: View {
     @State private var lineupComparison: LineupComparison?
     @State private var isGeneratingLineup = false
     @State private var lineupGenerationError: String?
+
     enum SortOption: String, CaseIterable {
         case name = "Name"
         case marketValue = "Marktwert"
@@ -226,7 +227,6 @@ struct TeamTab: View {
                                         .id("\(player.id)-\(index)")
                                     }
                                 }
-                                .environmentObject(ligainsiderService)
                                 .refreshable {
                                     if let league = kickbaseManager.selectedLeague {
                                         await kickbaseManager.loadTeamPlayers(for: league)
@@ -294,6 +294,7 @@ struct TeamTab: View {
 struct TeamPlayerRow: View {
     let teamPlayer: TeamPlayer
     @State private var showingPlayerDetail = false
+    @State private var cacheUpdateCounter = 0  // Force Re-Render bei Cache-Updates
     @EnvironmentObject var kickbaseManager: KickbaseManager
     @EnvironmentObject var ligainsiderService: LigainsiderService
 
@@ -314,12 +315,12 @@ struct TeamPlayerRow: View {
                 }
 
                 // Player photo or position indicator
-                // Call getLigainsiderPlayer INSIDE the closure for fresh reference
-                let photoUrl: URL? = {
-                    let ligaPlayer = ligainsiderService.getLigainsiderPlayer(
-                        firstName: teamPlayer.firstName,
-                        lastName: teamPlayer.lastName)
+                // Try Ligainsider first, then fall back to teamPlayer.imageUrl
+                let ligaPlayer = ligainsiderService.getLigainsiderPlayer(
+                    firstName: teamPlayer.firstName,
+                    lastName: teamPlayer.lastName)
 
+                let photoUrl: URL? = {
                     // Try ligainsider imageUrl first
                     if let imgString = ligaPlayer?.imageUrl, let url = URL(string: imgString) {
                         print(
@@ -339,13 +340,8 @@ struct TeamPlayerRow: View {
                     return nil
                 }()
 
-                let _ = print(
-                    "[🔴 CRITICAL DEBUG] photoUrl result for \(teamPlayer.firstName) \(teamPlayer.lastName): \(photoUrl?.absoluteString ?? "NIL")"
-                )
-
                 if let url = photoUrl {
                     // Show player photo
-                    let _ = print("[🟢 AsyncImage] Will show photo: \(url.absoluteString)")
                     #if !SKIP
                         AsyncImage(url: url) { phase in
                             switch phase {
@@ -524,6 +520,10 @@ struct TeamPlayerRow: View {
                     .environmentObject(ligainsiderService)
             }
         }
+        .onReceive(ligainsiderService.$cacheUpdateTrigger) { _ in
+            // Cache wurde aktualisiert - triggert automatischen Re-Render
+            // SwiftUI wird body erneut evaluieren und neue Ligainsider-Fotos laden
+        }
     }
 }
 
@@ -536,51 +536,41 @@ struct TeamPlayerRowWithSale: View {
     @EnvironmentObject var kickbaseManager: KickbaseManager
     @EnvironmentObject var ligainsiderService: LigainsiderService
 
+    private var photoUrl: URL? {
+        print("[🔵 PHOTOURL] Computing photoUrl for \(teamPlayer.firstName) \(teamPlayer.lastName)")
+        let ligaPlayer = ligainsiderService.getLigainsiderPlayer(
+            firstName: teamPlayer.firstName,
+            lastName: teamPlayer.lastName)
+
+        print("[PHOTO_URL] \(teamPlayer.firstName) \(teamPlayer.lastName):")
+        if ligaPlayer != nil {
+            print("  ✅ FOUND in Ligainsider cache")
+            if let lp = ligaPlayer {
+                print("     imageUrl = \(lp.imageUrl ?? "NIL")")
+            }
+        } else {
+            print("  ❌ NOT FOUND in Ligainsider cache")
+        }
+        print("  TeamPlayer.imageUrl = \(teamPlayer.imageUrl?.absoluteString ?? "NIL")")
+
+        // Try ligainsider imageUrl first
+        if let imgString = ligaPlayer?.imageUrl, let url = URL(string: imgString) {
+            print("  -> RESULT: USING LIGAINSIDER")
+            return url
+        }
+        // Fall back to teamPlayer imageUrl
+        if let url = teamPlayer.imageUrl {
+            print("  -> RESULT: USING KICKBASE FALLBACK")
+            return url
+        }
+        print("  -> RESULT: NO PHOTO")
+        return nil
+    }
+
     var body: some View {
         let _ = print(
             "[DEBUG] TeamPlayerRowWithSale.body rendering: \(teamPlayer.fullName)"
         )
-
-        // Calculate photoUrl HERE inside body with getLigainsiderPlayer() called INSIDE the closure
-        let photoUrl: URL? = {
-            print(
-                "[🔵 PHOTOURL] Computing photoUrl for \(teamPlayer.firstName) \(teamPlayer.lastName)"
-            )
-
-            // Call getLigainsiderPlayer INSIDE the closure for fresh reference
-            let ligaPlayer = ligainsiderService.getLigainsiderPlayer(
-                firstName: teamPlayer.firstName,
-                lastName: teamPlayer.lastName)
-
-            print("[PHOTO_URL] \(teamPlayer.firstName) \(teamPlayer.lastName):")
-            if ligaPlayer != nil {
-                print("  ✅ FOUND in Ligainsider cache")
-                if let lp = ligaPlayer {
-                    print("     imageUrl = \(lp.imageUrl ?? "NIL")")
-                }
-            } else {
-                print("  ❌ NOT FOUND in Ligainsider cache")
-            }
-            print("  TeamPlayer.imageUrl = \(teamPlayer.imageUrl?.absoluteString ?? "NIL")")
-
-            // Try ligainsider imageUrl first
-            if let imgString = ligaPlayer?.imageUrl, let url = URL(string: imgString) {
-                print("  -> RESULT: USING LIGAINSIDER")
-                return url
-            }
-            // Fall back to teamPlayer imageUrl
-            if let url = teamPlayer.imageUrl {
-                print("  -> RESULT: USING KICKBASE FALLBACK")
-                return url
-            }
-            print("  -> RESULT: NO PHOTO")
-            return nil
-        }()
-
-        print(
-            "[🔴 CRITICAL DEBUG] photoUrl result for \(teamPlayer.firstName) \(teamPlayer.lastName): \(photoUrl?.absoluteString ?? "NIL")"
-        )
-
         return Button(action: {
             print("🔄 TeamPlayerRow: Tapped on player \(teamPlayer.fullName)")
             showingPlayerDetail = true
@@ -590,7 +580,6 @@ struct TeamPlayerRowWithSale: View {
 
                 if let url = photoUrl {
                     // Show player photo
-                    let _ = print("[🟢 AsyncImage] Will show photo: \(url.absoluteString)")
                     #if !SKIP
                         AsyncImage(url: url) { phase in
                             switch phase {

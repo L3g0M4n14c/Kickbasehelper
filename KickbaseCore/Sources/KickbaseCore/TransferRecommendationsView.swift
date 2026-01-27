@@ -543,11 +543,64 @@ struct EnhancedRecommendationCard: View {
     let recommendation: TransferRecommendation
     let onTap: () -> Void
     @EnvironmentObject var ligainsiderService: LigainsiderService
+    
+    private var playerImageUrl: URL? {
+        guard let ligaPlayer = ligainsiderService.getLigainsiderPlayer(
+            firstName: recommendation.player.firstName,
+            lastName: recommendation.player.lastName),
+              let imgString = ligaPlayer.imageUrl,
+              let url = URL(string: imgString)
+        else {
+            return nil
+        }
+        return url
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             // Player Header with Enhanced Info
             HStack(alignment: .top, spacing: 12) {
+                // Player Photo from Ligainsider
+                if let url = playerImageUrl {
+                    #if !SKIP
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .empty:
+                            Circle()
+                                .fill(Color.gray.opacity(0.3))
+                                .frame(width: 50, height: 50)
+                                .overlay {
+                                    ProgressView()
+                                }
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: 50, height: 50)
+                                .clipShape(Circle())
+                        case .failure:
+                            Circle()
+                                .fill(positionColor(for: recommendation.player.position).opacity(0.3))
+                                .frame(width: 50, height: 50)
+                                .overlay {
+                                    Image(systemName: "person.fill")
+                                        .foregroundColor(positionColor(for: recommendation.player.position))
+                                }
+                        @unknown default:
+                            EmptyView()
+                        }
+                    }
+                    #else
+                    Circle()
+                        .fill(positionColor(for: recommendation.player.position).opacity(0.3))
+                        .frame(width: 50, height: 50)
+                        .overlay {
+                            Image(systemName: "person.fill")
+                                .foregroundColor(positionColor(for: recommendation.player.position))
+                        }
+                    #endif
+                }
+
                 VStack(alignment: .leading, spacing: 6) {
                     // Name with Form Trend
                     HStack {

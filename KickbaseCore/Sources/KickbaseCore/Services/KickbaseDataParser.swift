@@ -281,8 +281,8 @@ public class KickbaseDataParser: ObservableObject {
 
     // MARK: - League Ranking Parsing
     
-    public func parseLeagueRanking(from json: [String: Any]) -> [LeagueUser] {
-        print("🏆 Parsing league ranking...")
+    public func parseLeagueRanking(from json: [String: Any], isMatchDayQuery: Bool = false) -> [LeagueUser] {
+        print("🏆 Parsing league ranking... (isMatchDayQuery: \(isMatchDayQuery))")
         
         // The ranking uses "us" array according to API documentation
         guard let usersArray = json["us"] as? [[String: Any]] else {
@@ -302,10 +302,20 @@ public class KickbaseDataParser: ObservableObject {
             
             let budget = extractInt(from: userData, keys: ["b", "budget"]) ?? 0
             let teamValue = extractInt(from: userData, keys: ["tv", "teamValue"]) ?? 0
-            // Use 'sp' (season points) for total points
-            let points = extractInt(from: userData, keys: ["sp", "p", "points"]) ?? 0
-            // Use 'spl' (season placement) for placement
-            let placement = extractInt(from: userData, keys: ["spl", "pl", "placement"]) ?? 0
+            
+            // Choose the correct fields based on query type
+            let points: Int
+            let placement: Int
+            
+            if isMatchDayQuery {
+                // For matchday queries, prioritize 'mdp' (matchday points) and 'mdpl' (matchday placement)
+                points = extractInt(from: userData, keys: ["mdp", "p", "points"]) ?? 0
+                placement = extractInt(from: userData, keys: ["mdpl", "pl", "placement"]) ?? 0
+            } else {
+                // For overall queries, use 'sp' (season points) and 'spl' (season placement)
+                points = extractInt(from: userData, keys: ["sp", "p", "points"]) ?? 0
+                placement = extractInt(from: userData, keys: ["spl", "pl", "placement"]) ?? 0
+            }
             
             // These fields don't exist in ranking API, set to 0 as defaults
             let won = 0
