@@ -1,0 +1,20 @@
+version: 1
+
+workflows:
+  ios_build:
+    name: iOS Build
+    description: Builds and tests Kickbasehelper app on Main branch pushes
+    
+    triggers:
+      - type: push
+        branches:
+          - main
+    
+    environment:
+      xcode_version: latest
+    
+    build_steps:
+      - name: Build
+        script: xcodebuild -workspace Kickbasehelper.xcworkspace -scheme Kickbasehelper -configuration Release -derivedDataPath build
+      - name: Test
+        script: xcodebuild test -workspace Kickbasehelper.xcworkspace -scheme Kickbasehelper -configuration Debug -derivedDataPath build
