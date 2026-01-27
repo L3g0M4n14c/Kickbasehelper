@@ -14,20 +14,20 @@ public class KickbaseManager: ObservableObject {
     @Published public var leagueUsers: [LeagueUser] = []
     @Published public var isLoading = false
     @Published public var errorMessage: String?
-    
+
     // Services
     private let apiService: KickbaseAPIService
     private let dataParser: KickbaseDataParser
     private let leagueService: KickbaseLeagueService
     private let playerService: KickbasePlayerService
     private let userStatsService: KickbaseUserStatsService
-    
+
     // MARK: - Public Service Access
-    
+
     public var authenticatedPlayerService: KickbasePlayerService {
         return playerService
     }
-    
+
     public init() {
         self.apiService = KickbaseAPIService()
         self.dataParser = KickbaseDataParser()
@@ -36,53 +36,53 @@ public class KickbaseManager: ObservableObject {
         self.userStatsService = KickbaseUserStatsService(
             apiService: apiService, dataParser: dataParser)
     }
-    
+
     // MARK: - Authentication
-    
+
     public func setAuthToken(_ token: String) {
         apiService.setAuthToken(token)
         print("🔑 Auth token set for KickbaseManager")
     }
-    
+
     // MARK: - Data Loading Coordination
-    
+
     public func loadUserData() async {
         print("📊 Loading user data...")
         await loadLeagues()
-        
+
         // Forciere das Laden der UserStats nach Liga-Auswahl
         if let selectedLeague = selectedLeague {
             print("🔄 Force reloading user stats after league selection...")
             await loadUserStats(for: selectedLeague)
         }
     }
-    
+
     public func loadLeagues() async {
         isLoading = true
         errorMessage = nil
-        
+
         do {
             let loadedLeagues = try await leagueService.loadLeagues()
             self.leagues = loadedLeagues
-            
+
             // Wähle automatisch die erste Liga aus, wenn noch keine ausgewählt ist
             if selectedLeague == nil && !leagues.isEmpty {
                 selectedLeague = leagues.first
             }
-            
+
             print("✅ Loaded \(leagues.count) leagues")
         } catch {
             print("❌ Error loading leagues: \(error)")
             errorMessage = "Fehler beim Laden der Ligen: \(error.localizedDescription)"
         }
-        
+
         isLoading = false
     }
-    
+
     public func loadTeamPlayers(for league: League) async {
         isLoading = true
         errorMessage = nil
-        
+
         do {
             let players = try await playerService.loadTeamPlayers(for: league)
             self.teamPlayers = players
@@ -91,14 +91,14 @@ public class KickbaseManager: ObservableObject {
             print("❌ Error loading team players: \(error)")
             errorMessage = "Fehler beim Laden der Team-Spieler: \(error.localizedDescription)"
         }
-        
+
         isLoading = false
     }
-    
+
     public func loadMarketPlayers(for league: League) async {
         isLoading = true
         errorMessage = nil
-        
+
         do {
             let players = try await playerService.loadMarketPlayers(for: league)
             self.marketPlayers = players
@@ -107,7 +107,7 @@ public class KickbaseManager: ObservableObject {
             print("❌ Error loading market players: \(error)")
             errorMessage = "Fehler beim Laden der Markt-Spieler: \(error.localizedDescription)"
         }
-        
+
         isLoading = false
     }
 
@@ -127,20 +127,19 @@ public class KickbaseManager: ObservableObject {
         isLoading = false
     }
 
-    
     public func loadLivePoints() async {
         guard let league = selectedLeague else {
             errorMessage = "Keine Liga ausgewählt"
             return
         }
-        
+
         isLoading = true
         errorMessage = nil
-        
+
         do {
             print("🔴 Loading live points. Manager ID: \(ObjectIdentifier(self))")
             let response = try await apiService.getMyEleven(leagueId: league.id)
-            
+
             // Force UI update on main thread explicitly
             await MainActor.run {
                 self.livePlayers = response.players
@@ -150,7 +149,8 @@ public class KickbaseManager: ObservableObject {
         } catch {
             print("❌ Error loading live points: \(error)")
             await MainActor.run {
-                self.errorMessage = "Fehler beim Laden der Live-Punkte: \(error.localizedDescription)"
+                self.errorMessage =
+                    "Fehler beim Laden der Live-Punkte: \(error.localizedDescription)"
                 self.isLoading = false
             }
         }
@@ -158,360 +158,382 @@ public class KickbaseManager: ObservableObject {
     }
 
     // Wrapper for detail view
-        public func loadPlayerMatchDetails(
-            leagueId: String, competitionId: String, playerId: String, dayNumber: Int
-        ) async throws -> PlayerMatchDetailResponse {
-            if eventTypeNames.isEmpty {
-                await loadEventDefinitions()
-            }
-            return try await apiService.getPlayerEventHistory(
-                competitionId: competitionId, playerId: playerId, dayNumber: dayNumber)
+    public func loadPlayerMatchDetails(
+        leagueId: String, competitionId: String, playerId: String, dayNumber: Int
+    ) async throws -> PlayerMatchDetailResponse {
+        if eventTypeNames.isEmpty {
+            await loadEventDefinitions()
         }
-        
-        public func loadEventDefinitions() async {
-            do {
-                let response = try await apiService.getLiveEventTypes()
-                var map: [Int: String] = [:]
-                
-                // 1. Process standard types (it / types)
-                for type in response.types {
-                    map[type.id] = type.name
-                }
-                
-                // 2. Process formulas (dds) for core events
-                if let formulas = response.formulas {
-                    for (key, value) in formulas {
-                        if let id = Int(key) {
-                            // Clean template string for display (e.g. "Goal by {0}" -> "Goal by ...")
-                            // For now we use the raw template as the name, leaving semantic resolution for later
-                            map[id] = value
-                        }
-                    }
-                }
-                
-                self.eventTypeNames = map
-                print("✅ Loaded \(map.count) event type definitions")
-            } catch {
-                print("⚠️ Failed to load event types: \(error)")
+        return try await apiService.getPlayerEventHistory(
+            competitionId: competitionId, playerId: playerId, dayNumber: dayNumber)
+    }
+
+    public func loadEventDefinitions() async {
+        do {
+            let response = try await apiService.getLiveEventTypes()
+            var map: [Int: String] = [:]
+
+            // 1. Process standard types (it / types)
+            for type in response.types {
+                map[type.id] = type.name
             }
-        }
-        
-        public func loadUserStats(for league: League) async {
-            isLoading = true
-            errorMessage = nil
-            
-            do {
-                let stats = try await userStatsService.loadUserStats(for: league)
-                self.userStats = stats
-                print("✅ Loaded user stats")
-            } catch {
-                print("❌ Error loading user stats: \(error)")
-                errorMessage =
-                "Fehler beim Laden der Benutzerstatistiken: \(error.localizedDescription)"
-            }
-            
-            isLoading = false
-        }
-        
-        // MARK: - League Selection
-        
-        public func selectLeague(_ league: League) {
-            selectedLeague = league
-            
-            // Lade Daten für die neue Liga
-            Task {
-                await loadTeamPlayers(for: league)
-                await loadMarketPlayers(for: league)
-                await loadUserStats(for: league)
-            }
-        }
-        
-        // MARK: - Player Market Value History
-        
-        public func loadPlayerMarketValueHistory(playerId: String, leagueId: String) async
-        -> MarketValueChange?
-        {
-            print("📈 Loading market value history for player \(playerId) in league \(leagueId)")
-            
-            do {
-                let history = await playerService.loadPlayerMarketValueHistory(
-                    playerId: playerId, leagueId: leagueId)
-                if let history = history {
-                    print(
-                        "✅ Successfully loaded market value history with \(history.dailyChanges.count) daily changes"
-                    )
-                } else {
-                    print("⚠️ No market value history returned from player service")
-                }
-                return history
-            }
-        }
-        
-        public func loadPlayerMarketValueOnDemand(playerId: String, leagueId: String) async -> Int? {
-            print("💰 Loading on-demand market value for player \(playerId) in league \(leagueId)")
-            
-            do {
-                let profit = await playerService.loadPlayerMarketValueOnDemand(
-                    playerId: playerId, leagueId: leagueId)
-                if let profit = profit {
-                    print("✅ Successfully loaded on-demand profit: €\(profit)")
-                } else {
-                    print("⚠️ No profit value returned from player service")
-                }
-                return profit
-            }
-        }
-        
-        // MARK: - Player Performance with Team Info
-        
-        public func loadPlayerPerformanceWithTeamInfo(playerId: String, leagueId: String) async throws
-        -> [EnhancedMatchPerformance]?
-        {
-            print("📊 Loading enhanced player performance with team info for player \(playerId)")
-            
-            do {
-                let enhancedMatches = try await playerService.loadPlayerPerformanceWithTeamInfo(
-                    playerId: playerId, leagueId: leagueId)
-                
-                if let enhancedMatches = enhancedMatches {
-                    print(
-                        "✅ Successfully loaded \(enhancedMatches.count) enhanced matches with team info"
-                    )
-                } else {
-                    print("⚠️ No enhanced performance data returned")
-                }
-                
-                return enhancedMatches
-            } catch {
-                print("❌ Error loading enhanced player performance: \(error)")
-                throw error
-            }
-        }
-        
-        public func loadPlayerRecentPerformanceWithTeamInfo(playerId: String, leagueId: String) async
-        -> [EnhancedMatchPerformance]?
-        {
-            print(
-                "📊 Loading recent enhanced player performance (last 5 match days) for player \(playerId)"
-            )
-            
-            do {
-                guard
-                    let allEnhancedMatches = try await loadPlayerPerformanceWithTeamInfo(
-                        playerId: playerId, leagueId: leagueId)
-                else {
-                    print("⚠️ No enhanced performance data available for filtering recent matches")
-                    return nil
-                }
-                
-                // Finde den aktuellen Spieltag (cur = true)
-                guard let currentMatch = allEnhancedMatches.first(where: { $0.isCurrent }) else {
-                    print("⚠️ No current match day found (cur = true)")
-                    return allEnhancedMatches
-                }
-                
-                let currentMatchDay = currentMatch.matchDay
-                print("🎯 Found current match day: \(currentMatchDay)")
-                
-                // Filtere die letzten 5 Spieltage (inklusive aktueller)
-                let recentMatches = allEnhancedMatches.filter { match in
-                    match.matchDay <= currentMatchDay && match.matchDay > (currentMatchDay - 5)
-                }.sorted { $0.matchDay < $1.matchDay }
-                
-                print(
-                    "✅ Filtered to \(recentMatches.count) recent enhanced matches (days \(recentMatches.first?.matchDay ?? 0) - \(currentMatchDay))"
-                )
-                return recentMatches
-            } catch {
-                print("❌ Error loading recent performance with team info: \(error)")
-                return nil
-            }
-        }
-        
-        public func loadPlayerUpcomingPerformanceWithTeamInfo(playerId: String, leagueId: String) async
-        -> [EnhancedMatchPerformance]?
-        {
-            print(
-                "📊 Loading upcoming enhanced player performance (next 3 match days) for player \(playerId)"
-            )
-            
-            do {
-                guard
-                    let allEnhancedMatches = try await loadPlayerPerformanceWithTeamInfo(
-                        playerId: playerId, leagueId: leagueId)
-                else {
-                    print("⚠️ No enhanced performance data available for filtering upcoming matches")
-                    return nil
-                }
-                
-                // Finde den aktuellen Spieltag (cur = true)
-                guard let currentMatch = allEnhancedMatches.first(where: { $0.isCurrent }) else {
-                    print("⚠️ No current match day found (cur = true)")
-                    return allEnhancedMatches
-                }
-                
-                let currentMatchDay = currentMatch.matchDay
-                print("🎯 Found current match day: \(currentMatchDay)")
-                
-                // Filtere die nächsten 3 Spieltage (nach dem aktuellen)
-                let upcomingMatches = allEnhancedMatches.filter { match in
-                    match.matchDay > currentMatchDay && match.matchDay <= (currentMatchDay + 3)
-                }.sorted { $0.matchDay < $1.matchDay }
-                
-                print(
-                    "✅ Filtered to \(upcomingMatches.count) upcoming enhanced matches (days \(currentMatchDay + 1) - \(currentMatchDay + 3))"
-                )
-                return upcomingMatches
-            } catch {
-                print("❌ Error loading upcoming performance with team info: \(error)")
-                return nil
-            }
-        }
-        
-        // MARK: - Team Discovery and Mapping
-        
-        public func discoverAndMapTeams() async {
-            print("🔍 Starting team discovery and mapping...")
-            
-            guard let selectedLeague = selectedLeague else {
-                print("⚠️ No league selected for team discovery")
-                return
-            }
-            
-            var discoveredTeams: [String: String] = [:]
-            
-            // Sammle Team-IDs aus den Team-Spielern
-            for player in teamPlayers {
-                if !player.teamId.isEmpty && !player.teamName.isEmpty {
-                    discoveredTeams[player.teamId] = player.teamName
-                }
-            }
-            
-            // Sammle Team-IDs aus den Markt-Spielern
-            for player in marketPlayers {
-                if !player.teamId.isEmpty && !player.teamName.isEmpty {
-                    discoveredTeams[player.teamId] = player.teamName
-                }
-            }
-            
-            // Aktualisiere das Team-Mapping
-            TeamMapping.updateMapping(with: discoveredTeams)
-            
-            print("✅ Discovered and mapped \(discoveredTeams.count) teams:")
-            for (id, name) in discoveredTeams {
-                print("   \(id): \(name)")
-            }
-        }
-        
-        // MARK: - User Squad Loading
-        
-        /// Loads the squad (list of players) for a specific user in a league
-        /// API Response Format: The getManagerSquad endpoint returns a JSON object with one of:
-        /// - "players": [[String: Any]] - array of player objects
-        /// - "squad": [[String: Any]] - alternative field name
-        /// - "data": [[String: Any]] - another alternative field name
-        /// Each player object contains fields like id/i, firstName/fn, lastName/ln, etc.
-        public func loadUserSquad(leagueId: String, userId: String) async -> [Player]? {
-            print("👤 Loading squad for user \(userId) in league \(leagueId)")
-            
-            do {
-                let json = try await apiService.getManagerSquad(leagueId: leagueId, userId: userId)
-                
-                // Parse players from response - try common field names used across the API
-                let playersArray = findPlayersArray(in: json)
-                
-                if playersArray.isEmpty {
-                    print("⚠️ No player data found for user \(userId)")
-                    return nil
-                }
-                
-                print("🎯 Processing \(playersArray.count) players for user...")
-                var parsedPlayers: [Player] = []
-                
-                for playerData in playersArray {
-                    if let player = parsePlayer(from: playerData) {
-                        parsedPlayers.append(player)
-                    }
-                }
-                
-                print("✅ Successfully loaded \(parsedPlayers.count) players for user \(userId)")
-                return parsedPlayers
-            } catch {
-                print("❌ Error loading user squad: \(error)")
-                return nil
-            }
-        }
-        
-        /// Finds the array of players in the JSON response by checking common field names
-        private func findPlayersArray(in json: [String: Any]) -> [[String: Any]] {
-            print("🔍 findPlayersArray: JSON keys present: \(json.keys.sorted())")
-            let possibleKeys = ["players", "squad", "data", "p", "pl"]
-            for key in possibleKeys {
-                if let array = json[key] as? [[String: Any]] {
-                    print("✅ Found players in '\(key)' field with \(array.count) entries")
-                    return array
-                }
-            }
-            print("⚠️ No players array found. Checking nested structures...")
-            // Check for nested data structures
-            for (topKey, topValue) in json {
-                if let nestedDict = topValue as? [String: Any] {
-                    for nestedKey in possibleKeys {
-                        if let array = nestedDict[nestedKey] as? [[String: Any]] {
-                            print("✅ Found players in nested '\(topKey).\(nestedKey)' with \(array.count) entries")
-                            return array
-                        }
+
+            // 2. Process formulas (dds) for core events
+            if let formulas = response.formulas {
+                for (key, value) in formulas {
+                    if let id = Int(key) {
+                        // Clean template string for display (e.g. "Goal by {0}" -> "Goal by ...")
+                        // For now we use the raw template as the name, leaving semantic resolution for later
+                        map[id] = value
                     }
                 }
             }
-            print("❌ No players array found in any location")
-            return []
-        }
-        
-        /// Parses a player from a dictionary, handling both short and long field names
-        private func parsePlayer(from playerData: [String: Any]) -> Player? {
-            let playerId = playerData["id"] as? String ?? playerData["i"] as? String ?? ""
-            guard !playerId.isEmpty else {
-                print("⚠️ Skipping player with no ID")
-                return nil
-            }
-            
-            let firstName = playerData["firstName"] as? String ?? playerData["fn"] as? String ?? ""
-            let lastName = playerData["lastName"] as? String ?? playerData["ln"] as? String ?? ""
-            let profileBigUrl = playerData["profileBigUrl"] as? String ?? playerData["pim"] as? String ?? ""
-            let teamName = playerData["teamName"] as? String ?? playerData["tn"] as? String ?? ""
-            let teamId = playerData["teamId"] as? String ?? playerData["tid"] as? String ?? ""
-            let position = playerData["position"] as? Int ?? playerData["p"] as? Int ?? 0
-            let number = playerData["number"] as? Int ?? playerData["n"] as? Int ?? 0
-            let averagePoints = playerData["averagePoints"] as? Double ?? Double(playerData["ap"] as? Int ?? 0)
-            let totalPoints = dataParser.extractTotalPoints(from: playerData)
-            let marketValue = playerData["marketValue"] as? Int ?? playerData["mv"] as? Int ?? 0
-            let marketValueTrend = playerData["marketValueTrend"] as? Int ?? playerData["mvt"] as? Int ?? 0
-            let tfhmvt = playerData["tfhmvt"] as? Int ?? 0
-            let prlo = playerData["prlo"] as? Int ?? 0
-            let stl = playerData["stl"] as? Int ?? 0
-            let status = playerData["status"] as? Int ?? playerData["st"] as? Int ?? 0
-            let userOwnsPlayer = playerData["userOwnsPlayer"] as? Bool ?? false
-            
-            return Player(
-                id: playerId,
-                firstName: firstName,
-                lastName: lastName,
-                profileBigUrl: profileBigUrl,
-                teamName: teamName,
-                teamId: teamId,
-                position: position,
-                number: number,
-                averagePoints: averagePoints,
-                totalPoints: totalPoints,
-                marketValue: marketValue,
-                marketValueTrend: marketValueTrend,
-                tfhmvt: tfhmvt,
-                prlo: prlo,
-                stl: stl,
-                status: status,
-                userOwnsPlayer: userOwnsPlayer
-            )
+
+            self.eventTypeNames = map
+            print("✅ Loaded \(map.count) event type definitions")
+        } catch {
+            print("⚠️ Failed to load event types: \(error)")
         }
     }
 
+    public func loadUserStats(for league: League) async {
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            let stats = try await userStatsService.loadUserStats(for: league)
+            self.userStats = stats
+            print("✅ Loaded user stats")
+        } catch {
+            print("❌ Error loading user stats: \(error)")
+            errorMessage =
+                "Fehler beim Laden der Benutzerstatistiken: \(error.localizedDescription)"
+        }
+
+        isLoading = false
+    }
+
+    // MARK: - League Selection
+
+    public func selectLeague(_ league: League) {
+        selectedLeague = league
+
+        // Lade Daten für die neue Liga
+        Task {
+            await loadTeamPlayers(for: league)
+            await loadMarketPlayers(for: league)
+            await loadUserStats(for: league)
+        }
+    }
+
+    // MARK: - Player Market Value History
+
+    public func loadPlayerMarketValueHistory(playerId: String, leagueId: String) async
+        -> MarketValueChange?
+    {
+        print("📈 Loading market value history for player \(playerId) in league \(leagueId)")
+
+        do {
+            let history = await playerService.loadPlayerMarketValueHistory(
+                playerId: playerId, leagueId: leagueId)
+            if let history = history {
+                print(
+                    "✅ Successfully loaded market value history with \(history.dailyChanges.count) daily changes"
+                )
+            } else {
+                print("⚠️ No market value history returned from player service")
+            }
+            return history
+        }
+    }
+
+    public func loadPlayerMarketValueOnDemand(playerId: String, leagueId: String) async -> Int? {
+        print("💰 Loading on-demand market value for player \(playerId) in league \(leagueId)")
+
+        do {
+            let profit = await playerService.loadPlayerMarketValueOnDemand(
+                playerId: playerId, leagueId: leagueId)
+            if let profit = profit {
+                print("✅ Successfully loaded on-demand profit: €\(profit)")
+            } else {
+                print("⚠️ No profit value returned from player service")
+            }
+            return profit
+        }
+    }
+
+    // MARK: - Player Performance with Team Info
+
+    public func loadPlayerPerformanceWithTeamInfo(playerId: String, leagueId: String) async throws
+        -> [EnhancedMatchPerformance]?
+    {
+        print("📊 Loading enhanced player performance with team info for player \(playerId)")
+
+        do {
+            let enhancedMatches = try await playerService.loadPlayerPerformanceWithTeamInfo(
+                playerId: playerId, leagueId: leagueId)
+
+            if let enhancedMatches = enhancedMatches {
+                print(
+                    "✅ Successfully loaded \(enhancedMatches.count) enhanced matches with team info"
+                )
+            } else {
+                print("⚠️ No enhanced performance data returned")
+            }
+
+            return enhancedMatches
+        } catch {
+            print("❌ Error loading enhanced player performance: \(error)")
+            throw error
+        }
+    }
+
+    public func loadPlayerRecentPerformanceWithTeamInfo(playerId: String, leagueId: String) async
+        -> [EnhancedMatchPerformance]?
+    {
+        print(
+            "📊 Loading recent enhanced player performance (last 5 match days) for player \(playerId)"
+        )
+
+        do {
+            guard
+                let allEnhancedMatches = try await loadPlayerPerformanceWithTeamInfo(
+                    playerId: playerId, leagueId: leagueId)
+            else {
+                print("⚠️ No enhanced performance data available for filtering recent matches")
+                return nil
+            }
+
+            // Finde den aktuellen Spieltag (cur = true)
+            guard let currentMatch = allEnhancedMatches.first(where: { $0.isCurrent }) else {
+                print("⚠️ No current match day found (cur = true)")
+                return allEnhancedMatches
+            }
+
+            let currentMatchDay = currentMatch.matchDay
+            print("🎯 Found current match day: \(currentMatchDay)")
+
+            // Filtere die letzten 5 Spieltage (inklusive aktueller)
+            let recentMatches = allEnhancedMatches.filter { match in
+                match.matchDay <= currentMatchDay && match.matchDay > (currentMatchDay - 5)
+            }.sorted { $0.matchDay < $1.matchDay }
+
+            print(
+                "✅ Filtered to \(recentMatches.count) recent enhanced matches (days \(recentMatches.first?.matchDay ?? 0) - \(currentMatchDay))"
+            )
+            return recentMatches
+        } catch {
+            print("❌ Error loading recent performance with team info: \(error)")
+            return nil
+        }
+    }
+
+    public func loadPlayerUpcomingPerformanceWithTeamInfo(playerId: String, leagueId: String) async
+        -> [EnhancedMatchPerformance]?
+    {
+        print(
+            "📊 Loading upcoming enhanced player performance (next 3 match days) for player \(playerId)"
+        )
+
+        do {
+            guard
+                let allEnhancedMatches = try await loadPlayerPerformanceWithTeamInfo(
+                    playerId: playerId, leagueId: leagueId)
+            else {
+                print("⚠️ No enhanced performance data available for filtering upcoming matches")
+                return nil
+            }
+
+            // Finde den aktuellen Spieltag (cur = true)
+            guard let currentMatch = allEnhancedMatches.first(where: { $0.isCurrent }) else {
+                print("⚠️ No current match day found (cur = true)")
+                return allEnhancedMatches
+            }
+
+            let currentMatchDay = currentMatch.matchDay
+            print("🎯 Found current match day: \(currentMatchDay)")
+
+            // Filtere die nächsten 3 Spieltage (nach dem aktuellen)
+            let upcomingMatches = allEnhancedMatches.filter { match in
+                match.matchDay > currentMatchDay && match.matchDay <= (currentMatchDay + 3)
+            }.sorted { $0.matchDay < $1.matchDay }
+
+            print(
+                "✅ Filtered to \(upcomingMatches.count) upcoming enhanced matches (days \(currentMatchDay + 1) - \(currentMatchDay + 3))"
+            )
+            return upcomingMatches
+        } catch {
+            print("❌ Error loading upcoming performance with team info: \(error)")
+            return nil
+        }
+    }
+
+    // MARK: - Team Discovery and Mapping
+
+    public func discoverAndMapTeams() async {
+        print("🔍 Starting team discovery and mapping...")
+
+        guard let selectedLeague = selectedLeague else {
+            print("⚠️ No league selected for team discovery")
+            return
+        }
+
+        var discoveredTeams: [String: String] = [:]
+
+        // Sammle Team-IDs aus den Team-Spielern
+        for player in teamPlayers {
+            if !player.teamId.isEmpty && !player.teamName.isEmpty {
+                discoveredTeams[player.teamId] = player.teamName
+            }
+        }
+
+        // Sammle Team-IDs aus den Markt-Spielern
+        for player in marketPlayers {
+            if !player.teamId.isEmpty && !player.teamName.isEmpty {
+                discoveredTeams[player.teamId] = player.teamName
+            }
+        }
+
+        // Aktualisiere das Team-Mapping
+        TeamMapping.updateMapping(with: discoveredTeams)
+
+        print("✅ Discovered and mapped \(discoveredTeams.count) teams:")
+        for (id, name) in discoveredTeams {
+            print("   \(id): \(name)")
+        }
+    }
+
+    // MARK: - User Squad Loading
+
+    /// Loads the squad (list of players) for a specific user in a league
+    /// API Response Format: The getManagerSquad endpoint returns a JSON object with:
+    /// - "it": [[String: Any]] - array of player objects (Squad-API specific field name)
+    /// - "u": String - userId
+    /// - "unm": String - userName
+    /// Each player object in the array contains abbreviated field names:
+    /// - "pi": String (Profile ID / Player ID)
+    /// - "pn": String (Player Name - full name that needs to be split)
+    /// - "pos": Int (Position: 1=TW, 2=ABW, 3=MF, 4=ST)
+    /// - "tid": String (Team ID)
+    /// - "p": Int (Points)
+    /// - "ap": Int (Average Points)
+    /// - "mv": Int (Market Value)
+    /// - "mvt": Int (Market Value Trend)
+    /// - "st": Int (Status)
+    /// - "tfhmvt": Int (Marktwertänderung)
+    /// - "prc": Int (Purchase Price)
+    /// - "lo": Int (Loan-out?)
+    /// - "iotm": Boolean (In Of The Moment?)
+    public func loadUserSquad(leagueId: String, userId: String) async -> [Player]? {
+        print("👤 Loading squad for user \(userId) in league \(leagueId)")
+
+        do {
+            let json = try await apiService.getManagerSquad(leagueId: leagueId, userId: userId)
+            print("📋 Squad API Response keys: \(json.keys.sorted())")
+
+            // Squad endpoint returns players in "it" field
+            guard let playersArray = json["it"] as? [[String: Any]] else {
+                print(
+                    "⚠️ No 'it' array found in squad response. Available keys: \(json.keys.sorted())"
+                )
+                return nil
+            }
+
+            if playersArray.isEmpty {
+                print("⚠️ No player data found for user \(userId)")
+                return nil
+            }
+
+            print("🎯 Processing \(playersArray.count) players for user...")
+            var parsedPlayers: [Player] = []
+
+            for playerData in playersArray {
+                if let player = parseSquadPlayer(from: playerData) {
+                    parsedPlayers.append(player)
+                }
+            }
+
+            print("✅ Successfully loaded \(parsedPlayers.count) players for user \(userId)")
+            return parsedPlayers
+        } catch {
+            print("❌ Error loading user squad: \(error)")
+            return nil
+        }
+    }
+
+    /// Parses a player from squad API data, handling Squad-specific abbreviated field names
+    /// The Squad API uses different field names than the regular player endpoints
+    private func parseSquadPlayer(from playerData: [String: Any]) -> Player? {
+        // Player ID - required field
+        let playerId =
+            playerData["pi"] as? String ?? playerData["id"] as? String ?? playerData["i"] as? String
+            ?? ""
+        guard !playerId.isEmpty else {
+            print("⚠️ Skipping player with no ID. Available keys: \(playerData.keys.sorted())")
+            return nil
+        }
+
+        // Parse player name from "pn" field - comes as full name "Vorname Nachname"
+        let fullName = playerData["pn"] as? String ?? ""
+        let (firstName, lastName) = parseFullName(fullName)
+
+        // Profile image URL - use "pi" as fallback? No, that's ID. Check for profile image fields
+        let profileBigUrl = playerData["pim"] as? String ?? playerData["prf"] as? String ?? ""
+
+        // Team information
+        let teamName = playerData["tn"] as? String ?? ""
+        let teamId = playerData["tid"] as? String ?? ""
+
+        // Position and number
+        let position = playerData["pos"] as? Int ?? playerData["position"] as? Int ?? 0
+        let number = playerData["n"] as? Int ?? playerData["number"] as? Int ?? 0
+
+        // Points and values
+        let averagePoints = Double(playerData["ap"] as? Int ?? 0)
+        let totalPoints = playerData["p"] as? Int ?? 0
+        let marketValue = playerData["mv"] as? Int ?? 0
+        let marketValueTrend = playerData["mvt"] as? Int ?? 0
+        let tfhmvt = playerData["tfhmvt"] as? Int ?? 0
+        let prlo = playerData["prc"] as? Int ?? 0  // Purchase price as proxy for profit/loss
+        let stl = playerData["lo"] as? Int ?? 0  // Loan out indicator
+        let status = playerData["st"] as? Int ?? 0
+        let userOwnsPlayer = playerData["iotm"] as? Bool ?? true
+
+        return Player(
+            id: playerId,
+            firstName: firstName,
+            lastName: lastName,
+            profileBigUrl: profileBigUrl,
+            teamName: teamName,
+            teamId: teamId,
+            position: position,
+            number: number,
+            averagePoints: averagePoints,
+            totalPoints: totalPoints,
+            marketValue: marketValue,
+            marketValueTrend: marketValueTrend,
+            tfhmvt: tfhmvt,
+            prlo: prlo,
+            stl: stl,
+            status: status,
+            userOwnsPlayer: userOwnsPlayer
+        )
+    }
+
+    /// Splits a full name string into firstName and lastName
+    /// Assumes format: "Vorname Nachname" or "Vorname Middlename Nachname"
+    private func parseFullName(_ fullName: String) -> (firstName: String, lastName: String) {
+        let components = fullName.split(separator: " ").map(String.init)
+
+        if components.isEmpty {
+            return ("", "")
+        } else if components.count == 1 {
+            return (components[0], "")
+        } else {
+            // Last component is lastName, rest is firstName
+            let lastName = components.last ?? ""
+            let firstName = components.dropLast().joined(separator: " ")
+            return (firstName, lastName)
+        }
+    }
+}
