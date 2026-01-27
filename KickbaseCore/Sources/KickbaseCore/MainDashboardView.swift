@@ -238,46 +238,9 @@ struct MainDashboardView: View {
             }
             .tag(2)
 
-            // Lineup Optimizer Tab (ersetzt Gifts Tab)
+            // Lineup Optimizer Tab
             NavigationStack {
                 LineupOptimizerView()
-                    .tabItem {
-                        Image(systemName: "person.crop.square.fill.and.at.rectangle")
-                        Text("Aufstellung")
-                    }
-                    .tag(3)
-
-                // Transfer Recommendations Tab
-                TransferRecommendationsView(kickbaseManager: kickbaseManager)
-                    .tabItem {
-                        Image(systemName: "person.crop.circle.badge.plus")
-                        Text("Transfer-Tipps")
-                    }
-                    .tag(4)
-
-                // Ligainsider Tab
-                LigainsiderView()
-                    .tabItem {
-                        Image(systemName: "list.bullet.clipboard")
-                        Text("Ligainsider")
-                    }
-                    .tag(5)
-
-                // League Table Tab
-                LeagueTableView()
-                    .tabItem {
-                        Image(systemName: "list.number")
-                        Text("Tabelle")
-                    }
-                    .tag(6)
-
-                // Live View Tab
-                LiveView(kickbaseManager: kickbaseManager)
-                    .tabItem {
-                        Image(systemName: "sportscourt.fill")
-                        Text("Live")
-                    }
-                    .tag(7)
                     .modifier(StandardNavigationModifier())
             }
             .tabItem {
@@ -287,31 +250,49 @@ struct MainDashboardView: View {
             .tag(3)
 
             // Transfer Recommendations Tab
-            TransferRecommendationsView(kickbaseManager: kickbaseManager)
-                .modifier(StandardNavigationModifier())
-                .tabItem {
-                    Image(systemName: "person.crop.circle.badge.plus")
-                    Text("Transfer-Tipps")
-                }
-                .tag(4)
+            NavigationStack {
+                TransferRecommendationsView(kickbaseManager: kickbaseManager)
+                    .modifier(StandardNavigationModifier())
+            }
+            .tabItem {
+                Image(systemName: "person.crop.circle.badge.plus")
+                Text("Transfer-Tipps")
+            }
+            .tag(4)
 
             // Ligainsider Tab
-            LigainsiderView()
-                .modifier(StandardNavigationModifier())
-                .tabItem {
-                    Image(systemName: "list.bullet.clipboard")
-                    Text("Ligainsider")
-                }
-                .tag(5)
+            NavigationStack {
+                LigainsiderView()
+                    .modifier(StandardNavigationModifier())
+            }
+            .tabItem {
+                Image(systemName: "list.bullet.clipboard")
+                Text("Ligainsider")
+            }
+            .tag(5)
+
+            // League Table Tab
+            NavigationStack {
+                LeagueTableView()
+                    .modifier(StandardNavigationModifier())
+            }
+            .tabItem {
+                Image(systemName: "list.number")
+                Text("Tabelle")
+            }
+            .tag(6)
 
             // Live View Tab
-            LiveView(kickbaseManager: kickbaseManager)
-                .environmentObject(ligainsiderService)
-                .tabItem {
-                    Image(systemName: "sportscourt.fill")
-                    Text("Live")
-                }
-                .tag(6)
+            NavigationStack {
+                LiveView(kickbaseManager: kickbaseManager)
+                    .environmentObject(ligainsiderService)
+                    .modifier(StandardNavigationModifier())
+            }
+            .tabItem {
+                Image(systemName: "sportscourt.fill")
+                Text("Live")
+            }
+            .tag(7)
         }
         .onAppear {
             #if os(iOS) && os(iOS)

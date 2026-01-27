@@ -17,6 +17,16 @@ extension Color {
         #endif
     }
     
+    static var secondarySystemBackgroundCompat: Color {
+        #if canImport(UIKit)
+        return Color(uiColor: .secondarySystemBackground)
+        #elseif canImport(AppKit)
+        return Color(nsColor: .controlBackgroundColor)
+        #else
+        return Color(white: 0.95)
+        #endif
+    }
+    
     static var systemGray6Compat: Color {
         #if canImport(UIKit)
         return Color(uiColor: .systemGray6)

@@ -409,6 +409,10 @@ public class KickbaseManager: ObservableObject {
     public func discoverAndMapTeams() async {
         print("🔍 Starting team discovery and mapping...")
 
+        guard let selectedLeague = selectedLeague else {
+            print("⚠️ No league selected for team discovery")
+            return
+        }
 
         var discoveredTeams: [String: String] = [:]
 
@@ -432,6 +436,274 @@ public class KickbaseManager: ObservableObject {
         print("✅ Discovered and mapped \(discoveredTeams.count) teams:")
         for (id, name) in discoveredTeams {
             print("   \(id): \(name)")
+        }
+    }
+
+    // MARK: - User Squad Loading
+
+    /// Loads the squad (list of players) for a specific user in a league
+    /// API Response Format: The getManagerSquad endpoint returns a JSON object with:
+    /// - "it": [[String: Any]] - array of player objects (Squad-API specific field name)
+    /// - "u": String - userId
+    /// - "unm": String - userName
+    /// Each player object in the array contains abbreviated field names:
+    /// - "pi": String (Profile ID / Player ID)
+    /// - "pn": String (Player Name - full name that needs to be split)
+    /// - "pos": Int (Position: 1=TW, 2=ABW, 3=MF, 4=ST)
+    /// - "tid": String (Team ID)
+    /// - "p": Int (Points)
+    /// - "ap": Int (Average Points)
+    /// - "mv": Int (Market Value)
+    /// - "mvt": Int (Market Value Trend)
+    /// - "st": Int (Status)
+    /// - "tfhmvt": Int (Marktwertänderung)
+    /// - "prc": Int (Purchase Price)
+    /// - "lo": Int (Loan-out?)
+    /// - "iotm": Boolean (In Of The Moment?)
+    public func loadUserSquad(leagueId: String, userId: String) async -> [Player]? {
+        print("👤 Loading squad for user \(userId) in league \(leagueId)")
+
+        do {
+            let json = try await apiService.getManagerSquad(leagueId: leagueId, userId: userId)
+            print("📋 Squad API Response keys: \(json.keys.sorted())")
+
+            // Squad endpoint returns players in "it" field
+            guard let playersArray = json["it"] as? [[String: Any]] else {
+                print(
+                    "⚠️ No 'it' array found in squad response. Available keys: \(json.keys.sorted())"
+                )
+                return nil
+            }
+
+            if playersArray.isEmpty {
+                print("⚠️ No player data found for user \(userId)")
+                return nil
+            }
+
+            print("🎯 Processing \(playersArray.count) players for user...")
+            var parsedPlayers: [Player] = []
+
+            for playerData in playersArray {
+                if let player = parseSquadPlayer(from: playerData) {
+                    parsedPlayers.append(player)
+                }
+            }
+
+            print("✅ Successfully loaded \(parsedPlayers.count) players for user \(userId)")
+            return parsedPlayers
+        } catch {
+            print("❌ Error loading user squad: \(error)")
+            return nil
+        }
+    }
+
+    /// Loads player details for the given lineup player IDs
+    /// Uses available player data (teamPlayers, marketPlayers) and falls back to Player Details endpoint
+    /// This is used to get player details from historical squad lineups
+    public func loadPlayersForLineup(lineupPlayerIds: [String], leagueId: String, userId: String)
+        async -> [Player]?
+    {
+        guard !lineupPlayerIds.isEmpty else {
+            print("⚠️ loadPlayersForLineup: No lineup player IDs provided")
+            return nil
+        }
+
+        print("🎯 Loading details for \(lineupPlayerIds.count) players from lineup IDs")
+
+        var players: [Player] = []
+
+        for playerId in lineupPlayerIds {
+            // Try to find player in available data sources
+            var player: Player?
+
+            // Try teamPlayers first (TeamPlayer is a typealias for Player)
+            if let teamPlayer = teamPlayers.first(where: { $0.id == playerId }) {
+                player = teamPlayer
+                print("📍 Found player \(playerId) in teamPlayers")
+            }
+
+            // Try marketPlayers if not found
+            if player == nil, let marketPlayer = marketPlayers.first(where: { $0.id == playerId }) {
+                // Convert MarketPlayer to Player
+                player = Player(
+                    id: marketPlayer.id,
+                    firstName: marketPlayer.firstName,
+                    lastName: marketPlayer.lastName,
+                    profileBigUrl: marketPlayer.profileBigUrl,
+                    teamName: marketPlayer.teamName,
+                    teamId: marketPlayer.teamId,
+                    position: marketPlayer.position,
+                    number: marketPlayer.number,
+                    averagePoints: marketPlayer.averagePoints,
+                    totalPoints: marketPlayer.totalPoints,
+                    marketValue: marketPlayer.marketValue,
+                    marketValueTrend: marketPlayer.marketValueTrend,
+                    tfhmvt: 0,  // Not available in MarketPlayer
+                    prlo: marketPlayer.prlo ?? 0,  // Unwrap optional
+                    stl: marketPlayer.stl,
+                    status: marketPlayer.status,
+                    userOwnsPlayer: false
+                )
+                print("📍 Found player \(playerId) in marketPlayers")
+            }
+
+            // If not found in available data, try loading from Player Details endpoint
+            if player == nil {
+                print("🌐 Loading player \(playerId) from Player Details endpoint")
+                if let playerDetails = await playerService.loadPlayerDetails(
+                    playerId: playerId,
+                    leagueId: leagueId
+                ) {
+                    // Log what we got
+                    print("   - Name: \(playerDetails.fn ?? "?") \(playerDetails.ln ?? "?")")
+                    print(
+                        "   - Position: \(playerDetails.position ?? 0), Team: \(playerDetails.tn ?? "?")"
+                    )
+                    print(
+                        "   - Points: Avg=\(playerDetails.averagePoints ?? 0), Total=\(playerDetails.totalPoints ?? 0)"
+                    )
+
+                    // Check if we have the player in market players to get position
+                    // The Player Details endpoint sometimes doesn't return position data
+                    var position = playerDetails.position ?? 0
+                    var totalPoints = playerDetails.totalPoints ?? 0
+
+                    if position == 0,
+                        let marketPlayer = marketPlayers.first(where: { $0.id == playerId })
+                    {
+                        position = marketPlayer.position
+                        print(
+                            "   ⚠️ Position missing from Details endpoint, using marketPlayers: \(position)"
+                        )
+                    }
+
+                    if totalPoints == 0,
+                        let marketPlayer = marketPlayers.first(where: { $0.id == playerId })
+                    {
+                        totalPoints = marketPlayer.totalPoints
+                        print(
+                            "   ⚠️ Total Points missing from Details endpoint, using marketPlayers: \(totalPoints)"
+                        )
+                    }
+
+                    // Convert PlayerDetailResponse to Player
+                    player = Player(
+                        id: playerDetails.id ?? playerId,
+                        firstName: playerDetails.fn ?? "?",
+                        lastName: playerDetails.ln ?? "?",
+                        profileBigUrl: playerDetails.profileBigUrl ?? "",
+                        teamName: playerDetails.tn ?? "?",
+                        teamId: playerDetails.teamId ?? "",
+                        position: position,  // Use merged position
+                        number: playerDetails.number ?? 0,
+                        averagePoints: playerDetails.averagePoints ?? 0,
+                        totalPoints: totalPoints,  // Use merged totalPoints
+                        marketValue: playerDetails.marketValue ?? 0,
+                        marketValueTrend: playerDetails.marketValueTrend ?? 0,
+                        tfhmvt: playerDetails.tfhmvt ?? 0,
+                        prlo: playerDetails.prlo ?? 0,
+                        stl: playerDetails.stl ?? 0,
+                        status: playerDetails.status ?? 0,
+                        userOwnsPlayer: playerDetails.userOwnsPlayer ?? false
+                    )
+                    print(
+                        "✅ Loaded player \(playerId) from Player Details endpoint: \(player?.fullName ?? "unknown")"
+                    )
+                } else {
+                    print(
+                        "❌ Could not load player \(playerId) from Player Details endpoint - returned nil"
+                    )
+                }
+            }
+
+            // If we have a player, add to list
+            if let player = player {
+                players.append(player)
+            } else {
+                print("⚠️ Could not find player details for ID \(playerId)")
+            }
+        }
+
+        print("✅ Loaded \(players.count) out of \(lineupPlayerIds.count) players from lineup IDs")
+        if players.count != lineupPlayerIds.count {
+            print("⚠️ Warning: Only found \(players.count) out of \(lineupPlayerIds.count) players")
+        }
+        return players.isEmpty ? nil : players
+    }
+
+    /// Parses a player from squad API data, handling Squad-specific abbreviated field names
+    /// The Squad API uses different field names than the regular player endpoints
+    private func parseSquadPlayer(from playerData: [String: Any]) -> Player? {
+        // Player ID - required field
+        let playerId =
+            playerData["pi"] as? String ?? playerData["id"] as? String ?? playerData["i"] as? String
+            ?? ""
+        guard !playerId.isEmpty else {
+            print("⚠️ Skipping player with no ID. Available keys: \(playerData.keys.sorted())")
+            return nil
+        }
+
+        // Parse player name from "pn" field - comes as full name "Vorname Nachname"
+        let fullName = playerData["pn"] as? String ?? ""
+        let (firstName, lastName) = parseFullName(fullName)
+
+        // Profile image URL - use "pi" as fallback? No, that's ID. Check for profile image fields
+        let profileBigUrl = playerData["pim"] as? String ?? playerData["prf"] as? String ?? ""
+
+        // Team information
+        let teamName = playerData["tn"] as? String ?? ""
+        let teamId = playerData["tid"] as? String ?? ""
+
+        // Position and number
+        let position = playerData["pos"] as? Int ?? playerData["position"] as? Int ?? 0
+        let number = playerData["n"] as? Int ?? playerData["number"] as? Int ?? 0
+
+        // Points and values
+        let averagePoints = Double(playerData["ap"] as? Int ?? 0)
+        let totalPoints = playerData["p"] as? Int ?? 0
+        let marketValue = playerData["mv"] as? Int ?? 0
+        let marketValueTrend = playerData["mvt"] as? Int ?? 0
+        let tfhmvt = playerData["tfhmvt"] as? Int ?? 0
+        let prlo = playerData["prc"] as? Int ?? 0  // Purchase price as proxy for profit/loss
+        let stl = playerData["lo"] as? Int ?? 0  // Loan out indicator
+        let status = playerData["st"] as? Int ?? 0
+        let userOwnsPlayer = playerData["iotm"] as? Bool ?? true
+
+        return Player(
+            id: playerId,
+            firstName: firstName,
+            lastName: lastName,
+            profileBigUrl: profileBigUrl,
+            teamName: teamName,
+            teamId: teamId,
+            position: position,
+            number: number,
+            averagePoints: averagePoints,
+            totalPoints: totalPoints,
+            marketValue: marketValue,
+            marketValueTrend: marketValueTrend,
+            tfhmvt: tfhmvt,
+            prlo: prlo,
+            stl: stl,
+            status: status,
+            userOwnsPlayer: userOwnsPlayer
+        )
+    }
+
+    /// Splits a full name string into firstName and lastName
+    /// Assumes format: "Vorname Nachname" or "Vorname Middlename Nachname"
+    private func parseFullName(_ fullName: String) -> (firstName: String, lastName: String) {
+        let components = fullName.split(separator: " ").map(String.init)
+
+        if components.isEmpty {
+            return ("", "")
+        } else if components.count == 1 {
+            return (components[0], "")
+        } else {
+            // Last component is lastName, rest is firstName
+            let lastName = components.last ?? ""
+            let firstName = components.dropLast().joined(separator: " ")
+            return (firstName, lastName)
         }
     }
 }

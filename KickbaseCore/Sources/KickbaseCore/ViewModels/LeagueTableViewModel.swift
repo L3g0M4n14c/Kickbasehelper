@@ -17,6 +17,10 @@ class LeagueTableViewModel: ObservableObject {
             print(
                 "🔄 ViewModel: selectedMatchDay setter called: oldValue=\(oldValue), newValue=\(selectedMatchDay)"
             )
+            // Mark that user selected this explicitly if value changed
+            if selectedMatchDay != oldValue {
+                userExplicitlySelectedMatchDay = true
+            }
             // Automatically reload when matchday changes
             if tableType == .matchday && selectedMatchDay != oldValue {
                 print(
@@ -30,6 +34,10 @@ class LeagueTableViewModel: ObservableObject {
     }
     @Published var displayedUsers: [LeagueUser] = []
     @Published var isLoading = false
+
+    // Track if user has manually selected a matchday
+    private var userExplicitlySelectedMatchDay = false
+    private var lastSelectedLeagueId: String = ""
 
     // MARK: - Dependencies
     private var kickbaseManager: KickbaseManager?
@@ -54,13 +62,33 @@ class LeagueTableViewModel: ObservableObject {
                     print(
                         "🔄 ViewModel: selectedLeague changed to \(league.name), fetching current matchday via smdc"
                     )
+
+                    // Check if this is a new league (not just a navigation return)
+                    if self?.lastSelectedLeagueId != league.id {
+                        print(
+                            "🔄 ViewModel: Different league detected, resetting user selection flag")
+                        self?.userExplicitlySelectedMatchDay = false
+                        self?.lastSelectedLeagueId = league.id
+                    }
+
                     // Fetch current matchday from API using smdc field
                     Task {
                         if let currentMatchDay = await self?.fetchCurrentMatchDay(
                             leagueId: league.id)
                         {
-                            print("📅 ViewModel: Set matchday to \(currentMatchDay) from smdc")
-                            self?.selectedMatchDay = currentMatchDay
+                            print("📅 ViewModel: Current matchday from API is \(currentMatchDay)")
+
+                            // Only reset selectedMatchDay if user hasn't explicitly selected one yet for this league
+                            if !(self?.userExplicitlySelectedMatchDay ?? false) {
+                                print(
+                                    "📅 ViewModel: User hasn't selected matchday, setting to current \(currentMatchDay)"
+                                )
+                                self?.selectedMatchDay = currentMatchDay
+                            } else {
+                                print(
+                                    "📅 ViewModel: User has selected matchday, keeping selection \(self?.selectedMatchDay ?? 0)"
+                                )
+                            }
                         } else {
                             print("⚠️ ViewModel: Could not fetch smdc, keeping default")
                         }
@@ -137,6 +165,7 @@ class LeagueTableViewModel: ObservableObject {
         // Update displayed users based on new table type
         if newType == .overall {
             displayedUsers = kickbaseManager?.leagueUsers ?? []
+            userExplicitlySelectedMatchDay = false  // Reset when switching to overall
         } else {
             displayedUsers = kickbaseManager?.matchDayUsers ?? []
         }
@@ -148,10 +177,7 @@ class LeagueTableViewModel: ObservableObject {
         }
 
         if newType == .matchday {
-            // When switching to matchday mode, reset to matchday 1 and load
-            print("🔄 LeagueTableViewModel: Switching to matchday mode - resetting to matchday 1")
-            selectedMatchDay = 1
-            await loadMatchDayRanking(matchDay: 1)
+            await loadMatchDayRanking(matchDay: selectedMatchDay)
         }
     }
 
@@ -159,8 +185,9 @@ class LeagueTableViewModel: ObservableObject {
     func selectMatchDay(_ day: Int) async {
         guard day != selectedMatchDay else { return }
 
+        userExplicitlySelectedMatchDay = true
         selectedMatchDay = day
-        print("🔄 LeagueTableViewModel: Selected matchday \(day)")
+        print("🔄 LeagueTableViewModel: User selected matchday \(day)")
 
         guard kickbaseManager != nil else {
             return

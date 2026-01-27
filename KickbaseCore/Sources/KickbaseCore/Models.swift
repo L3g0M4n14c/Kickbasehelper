@@ -176,10 +176,12 @@ public struct LeagueUser: Codable, Hashable {
     public let se11: Int
     public let ttm: Int
     public let mpst: Int?  // Max Players Same Team - Maximale Anzahl Spieler vom gleichen Team
+    public let lineupPlayerIds: [String]  // "lp" - Player IDs of the lineup
 
     public init(
         id: String, name: String, teamName: String, budget: Int, teamValue: Int, points: Int,
-        placement: Int, won: Int, drawn: Int, lost: Int, se11: Int, ttm: Int, mpst: Int?
+        placement: Int, won: Int, drawn: Int, lost: Int, se11: Int, ttm: Int, mpst: Int?,
+        lineupPlayerIds: [String] = []
     ) {
         self.id = id
         self.name = name
@@ -194,6 +196,7 @@ public struct LeagueUser: Codable, Hashable {
         self.se11 = se11
         self.ttm = ttm
         self.mpst = mpst
+        self.lineupPlayerIds = lineupPlayerIds
     }
 }
 
