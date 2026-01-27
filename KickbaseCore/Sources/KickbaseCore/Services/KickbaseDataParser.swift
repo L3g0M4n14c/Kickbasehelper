@@ -1,6 +1,6 @@
 import Combine
-import SwiftUI
 import Foundation
+import SwiftUI
 
 @MainActor
 public class KickbaseDataParser: ObservableObject {
@@ -280,33 +280,34 @@ public class KickbaseDataParser: ObservableObject {
     }
 
     // MARK: - League Ranking Parsing
-    
-    public func parseLeagueRanking(from json: [String: Any], isMatchDayQuery: Bool = false) -> [LeagueUser] {
+
+    public func parseLeagueRanking(from json: [String: Any], isMatchDayQuery: Bool = false)
+        -> [LeagueUser]
+    {
         print("🏆 Parsing league ranking... (isMatchDayQuery: \(isMatchDayQuery))")
-        
+
         // The ranking uses "us" array according to API documentation
         guard let usersArray = json["us"] as? [[String: Any]] else {
             print("⚠️ No users array found in ranking response")
             print("📋 Available keys: \(json.keys.sorted())")
             return []
         }
-        
+
         let users = usersArray.compactMap { userData -> LeagueUser? in
             print("👤 User data keys: \(userData.keys.sorted())")
-            
-            // Parse each user in the ranking using actual API field names
+            print("📋 Full user data: \(userData)")
             let id = extractString(from: userData, keys: ["i", "id"]) ?? "unknown"
             let name = extractString(from: userData, keys: ["n", "name"]) ?? "User"
             // Note: ranking API doesn't include teamName, so we'll use an empty default
             let teamName = extractString(from: userData, keys: ["tn", "teamName"]) ?? ""
-            
+
             let budget = extractInt(from: userData, keys: ["b", "budget"]) ?? 0
             let teamValue = extractInt(from: userData, keys: ["tv", "teamValue"]) ?? 0
-            
+
             // Choose the correct fields based on query type
             let points: Int
             let placement: Int
-            
+
             if isMatchDayQuery {
                 // For matchday queries, prioritize 'mdp' (matchday points) and 'mdpl' (matchday placement)
                 points = extractInt(from: userData, keys: ["mdp", "p", "points"]) ?? 0
@@ -316,17 +317,38 @@ public class KickbaseDataParser: ObservableObject {
                 points = extractInt(from: userData, keys: ["sp", "p", "points"]) ?? 0
                 placement = extractInt(from: userData, keys: ["spl", "pl", "placement"]) ?? 0
             }
-            
+
             // These fields don't exist in ranking API, set to 0 as defaults
             let won = 0
             let drawn = 0
             let lost = 0
-            
+
             // se11, ttm may not be in ranking response either
             let se11 = extractInt(from: userData, keys: ["se11", "s"]) ?? 0
             let ttm = extractInt(from: userData, keys: ["ttm", "t"]) ?? 0
             let mpst = extractInt(from: userData, keys: ["mpst", "maxPlayersPerTeam"])
-            
+
+            // Extract lineup player IDs ("lp" field)
+            // The API might return integers or strings, so handle both
+            var lineupPlayerIds: [String] = []
+
+            if let lpArray = userData["lp"] as? [String] {
+                lineupPlayerIds = lpArray
+                print("✅ Found lp as [String]: \(lineupPlayerIds)")
+            } else if let lpArray = userData["lp"] as? [Int] {
+                lineupPlayerIds = lpArray.map { String($0) }
+                print("✅ Found lp as [Int], converted to [String]: \(lineupPlayerIds)")
+            } else if let lpArray = userData["lp"] as? [NSNumber] {
+                lineupPlayerIds = lpArray.map { $0.stringValue }
+                print("✅ Found lp as [NSNumber], converted to [String]: \(lineupPlayerIds)")
+            } else {
+                print(
+                    "⚠️ No 'lp' field found or wrong format. Raw value: \(userData["lp"] ?? "nil")")
+            }
+
+            print(
+                "👤 User \(name) has \(lineupPlayerIds.count) players in lineup: \(lineupPlayerIds)")
+
             return LeagueUser(
                 id: id,
                 name: name,
@@ -340,17 +362,20 @@ public class KickbaseDataParser: ObservableObject {
                 lost: lost,
                 se11: se11,
                 ttm: ttm,
-                mpst: mpst
+                mpst: mpst,
+                lineupPlayerIds: lineupPlayerIds
             )
         }
-        
+
         print("✅ Parsed \(users.count) users from ranking")
         return users
     }
 
     // MARK: - User Stats Parsing
 
-    public func parseUserStatsFromResponse(_ json: [String: Any], fallbackUser: LeagueUser) -> UserStats {
+    public func parseUserStatsFromResponse(_ json: [String: Any], fallbackUser: LeagueUser)
+        -> UserStats
+    {
         print("🔍 Parsing user stats from response...")
         print("📋 Stats JSON keys: \(Array(json.keys))")
 

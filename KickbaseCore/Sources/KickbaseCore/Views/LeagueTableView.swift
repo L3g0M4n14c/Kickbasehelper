@@ -78,18 +78,20 @@ struct LeagueTableView: View {
                     } else {
                         List {
                             ForEach(Array(viewModel.displayedUsers.enumerated()), id: \.element.id)
-                            {
-                                index, user in
-                    }
-                } else {
-                    List {
-                        ForEach(Array(kickbaseManager.leagueUsers.enumerated()), id: \.element.id) { index, user in
-                            NavigationLink(destination: UserDetailView(user: user)) {
-                                LeagueUserRow(user: user, position: index + 1)
+                            { index, user in
+                                NavigationLink(
+                                    destination: UserDetailView(
+                                        user: user,
+                                        selectedMatchDay: viewModel.tableType == .matchday
+                                            ? viewModel.selectedMatchDay : nil
+                                    )
+                                ) {
+                                    LeagueUserRow(user: user, position: index + 1)
+                                }
                             }
-                        }
-                        .refreshable {
-                            await viewModel.refresh()
+                            .refreshable {
+                                await viewModel.refresh()
+                            }
                         }
                     }
                 }

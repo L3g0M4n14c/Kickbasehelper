@@ -1,6 +1,6 @@
 import Combine
-import SwiftUI
 import Foundation
+import SwiftUI
 
 @MainActor
 public class KickbasePlayerService: ObservableObject {
@@ -94,10 +94,10 @@ public class KickbasePlayerService: ObservableObject {
                 tn: json["tn"] as? String,
                 shn: json["shn"] as? Int,
                 id: json["id"] as? String,
-                position: json["position"] as? Int,
+                position: json["position"] as? Int ?? json["pos"] as? Int,
                 number: json["number"] as? Int,
                 averagePoints: json["averagePoints"] as? Double,
-                totalPoints: json["totalPoints"] as? Int,
+                totalPoints: json["totalPoints"] as? Int ?? json["tp"] as? Int,
                 marketValue: json["marketValue"] as? Int,
                 marketValueTrend: json["marketValueTrend"] as? Int,
                 profileBigUrl: json["profileBigUrl"] as? String ?? json["pim"] as? String,
