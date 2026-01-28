@@ -4,10 +4,10 @@ import SwiftUI
 
 @MainActor
 public class KickbasePlayerService: ObservableObject {
-    private let apiService: KickbaseAPIService
-    private let dataParser: KickbaseDataParser
+    private let apiService: KickbaseAPIServiceProtocol
+    private let dataParser: KickbaseDataParserProtocol
 
-    public init(apiService: KickbaseAPIService, dataParser: KickbaseDataParser) {
+    public init(apiService: KickbaseAPIServiceProtocol, dataParser: KickbaseDataParserProtocol) {
         self.apiService = apiService
         self.dataParser = dataParser
     }

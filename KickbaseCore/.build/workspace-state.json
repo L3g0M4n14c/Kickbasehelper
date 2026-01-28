@@ -126,6 +126,23 @@
           "name" : "sourceControlCheckout"
         },
         "subpath" : "skip-unit"
+      },
+      {
+        "basedOn" : null,
+        "packageRef" : {
+          "identity" : "viewinspector",
+          "kind" : "remoteSourceControl",
+          "location" : "https://github.com/nalexn/ViewInspector.git",
+          "name" : "ViewInspector"
+        },
+        "state" : {
+          "checkoutState" : {
+            "revision" : "e9a06346499a3a889165647e3f23f8a7b2609a1c",
+            "version" : "0.10.3"
+          },
+          "name" : "sourceControlCheckout"
+        },
+        "subpath" : "ViewInspector"
       }
     ],
     "prebuilts" : [

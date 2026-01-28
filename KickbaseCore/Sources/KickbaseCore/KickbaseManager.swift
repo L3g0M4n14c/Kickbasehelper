@@ -32,13 +32,25 @@ public class KickbaseManager: ObservableObject {
         return playerService
     }
 
-    public init() {
-        self.apiService = KickbaseAPIService()
-        self.dataParser = KickbaseDataParser()
-        self.leagueService = KickbaseLeagueService(apiService: apiService, dataParser: dataParser)
-        self.playerService = KickbasePlayerService(apiService: apiService, dataParser: dataParser)
-        self.userStatsService = KickbaseUserStatsService(
-            apiService: apiService, dataParser: dataParser)
+    // Designated initializer with dependency injection for easier testing
+    public init(
+        apiService: KickbaseAPIService? = nil,
+        dataParser: KickbaseDataParser? = nil,
+        leagueService: KickbaseLeagueService? = nil,
+        playerService: KickbasePlayerService? = nil,
+        userStatsService: KickbaseUserStatsService? = nil
+    ) {
+        let api = apiService ?? KickbaseAPIService()
+        let parser = dataParser ?? KickbaseDataParser()
+
+        self.apiService = api
+        self.dataParser = parser
+        self.leagueService =
+            leagueService ?? KickbaseLeagueService(apiService: api, dataParser: parser)
+        self.playerService =
+            playerService ?? KickbasePlayerService(apiService: api, dataParser: parser)
+        self.userStatsService =
+            userStatsService ?? KickbaseUserStatsService(apiService: api, dataParser: parser)
     }
 
     // MARK: - Authentication

@@ -132,14 +132,11 @@ struct PlayerHeroHeader: View {
                     Text(player.firstName)
                         .font(.subheadline)
                         .foregroundColor(.secondary)
+                        .accessibilityIdentifier("player_firstname")
                     Text(player.lastName)
                         .font(.title)
                         .fontWeight(.bold)
-                }
-
-                // Team, Position und Nummer
-                HStack(spacing: 8) {
-                    Text(player.fullTeamName)
+                        .accessibilityIdentifier("player_lastname")
                         .font(.subheadline)
                         .foregroundColor(.blue)
                         .fontWeight(.medium)

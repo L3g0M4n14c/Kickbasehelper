@@ -68,7 +68,12 @@ public class LigainsiderService: ObservableObject {
     // Cache für Spieler in der Startelf (IDs)
     private var startingLineupIds: Set<String> = []
 
-    public init() {}
+    // Exposed as internal for tests
+    let session: URLSession
+
+    public init(session: URLSession = .shared) {
+        self.session = SessionSanitizer.sanitized(session)
+    }
 
     // MARK: - Async variant for initialization (waits for completion)
     public func fetchLineupsAsync() async {
@@ -462,7 +467,7 @@ public class LigainsiderService: ObservableObject {
         guard let url = URL(string: fullUrl) else { return [] }
 
         do {
-            let (data, _) = try await URLSession.shared.data(from: url)
+            let (data, _) = try await self.session.data(from: url)
             guard let html = String(data: data, encoding: .utf8) else { return [] }
 
             var players: [LigainsiderPlayer] = []
@@ -477,7 +482,13 @@ public class LigainsiderService: ObservableObject {
                 let previousComponent = components[i - 1]
 
                 // 1. Slug extrahieren
-                guard let slug = component.substringBefore("\"") else { continue }
+                let rawSlug = component.substringBefore("\"") ?? ""
+                // Remove query string and any trailing slashes
+                var slug = rawSlug
+                if let qIndex = slug.firstIndex(of: "?") {
+                    slug = String(slug[..<qIndex])
+                }
+                slug = slug.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
 
                 // Validierung
                 if !slug.contains("_") { continue }
@@ -542,8 +553,7 @@ public class LigainsiderService: ObservableObject {
         // 1. Übersicht laden
         print("Lade Übersicht von: \(overviewURL)")
         guard let url = URL(string: overviewURL) else { throw URLError(.badURL) }
-        let sessionResponse = try await URLSession.shared.data(from: url)
-        let data = sessionResponse.0
+        let (data, _) = try await self.session.data(from: url)
 
         guard let htmlString = String(data: data, encoding: .utf8) else {
             throw URLError(.cannotDecodeContentData)
@@ -632,8 +642,7 @@ public class LigainsiderService: ObservableObject {
         guard let urlObj = URL(string: url) else {
             return TeamDataResult(name: "Unbekannt", logo: nil, lineup: [], squad: [])
         }
-        let sessionResponse = try await URLSession.shared.data(from: urlObj)
-        let data = sessionResponse.0
+        let (data, _) = try await self.session.data(from: urlObj)
         guard let html = String(data: data, encoding: .utf8) else {
             return TeamDataResult(name: "Unbekannt", logo: nil, lineup: [], squad: [])
         }

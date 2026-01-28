@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct StandardNavigationModifier: ViewModifier {
+struct StandardNavigationModifier: SwiftUI.ViewModifier {
     @EnvironmentObject var kickbaseManager: KickbaseManager
     @EnvironmentObject var authManager: AuthenticationManager
 
@@ -54,7 +54,11 @@ struct MainDashboardView: View {
                         .font(.headline)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color(.systemBackground))
+                #if os(iOS)
+                    .background(Color(.systemBackground))
+                #else
+                    .background(Color(.windowBackgroundColor))
+                #endif
             } else {
                 // Normale Layouts wenn Ligainsider fertig ist
                 Group {
@@ -114,6 +118,7 @@ struct MainDashboardView: View {
                 ) {
                     NavigationLink(value: 0) {
                         Label("Team", systemImage: "person.3.fill")
+                            .accessibilityIdentifier("tab_team")
                     }
                     .tag(0)
 
@@ -209,6 +214,7 @@ struct MainDashboardView: View {
             NavigationStack {
                 TeamView()
                     .modifier(StandardNavigationModifier())
+                    .accessibilityIdentifier("tab_team")
             }
             .tabItem {
                 Image(systemName: "person.3.fill")
@@ -609,6 +615,7 @@ struct PlayerRowView: View {
             }
             .padding(.vertical, 8)
         }
+        .accessibilityIdentifier("player_row_\(player.id)")
         #if os(iOS)
             .buttonStyle(PlainButtonStyle())
         #endif
@@ -1991,7 +1998,13 @@ struct SalesRecommendationRow: View {
     let isSelected: Bool
     let onToggle: (Bool) -> Void
 
-    @State private var showingPlayerDetail = false
+    // Optional override binding for tests to control sheet presentation
+    var showingPlayerDetailBinding: Binding<Bool>? = nil
+    @State private var internalShowingPlayerDetail = false
+    private var showingPlayerDetail: Binding<Bool> {
+        showingPlayerDetailBinding ?? $internalShowingPlayerDetail
+    }
+
     @EnvironmentObject var kickbaseManager: KickbaseManager
     @EnvironmentObject var ligainsiderService: LigainsiderService
 
@@ -2002,7 +2015,7 @@ struct SalesRecommendationRow: View {
 
             // Spieler-Info Bereich (klickbar für Details)
             Button(action: {
-                showingPlayerDetail = true
+                showingPlayerDetail.wrappedValue = true
             }) {
                 HStack(spacing: 12) {
                     VStack(alignment: .leading, spacing: 6) {
@@ -2107,7 +2120,7 @@ struct SalesRecommendationRow: View {
             .frame(width: 50, height: 30)
         }
         .padding(.vertical, 8)
-        .sheet(isPresented: $showingPlayerDetail) {
+        .sheet2(isPresented: showingPlayerDetail) {
             PlayerDetailView(player: recommendation.player)
                 .environmentObject(kickbaseManager)
                 .environmentObject(ligainsiderService)

@@ -8,8 +8,12 @@ import SwiftUI
 public class KickbaseAPIService: ObservableObject {
     private let baseURL = "https://api.kickbase.com"
     private var authToken: String?
+    // Exposed as internal for tests
+    let session: URLSession
 
-    public init() {}
+    public init(session: URLSession = .shared) {
+        self.session = SessionSanitizer.sanitized(session)
+    }
 
     // MARK: - Authentication
 
@@ -56,7 +60,7 @@ public class KickbaseAPIService: ObservableObject {
 
         print("📤 \(method) \(endpoint)")
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await self.session.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw APIError.noHTTPResponse
@@ -95,7 +99,7 @@ public class KickbaseAPIService: ObservableObject {
 
         print("📤 POST /v4/user/login")
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await self.session.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw NSError(domain: "NoHTTPResponse", code: -1)
@@ -169,7 +173,9 @@ public class KickbaseAPIService: ObservableObject {
 
     /// GET /v4/leagues/selection - List all Leagues
     public func getLeagueSelection() async throws -> [String: Any] {
-        let (data, _) = try await makeRequest(endpoint: "/v4/leagues/selection")
+        // Public endpoint - does not require auth
+        let (data, _) = try await makeRequest(
+            endpoint: "/v4/leagues/selection", requiresAuth: false)
         return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
     }
 

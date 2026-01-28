@@ -1,22 +1,22 @@
 import Combine
-import SwiftUI
 import Foundation
+import SwiftUI
 
 @MainActor
 public class KickbaseUserStatsService: ObservableObject {
-    private let apiService: KickbaseAPIService
-    private let dataParser: KickbaseDataParser
-    
-    public init(apiService: KickbaseAPIService, dataParser: KickbaseDataParser) {
+    private let apiService: KickbaseAPIServiceProtocol
+    private let dataParser: KickbaseDataParserProtocol
+
+    public init(apiService: KickbaseAPIServiceProtocol, dataParser: KickbaseDataParserProtocol) {
         self.apiService = apiService
         self.dataParser = dataParser
     }
-    
+
     // MARK: - User Stats Loading
-    
+
     public func loadUserStats(for league: League) async throws -> UserStats {
         print("📊 Loading user stats for league: \(league.name)")
-        
+
         do {
             // Versuche zuerst den Budget-Endpoint
             let json = try await apiService.getMyBudget(leagueId: league.id)
@@ -32,12 +32,12 @@ public class KickbaseUserStatsService: ObservableObject {
             }
         }
     }
-    
+
     // MARK: - Fallback Data
-    
+
     private func createFallbackUserStats(from leagueUser: LeagueUser) -> UserStats {
         print("📊 Using league user data as fallback for user stats")
-        
+
         let userStats = UserStats(
             teamValue: leagueUser.teamValue,
             teamValueTrend: 0,
@@ -48,8 +48,10 @@ public class KickbaseUserStatsService: ObservableObject {
             drawn: leagueUser.drawn,
             lost: leagueUser.lost
         )
-        
-        print("📊 Fallback stats applied - Budget: €\(leagueUser.budget/1000)k, Teamwert: €\(leagueUser.teamValue/1000)k")
+
+        print(
+            "📊 Fallback stats applied - Budget: €\(leagueUser.budget/1000)k, Teamwert: €\(leagueUser.teamValue/1000)k"
+        )
         return userStats
     }
 }
