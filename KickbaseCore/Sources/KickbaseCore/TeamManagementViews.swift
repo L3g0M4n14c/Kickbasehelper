@@ -52,9 +52,8 @@ struct TeamTab: View {
 
                 print("🎯 TeamTab: Starting lineup generation for league: \(league.name)")
 
-                // Verwende den PlayerRecommendationService für die Lineup-Generierung
-                let recommendationService = PlayerRecommendationService(
-                    kickbaseManager: kickbaseManager)
+                // Verwende den shared PlayerRecommendationService vom KickbaseManager
+                let recommendationService = kickbaseManager.playerRecommendationService
 
                 // Standard-Formation: 4-2-3-1 [1 TW, 4 ABW, 2 MF, 3 MF, 1 ST]
                 // Die API gibt uns die möglichen Formationen, aber für jetzt verwenden wir eine Standard-Formation

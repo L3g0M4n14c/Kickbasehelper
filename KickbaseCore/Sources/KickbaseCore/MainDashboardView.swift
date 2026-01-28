@@ -2361,9 +2361,8 @@ struct LineupOptimizerView: View {
                     return
                 }
 
-                let recommendationService = PlayerRecommendationService(
-                    kickbaseManager: kickbaseManager
-                )
+                // Reuse shared service to keep caches and avoid repeated instantiation
+                let recommendationService = kickbaseManager.playerRecommendationService
 
                 // Finde die beste Formation basierend auf verfügbaren Spielern
                 let bestFormation = findBestFormation()

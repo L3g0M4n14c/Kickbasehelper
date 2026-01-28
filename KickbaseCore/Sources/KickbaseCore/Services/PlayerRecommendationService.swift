@@ -13,6 +13,9 @@ public class PlayerRecommendationService: ObservableObject {
     // Cache für Spieler-Statistiken (smdc, ismc, smc)
     private var playerStatsCache: [String: PlayerMatchStats] = [:]
 
+    // Logging controllable flag to avoid noisy prints in hot loops
+    public var isVerboseLogging: Bool = false
+
     // Aktueller Spieltag (wird bei generateRecommendations gesetzt)
     private var currentMatchDay: Int = 10
 
@@ -48,7 +51,9 @@ public class PlayerRecommendationService: ObservableObject {
         marketPlayers: [MarketPlayer],
         currentBudget: Int
     ) async -> [SaleRecommendation] {
-        print("🛒 Generating sale recommendations for goal: \(goal.rawValue)")
+        if isVerboseLogging {
+            print("🛒 Generating sale recommendations for goal: \(goal.rawValue)")
+        }
 
         let teamAnalysis = analyzeTeam(
             teamPlayers: teamPlayers, user: league.currentUser, budget: currentBudget)
@@ -110,13 +115,18 @@ public class PlayerRecommendationService: ObservableObject {
     public func generateRecommendations(for league: League, budget: Int) async throws
         -> [TransferRecommendation]
     {
-        print("🎯 Generating transfer recommendations for league: \(league.name)")
+        if isVerboseLogging {
+            print("🎯 Generating transfer recommendations for league: \(league.name)")
+        }
 
         // Prüfe Cache
         if let cached = cachedRecommendations[league.id],
             Date().timeIntervalSince(cached.timestamp) < cacheValidityDuration
         {
-            print("✅ Returning cached recommendations (\(cached.recommendations.count) players)")
+            if isVerboseLogging {
+                print(
+                    "✅ Returning cached recommendations (\(cached.recommendations.count) players)")
+            }
             return cached.recommendations
         }
 
@@ -137,18 +147,25 @@ public class PlayerRecommendationService: ObservableObject {
                 // Speichere Stats für diesen Spieler im Cache
                 playerStatsCache[playerId] = PlayerMatchStats(
                     smdc: stats.smdc, ismc: stats.ismc, smc: stats.smc)
-                print("✅ Current matchday from API: \(currentMatchDay)")
+                if isVerboseLogging { print("✅ Current matchday from API: \(currentMatchDay)") }
             } else {
                 currentMatchDay = 10  // Fallback
-                print("⚠️ Could not fetch matchday stats, using fallback: \(currentMatchDay)")
+                if isVerboseLogging {
+                    print("⚠️ Could not fetch matchday stats, using fallback: \(currentMatchDay)")
+                }
             }
         } else {
             currentMatchDay = 10
-            print("⚠️ No players available to fetch matchday, using fallback: \(currentMatchDay)")
+            if isVerboseLogging {
+                print(
+                    "⚠️ No players available to fetch matchday, using fallback: \(currentMatchDay)")
+            }
         }
-        print(
-            "✅ Loaded \(teamPlayers.count) team players and \(marketPlayers.count) market players in parallel"
-        )
+        if isVerboseLogging {
+            print(
+                "✅ Loaded \(teamPlayers.count) team players and \(marketPlayers.count) market players in parallel"
+            )
+        }
         let currentUser = league.currentUser
 
         // Analysiere das Team
@@ -168,9 +185,11 @@ public class PlayerRecommendationService: ObservableObject {
 
             return true
         }
-        print(
-            "📊 Pre-filtered from \(marketPlayers.count) to \(qualityMarketPlayers.count) quality players"
-        )
+        if isVerboseLogging {
+            print(
+                "📊 Pre-filtered from \(marketPlayers.count) to \(qualityMarketPlayers.count) quality players"
+            )
+        }
 
         // BATCH-PROCESSING: Verarbeite Spieler in Batches
         let batchSize = 50
@@ -180,23 +199,34 @@ public class PlayerRecommendationService: ObservableObject {
             let batchEnd = min(batchStart + batchSize, qualityMarketPlayers.count)
             let batch = Array(qualityMarketPlayers[batchStart..<batchEnd])
 
-            // Verarbeite Batch parallel
+            // Verarbeite Batch parallel OFF the MainActor using detached tasks
             var batchRecommendations: [TransferRecommendation] = []
-            for marketPlayer in batch {
-                let analysis = analyzePlayer(marketPlayer, teamAnalysis: teamAnalysis)
-                let recommendation = createRecommendation(
-                    marketPlayer: marketPlayer, analysis: analysis, teamAnalysis: teamAnalysis)
+            await withTaskGroup(of: TransferRecommendation?.self) { group in
+                for marketPlayer in batch {
+                    group.addTask {
+                        // Detached heavy CPU work off MainActor
+                        return await Task.detached { () -> TransferRecommendation? in
+                            let analysis = self.analyzePlayerNonIsolated(
+                                marketPlayer, teamAnalysis: teamAnalysis)
+                            let recommendation = self.createRecommendationNonIsolated(
+                                marketPlayer: marketPlayer, analysis: analysis,
+                                teamAnalysis: teamAnalysis)
+                            return recommendation.recommendationScore >= 2.0 ? recommendation : nil
+                        }.value
+                    }
+                }
 
-                // Nur Spieler mit gutem Score behalten
-                if recommendation.recommendationScore >= 2.0 {
-                    batchRecommendations.append(recommendation)
+                for await result in group {
+                    if let rec = result { batchRecommendations.append(rec) }
                 }
             }
 
             allRecommendations.append(contentsOf: batchRecommendations)
-            print(
-                "📦 Processed batch \(batchStart/batchSize + 1): \(batchRecommendations.count) recommendations added"
-            )
+            if isVerboseLogging {
+                print(
+                    "📦 Processed batch \(batchStart/batchSize + 1): \(batchRecommendations.count) recommendations added"
+                )
+            }
         }
 
         print("✅ Generated \(allRecommendations.count) recommendations")
@@ -365,7 +395,7 @@ public class PlayerRecommendationService: ObservableObject {
         return strongPositions
     }
 
-    private func mapStringToPosition(_ positionStr: String) -> TeamAnalysis.Position? {
+    nonisolated private func mapStringToPosition(_ positionStr: String) -> TeamAnalysis.Position? {
         switch positionStr {
         case "1":
             return .goalkeeper
@@ -380,14 +410,18 @@ public class PlayerRecommendationService: ObservableObject {
         }
     }
 
-    private func analyzePlayer(_ marketPlayer: MarketPlayer, teamAnalysis: TeamAnalysis)
+    // Non-isolated wrapper for running analysis off the MainActor in detached Tasks
+    nonisolated private func analyzePlayerNonIsolated(
+        _ marketPlayer: MarketPlayer, teamAnalysis: TeamAnalysis
+    )
         -> PlayerAnalysis
     {
+        // Reuse the isolated implementations which are pure functions of inputs
         let pointsPerGame = marketPlayer.averagePoints
-        let valueForMoney = calculateValueForMoney(marketPlayer)
-        let formTrend = calculateCurrentForm(marketPlayer)
-        let injuryRisk = calculateInjuryRisk(marketPlayer)
-        let seasonProjection = calculateSeasonProjection(marketPlayer)
+        let valueForMoney = calculateValueForMoneyNonIsolated(marketPlayer)
+        let formTrend = calculateCurrentFormNonIsolated(marketPlayer)
+        let injuryRisk = calculateInjuryRiskNonIsolated(marketPlayer)
+        let seasonProjection = calculateSeasonProjectionNonIsolated(marketPlayer)
 
         return PlayerAnalysis(
             pointsPerGame: pointsPerGame,
@@ -399,7 +433,9 @@ public class PlayerRecommendationService: ObservableObject {
         )
     }
 
-    private func calculateCurrentForm(_ marketPlayer: MarketPlayer) -> PlayerAnalysis.FormTrend {
+    nonisolated private func calculateCurrentFormNonIsolated(_ marketPlayer: MarketPlayer)
+        -> PlayerAnalysis.FormTrend
+    {
         let marketValueChange = marketPlayer.marketValueTrend
         let pointsPerGame = marketPlayer.averagePoints
 
@@ -412,7 +448,9 @@ public class PlayerRecommendationService: ObservableObject {
         }
     }
 
-    private func calculateInjuryRisk(_ marketPlayer: MarketPlayer) -> PlayerAnalysis.InjuryRisk {
+    nonisolated private func calculateInjuryRiskNonIsolated(_ marketPlayer: MarketPlayer)
+        -> PlayerAnalysis.InjuryRisk
+    {
         // Basis-Risiko basierend auf Status
         if marketPlayer.status == 8 {
             return .high
@@ -423,7 +461,9 @@ public class PlayerRecommendationService: ObservableObject {
         }
     }
 
-    private func calculateSeasonProjection(_ marketPlayer: MarketPlayer) -> SeasonProjection {
+    nonisolated private func calculateSeasonProjectionNonIsolated(_ marketPlayer: MarketPlayer)
+        -> SeasonProjection
+    {
         // Fallback-Berechnung ohne Stats (wird später mit echten Stats überschrieben)
         let currentPoints = marketPlayer.totalPoints
         let pointsPerGame = marketPlayer.averagePoints
@@ -461,9 +501,11 @@ public class PlayerRecommendationService: ObservableObject {
         let dailyChange = marketPlayer.marketValueTrend
         let projectedValueIncrease = dailyChange * remainingGames
 
-        // Debug: Zeige Stats
-        print("📊 Stats for \(marketPlayer.firstName) \(marketPlayer.lastName):")
-        print("   smdc=\(stats.smdc), ismc=\(stats.ismc), smc=\(stats.smc)")
+        // Debug: Zeige Stats (nur wenn verbose logging aktiviert)
+        if isVerboseLogging {
+            print("📊 Stats for \(marketPlayer.firstName) \(marketPlayer.lastName):")
+            print("   smdc=\(stats.smdc), ismc=\(stats.ismc), smc=\(stats.smc)")
+        }
 
         // Confidence basiert auf Spielbeteiligung
         let confidence: Double
@@ -473,15 +515,19 @@ public class PlayerRecommendationService: ObservableObject {
             let starterBonus = Double(stats.smc) / max(Double(stats.ismc), 1.0)
             confidence = min(playedRatio * (0.7 + starterBonus * 0.3), 1.0)
 
-            print(
-                "   playedRatio=\(String(format: "%.2f", playedRatio)), starterBonus=\(String(format: "%.2f", starterBonus))"
-            )
-            print(
-                "🎯 Confidence for \(marketPlayer.firstName) \(marketPlayer.lastName): \(gamesPlayed) played / \(stats.smdc) matchdays (started: \(stats.smc)) = \(String(format: "%.1f%%", confidence * 100))"
-            )
+            if isVerboseLogging {
+                print(
+                    "   playedRatio=\(String(format: "%.2f", playedRatio)), starterBonus=\(String(format: "%.2f", starterBonus))"
+                )
+                print(
+                    "🎯 Confidence for \(marketPlayer.firstName) \(marketPlayer.lastName): \(gamesPlayed) played / \(stats.smdc) matchdays (started: \(stats.smc)) = \(String(format: "%.1f%%", confidence * 100))"
+                )
+            }
         } else {
             confidence = 0.0
-            print("⚠️ No stats available for \(marketPlayer.firstName) \(marketPlayer.lastName)")
+            if isVerboseLogging {
+                print("⚠️ No stats available for \(marketPlayer.firstName) \(marketPlayer.lastName)")
+            }
         }
 
         return SeasonProjection(
@@ -499,11 +545,11 @@ public class PlayerRecommendationService: ObservableObject {
         let playersToLoad = recommendations.filter { playerStatsCache[$0.player.id] == nil }
 
         guard !playersToLoad.isEmpty else {
-            print("✅ All player stats already cached")
+            if isVerboseLogging { print("✅ All player stats already cached") }
             return
         }
 
-        print("📥 Loading stats for \(playersToLoad.count) players...")
+        if isVerboseLogging { print("📥 Loading stats for \(playersToLoad.count) players...") }
 
         // Verarbeite in Batches von 10 parallel
         for batchStart in stride(from: 0, to: playersToLoad.count, by: 10) {
@@ -549,7 +595,7 @@ public class PlayerRecommendationService: ObservableObject {
             #endif
         }
 
-        print("✅ Loaded stats for \(playerStatsCache.count) players total")
+        if isVerboseLogging { print("✅ Loaded stats for \(playerStatsCache.count) players total") }
     }
 
     private func calculateValueForMoney(_ marketPlayer: MarketPlayer) -> Double {
@@ -559,16 +605,48 @@ public class PlayerRecommendationService: ObservableObject {
         return pointsPerMillion
     }
 
+    // Nonisolated wrapper for calculateValueForMoney to be callable from detached tasks
+    nonisolated private func calculateValueForMoneyNonIsolated(_ marketPlayer: MarketPlayer)
+        -> Double
+    {
+        guard marketPlayer.price > 0 else { return 0.0 }
+        let pointsPerMillion =
+            Double(marketPlayer.totalPoints) / (Double(marketPlayer.price) / 1_000_000.0)
+        return pointsPerMillion
+    }
+
+    // Nonisolated version of createRecommendation used in detached tasks
+    nonisolated private func createRecommendationNonIsolated(
+        marketPlayer: MarketPlayer, analysis: PlayerAnalysis, teamAnalysis: TeamAnalysis
+    ) -> TransferRecommendation {
+        let score = calculateRecommendationScore(
+            marketPlayer: marketPlayer, analysis: analysis, teamAnalysis: teamAnalysis)
+        let riskLevel = determineRiskLevel(analysis: analysis)
+        let priority = determinePriority(
+            score: score, teamAnalysis: teamAnalysis, position: marketPlayer.position)
+        let reasons = generateReasons(
+            marketPlayer: marketPlayer, analysis: analysis, teamAnalysis: teamAnalysis)
+
+        return TransferRecommendation(
+            player: marketPlayer,
+            recommendationScore: score,
+            reasons: reasons,
+            analysis: analysis,
+            riskLevel: riskLevel,
+            priority: priority
+        )
+    }
+
     // MARK: - Cache Helper
 
     public func clearCache() {
         cachedRecommendations.removeAll()
-        print("🗑️ Recommendations cache cleared")
+        if isVerboseLogging { print("🗑️ Recommendations cache cleared") }
     }
 
     public func clearCacheForLeague(_ leagueId: String) {
         cachedRecommendations.removeValue(forKey: leagueId)
-        print("🗑️ Cache cleared for league: \(leagueId)")
+        if isVerboseLogging { print("🗑️ Cache cleared for league: \(leagueId)") }
     }
 
     private func createRecommendation(
@@ -592,7 +670,7 @@ public class PlayerRecommendationService: ObservableObject {
         )
     }
 
-    private func calculateRecommendationScore(
+    nonisolated private func calculateRecommendationScore(
         marketPlayer: MarketPlayer, analysis: PlayerAnalysis, teamAnalysis: TeamAnalysis
     ) -> Double {
         var score = 0.0
@@ -668,7 +746,7 @@ public class PlayerRecommendationService: ObservableObject {
         return min(max(score, 0.0), 24.0)
     }
 
-    private func mapIntToPosition(_ position: Int) -> TeamAnalysis.Position? {
+    nonisolated private func mapIntToPosition(_ position: Int) -> TeamAnalysis.Position? {
         switch position {
         case 1:
             return .goalkeeper
@@ -683,7 +761,9 @@ public class PlayerRecommendationService: ObservableObject {
         }
     }
 
-    private func determineRiskLevel(analysis: PlayerAnalysis) -> TransferRecommendation.RiskLevel {
+    nonisolated private func determineRiskLevel(analysis: PlayerAnalysis)
+        -> TransferRecommendation.RiskLevel
+    {
         switch analysis.injuryRisk {
         case .high:
             return .high
@@ -694,7 +774,9 @@ public class PlayerRecommendationService: ObservableObject {
         }
     }
 
-    private func determinePriority(score: Double, teamAnalysis: TeamAnalysis, position: Int)
+    nonisolated private func determinePriority(
+        score: Double, teamAnalysis: TeamAnalysis, position: Int
+    )
         -> TransferRecommendation.Priority
     {
         if let playerPosition = mapIntToPosition(position) {
@@ -709,7 +791,7 @@ public class PlayerRecommendationService: ObservableObject {
         return .optional
     }
 
-    private func generateReasons(
+    nonisolated private func generateReasons(
         marketPlayer: MarketPlayer, analysis: PlayerAnalysis, teamAnalysis: TeamAnalysis
     ) -> [RecommendationReason] {
         return []

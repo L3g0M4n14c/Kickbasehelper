@@ -32,6 +32,14 @@ public class KickbaseManager: ObservableObject {
         return playerService
     }
 
+    // Shared PlayerRecommendationService singleton for reuse (avoids re-instantiation/cache loss)
+    private lazy var sharedPlayerRecommendationService: PlayerRecommendationService =
+        PlayerRecommendationService(kickbaseManager: self)
+
+    public var playerRecommendationService: PlayerRecommendationService {
+        sharedPlayerRecommendationService
+    }
+
     // Designated initializer with dependency injection for easier testing
     public init(
         apiService: KickbaseAPIService? = nil,

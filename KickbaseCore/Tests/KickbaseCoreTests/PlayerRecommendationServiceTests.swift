@@ -127,4 +127,41 @@ final class PlayerRecommendationServiceTests: XCTestCase {
         // Candidate c should be excluded due wrong position
         XCTAssertFalse(replacements.contains { $0.player.id == "c" })
     }
+
+    func testGenerateSaleRecommendationsPerformanceLargeMarket() async {
+        let manager = KickbaseManager()
+        let service = PlayerRecommendationService(kickbaseManager: manager)
+
+        // Create a large market of 1000 players with varied stats
+        var marketPlayers: [MarketPlayer] = []
+        for i in 0..<1000 {
+            let avg = Double(60 + (i % 40))  // 60..99
+            let price = 200_000 + (i % 50) * 10_000
+            let id = "m\(i)"
+            marketPlayers.append(
+                makeMarketPlayer(
+                    id: id, position: (i % 4) + 1, price: price, avg: avg, total: 50 + (i % 200)))
+        }
+
+        let teamPlayers = (0..<20).map { i in
+            makeTeamPlayer(id: "tp\(i)", position: (i % 4) + 1, marketValue: 500_000 + i * 10_000)
+        }
+
+        let league = League(
+            id: "perf", name: "Perf", creatorName: "C", adminName: "A", created: "d", season: "s",
+            matchDay: 1,
+            currentUser: LeagueUser(
+                id: "u", name: "n", teamName: "t", budget: 0, teamValue: 0, points: 0, placement: 1,
+                won: 0, drawn: 0, lost: 0, se11: 0, ttm: 0, mpst: 3))
+
+        // Measure CPU/Time for generating sale recommendations on large market
+        self.measure(metrics: [XCTClockMetric()]) {
+            Task {
+                let recs = await service.generateSaleRecommendations(
+                    for: league, goal: .raiseCapital, teamPlayers: teamPlayers,
+                    marketPlayers: marketPlayers, currentBudget: 0)
+                XCTAssertNotNil(recs)
+            }
+        }
+    }
 }
