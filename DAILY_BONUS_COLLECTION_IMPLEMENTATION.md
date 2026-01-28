@@ -50,6 +50,10 @@ Die Android-Implementierung nutzt `WorkManager` für zuverlässige Hintergrundau
 - **Benachrichtigungen**: Bei erfolgreicher Bonus-Sammlung wird eine Benachrichtigung angezeigt
 - **Minimaler Verbrauch**: WorkManager optimiert automatisch die Ausführung
 
+> **Hinweis**: Die Android-Implementierung verwendet derzeit einen Platzhalter für den API-Aufruf. 
+> Die vollständige Integration mit der KickbaseCore API über das Skip Framework muss noch implementiert werden.
+> Bis dahin wird der Worker ausgeführt, sammelt aber noch keinen echten Bonus.
+
 #### Technische Details
 
 1. **BonusCollectionWorker** (`BonusCollectionWorker.kt`):
@@ -190,11 +194,16 @@ Zum Testen der WorkManager-Ausführung:
 
 ## Zukünftige Verbesserungen
 
-- [ ] UI-Komponente zur Anzeige des letzten Sammlungsstatus
-- [ ] Manueller Button zum sofortigen Sammeln
-- [ ] Konfigurierbare Zeitplanung
-- [ ] Retry-Logik bei fehlgeschlagenen Versuchen
-- [ ] Statistiken über gesammelte Boni
+### iOS
+- [ ] Optimierung der Batterieüberwachung
+- [ ] Erweiterte Statistiken über gesammelte Boni
+- [ ] Konfigurierbare Zeitplanung über UI
+
+### Android
+- [ ] Vollständige Integration mit KickbaseCore API über Skip
+- [ ] Token-Persistierung über Skip UserDefaults
+- [ ] Android-spezifische Einstellungs-UI
+- [ ] Optimierte Benachrichtigungs-Steuerung
 
 ## Sicherheit
 

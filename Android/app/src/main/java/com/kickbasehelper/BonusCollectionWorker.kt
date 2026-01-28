@@ -120,18 +120,22 @@ class BonusCollectionWorker(
     }
 
     private suspend fun collectBonus(token: String): Boolean {
-        // This is a placeholder - the actual implementation would use the KickbaseCore API
-        // Since the Android app uses Skip framework to transpile from Swift,
-        // the actual bonus collection logic is handled by the KickbaseCore module
+        // TODO: Implement actual bonus collection via KickbaseCore API
+        // The Android app uses Skip framework to transpile from Swift, so the actual
+        // bonus collection logic should be handled by the KickbaseCore module.
+        // 
+        // For now, we log the attempt. This needs to be implemented before production use
+        // by integrating with the KickbaseAPIService.collectBonus() method through
+        // the Skip transpilation bridge.
         
-        // For now, we log the attempt
         Log.d(TAG, "Attempting to collect bonus with token: ${token.take(10)}...")
+        Log.w(TAG, "WARNING: Actual API call not yet implemented - this is a placeholder")
         
-        // In a real implementation, this would call:
-        // KickbaseAPIService.shared.collectBonus()
-        // But since this is transpiled from Swift, we return true for now
+        // Placeholder - will need proper implementation
+        // In production, this should call:
+        // return KickbaseAPIService.shared.collectBonus()
         
-        return true
+        return false // Return false until properly implemented
     }
 
     private fun sendSuccessNotification() {

@@ -2,6 +2,7 @@ import Foundation
 #if os(iOS)
 import BackgroundTasks
 import UIKit
+import UserNotifications
 #endif
 
 /// Manager for handling background tasks, specifically for daily bonus collection
@@ -33,8 +34,13 @@ public class BackgroundTaskManager: ObservableObject {
             forTaskWithIdentifier: taskIdentifier,
             using: nil
         ) { task in
+            guard let refreshTask = task as? BGAppRefreshTask else {
+                print("❌ Task type mismatch")
+                task.setTaskCompleted(success: false)
+                return
+            }
             Task {
-                await self.handleBonusCollection(task: task as! BGAppRefreshTask)
+                await self.handleBonusCollection(task: refreshTask)
             }
         }
         print("✅ Background task registered: \(taskIdentifier)")
@@ -49,12 +55,19 @@ public class BackgroundTaskManager: ObservableObject {
         // Schedule for next day at 6:00 AM
         let calendar = Calendar.current
         var components = calendar.dateComponents([.year, .month, .day], from: Date())
-        components.day! += 1
-        components.hour = 6
-        components.minute = 0
         
-        if let nextDate = calendar.date(from: components) {
-            request.earliestBeginDate = nextDate
+        // Safely unwrap and increment day
+        if let day = components.day {
+            components.day = day + 1
+            components.hour = 6
+            components.minute = 0
+            
+            if let nextDate = calendar.date(from: components) {
+                request.earliestBeginDate = nextDate
+            } else {
+                // Fallback: schedule 24 hours from now
+                request.earliestBeginDate = Date(timeIntervalSinceNow: 24 * 60 * 60)
+            }
         } else {
             // Fallback: schedule 24 hours from now
             request.earliestBeginDate = Date(timeIntervalSinceNow: 24 * 60 * 60)
@@ -88,7 +101,7 @@ public class BackgroundTaskManager: ObservableObject {
             bonusTask.cancel()
         }
         
-        // Wait for completion
+        // Wait for completion and get the result
         let success = await bonusTask.value
         
         // Complete the task
@@ -121,8 +134,10 @@ public class BackgroundTaskManager: ObservableObject {
             
             print("✅ Bonus collected successfully: \(response)")
             
-            // Send local notification
+            // Send local notification (iOS only)
+            #if os(iOS)
             await sendSuccessNotification()
+            #endif
             
             return true
         } catch {

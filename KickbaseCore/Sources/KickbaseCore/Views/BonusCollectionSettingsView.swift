@@ -137,12 +137,12 @@ public struct BonusCollectionSettingsView: View {
 }
 
 /// Helper view for displaying info rows
-struct InfoRow: View {
+public struct InfoRow: View {
     let icon: String
     let title: String
     let description: String
     
-    var body: some View {
+    public var body: some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon)
                 .foregroundColor(.blue)
