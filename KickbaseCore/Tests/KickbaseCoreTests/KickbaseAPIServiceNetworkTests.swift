@@ -31,8 +31,8 @@ final class KickbaseAPIServiceNetworkTests: XCTestCase {
         }
 
         let json = try await api.getLeagueSelection()
-        let leagues = json["leagues"] as? [[String: Any]]
-        XCTAssertEqual(leagues?.first?["id"] as? String, "L1")
+        let leagues = arrayOfDicts(from: json["leagues"])
+        XCTAssertEqual(leagues.first?["id"] as? String, "L1")
     }
 
     func testGetMyBudgetThrowsWithoutAuthToken() async throws {

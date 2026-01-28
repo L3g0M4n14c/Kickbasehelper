@@ -56,8 +56,8 @@
     }
   },
   "generatedSourceTargetSet" : [
-    "Create_SkipLink",
-    "skipstone"
+    "skipstone",
+    "Create_SkipLink"
   ],
   "pluginDescriptions" : [
     {
@@ -164,6 +164,10 @@
         {
           "kind" : "file",
           "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/SaleRecommendationsView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/JSONUtils.swift"
         },
         {
           "kind" : "file",
@@ -286,6 +290,7 @@
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/PlayerDetailView.swift.o",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/RecommendationModels.swift.o",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/SaleRecommendationsView.swift.o",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/JSONUtils.swift.o",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/KickbaseAPIClient.swift.o",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/KickbaseAPIService.swift.o",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/KickbaseDataParser.swift.o",
@@ -328,7 +333,6 @@
         "-emit-objc-header",
         "-emit-objc-header-path",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/include/KickbaseCore-Swift.h",
-        "-color-diagnostics",
         "-swift-version",
         "5",
         "-plugin-path",
@@ -428,6 +432,10 @@
         {
           "kind" : "file",
           "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/SaleRecommendationsView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/JSONUtils.swift.o"
         },
         {
           "kind" : "file",
@@ -532,6 +540,7 @@
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/PlayerDetailView.swift",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/RecommendationModels.swift",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/SaleRecommendationsView.swift",
+        "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/JSONUtils.swift",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIClient.swift",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseDataParser.swift",
@@ -607,7 +616,6 @@
         "-emit-objc-header",
         "-emit-objc-header-path",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCorePackageTests.build/include/KickbaseCorePackageTests-Swift.h",
-        "-color-diagnostics",
         "-plugin-path",
         "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
         "-sdk",
@@ -770,7 +778,6 @@
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/ModuleCache",
         "-parseable-output",
         "-parse-as-library",
-        "-color-diagnostics",
         "-swift-version",
         "5",
         "-plugin-path",
@@ -948,7 +955,6 @@
         "-emit-objc-header",
         "-emit-objc-header-path",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/SkipDrive.build/include/SkipDrive-Swift.h",
-        "-color-diagnostics",
         "-swift-version",
         "5",
         "-plugin-path",
@@ -1351,7 +1357,6 @@
         "-emit-objc-header",
         "-emit-objc-header-path",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/SkipFoundation.build/include/SkipFoundation-Swift.h",
-        "-color-diagnostics",
         "-swift-version",
         "5",
         "-plugin-path",
@@ -1899,7 +1904,6 @@
         "-emit-objc-header",
         "-emit-objc-header-path",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/SkipLib.build/include/SkipLib-Swift.h",
-        "-color-diagnostics",
         "-swift-version",
         "5",
         "-plugin-path",
@@ -2212,7 +2216,6 @@
         "-emit-objc-header",
         "-emit-objc-header-path",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/SkipModel.build/include/SkipModel-Swift.h",
-        "-color-diagnostics",
         "-swift-version",
         "5",
         "-plugin-path",
@@ -2360,7 +2363,6 @@
         "-emit-objc-header",
         "-emit-objc-header-path",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/SkipTest.build/include/SkipTest-Swift.h",
-        "-color-diagnostics",
         "-swift-version",
         "5",
         "-plugin-path",
@@ -3518,7 +3520,6 @@
         "-emit-objc-header",
         "-emit-objc-header-path",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/SkipUI.build/include/SkipUI-Swift.h",
-        "-color-diagnostics",
         "-swift-version",
         "5",
         "-plugin-path",
@@ -4672,7 +4673,6 @@
         "-emit-objc-header",
         "-emit-objc-header-path",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/SkipUnit.build/include/SkipUnit-Swift.h",
-        "-color-diagnostics",
         "-swift-version",
         "5",
         "-plugin-path",
@@ -5386,7 +5386,6 @@
         "-emit-objc-header",
         "-emit-objc-header-path",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/ViewInspector.build/include/ViewInspector-Swift.h",
-        "-color-diagnostics",
         "-swift-version",
         "5",
         "-plugin-path",
@@ -6083,6 +6082,7 @@
       "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/PlayerDetailView.swift",
       "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/RecommendationModels.swift",
       "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/SaleRecommendationsView.swift",
+      "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/JSONUtils.swift",
       "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIClient.swift",
       "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIService.swift",
       "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseDataParser.swift",
@@ -6125,7 +6125,6 @@
       "-emit-objc-header",
       "-emit-objc-header-path",
       "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/include/KickbaseCore-Swift.h",
-      "-color-diagnostics",
       "-swift-version",
       "5",
       "-plugin-path",
@@ -6194,7 +6193,6 @@
       "-emit-objc-header",
       "-emit-objc-header-path",
       "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCorePackageTests.build/include/KickbaseCorePackageTests-Swift.h",
-      "-color-diagnostics",
       "-plugin-path",
       "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
       "-sdk",
@@ -6270,7 +6268,6 @@
       "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/ModuleCache",
       "-parseable-output",
       "-parse-as-library",
-      "-color-diagnostics",
       "-swift-version",
       "5",
       "-plugin-path",
@@ -6341,7 +6338,6 @@
       "-emit-objc-header",
       "-emit-objc-header-path",
       "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/SkipDrive.build/include/SkipDrive-Swift.h",
-      "-color-diagnostics",
       "-swift-version",
       "5",
       "-plugin-path",
@@ -6465,7 +6461,6 @@
       "-emit-objc-header",
       "-emit-objc-header-path",
       "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/SkipFoundation.build/include/SkipFoundation-Swift.h",
-      "-color-diagnostics",
       "-swift-version",
       "5",
       "-plugin-path",
@@ -6566,7 +6561,6 @@
       "-emit-objc-header",
       "-emit-objc-header-path",
       "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/SkipLib.build/include/SkipLib-Swift.h",
-      "-color-diagnostics",
       "-swift-version",
       "5",
       "-plugin-path",
@@ -6643,7 +6637,6 @@
       "-emit-objc-header",
       "-emit-objc-header-path",
       "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/SkipModel.build/include/SkipModel-Swift.h",
-      "-color-diagnostics",
       "-swift-version",
       "5",
       "-plugin-path",
@@ -6711,7 +6704,6 @@
       "-emit-objc-header",
       "-emit-objc-header-path",
       "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/SkipTest.build/include/SkipTest-Swift.h",
-      "-color-diagnostics",
       "-swift-version",
       "5",
       "-plugin-path",
@@ -6990,7 +6982,6 @@
       "-emit-objc-header",
       "-emit-objc-header-path",
       "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/SkipUI.build/include/SkipUI-Swift.h",
-      "-color-diagnostics",
       "-swift-version",
       "5",
       "-plugin-path",
@@ -7058,7 +7049,6 @@
       "-emit-objc-header",
       "-emit-objc-header-path",
       "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/SkipUnit.build/include/SkipUnit-Swift.h",
-      "-color-diagnostics",
       "-swift-version",
       "5",
       "-plugin-path",
@@ -7249,7 +7239,6 @@
       "-emit-objc-header",
       "-emit-objc-header-path",
       "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/ViewInspector.build/include/ViewInspector-Swift.h",
-      "-color-diagnostics",
       "-swift-version",
       "5",
       "-plugin-path",
@@ -7459,6 +7448,10 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/JSONUtils.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIClient.swift"
         },
         {
@@ -7584,6 +7577,10 @@
         {
           "kind" : "file",
           "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/Item.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/JSONUtils.swift.o"
         },
         {
           "kind" : "file",

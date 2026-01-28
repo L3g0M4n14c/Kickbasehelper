@@ -962,7 +962,6 @@ extension PlayerRecommendationService {
             )
 
             if !replacements.isEmpty {
-                let bestReplacement = replacements[0]  // Stubbed to list access
                 // ... rest of logic
                 let riskText: String
                 switch riskyPlayer.status {
@@ -1040,12 +1039,6 @@ extension PlayerRecommendationService {
         print(
             "   🔎 Finding replacements for \(teamPlayer.fullName) (pos: \(teamPlayer.position), maxPrice: €\(maxPrice / 1000)k)"
         )
-
-        // Zähle wie viele Spieler vom gleichen Team bereits im Team sind
-        var playersFromTeam = 0
-        if let teamPlayers = teamPlayers {
-            playersFromTeam = teamPlayers.filter { $0.teamId == teamPlayer.teamId }.count
-        }
 
         // Filter nach Position und Preis
         let candidates = marketPlayers.filter { marketPlayer in

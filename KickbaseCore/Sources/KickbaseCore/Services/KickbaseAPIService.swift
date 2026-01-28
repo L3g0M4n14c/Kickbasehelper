@@ -35,7 +35,7 @@ public class KickbaseAPIService: ObservableObject {
         requiresAuth: Bool = true
     ) async throws -> (Data, HTTPURLResponse) {
         if requiresAuth {
-            guard let token = authToken else {
+            guard authToken != nil else {
                 throw APIError.noAuthToken
             }
         }
@@ -150,7 +150,7 @@ public class KickbaseAPIService: ObservableObject {
     /// GET /v4/user/settings - Account Settings
     public func getUserSettings() async throws -> [String: Any] {
         let (data, _) = try await makeRequest(endpoint: "/v4/user/settings")
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     // MARK: - Base Endpoints
@@ -158,7 +158,7 @@ public class KickbaseAPIService: ObservableObject {
     /// GET /v4/base/overview - Base Overview
     public func getBaseOverview() async throws -> [String: Any] {
         let (data, _) = try await makeRequest(endpoint: "/v4/base/overview")
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     // MARK: - Bonus Endpoints
@@ -166,7 +166,7 @@ public class KickbaseAPIService: ObservableObject {
     /// GET /v4/bonus/collect - Bonus Collection
     public func collectBonus() async throws -> [String: Any] {
         let (data, _) = try await makeRequest(endpoint: "/v4/bonus/collect")
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     // MARK: - League Endpoints
@@ -176,7 +176,7 @@ public class KickbaseAPIService: ObservableObject {
         // Public endpoint - does not require auth
         let (data, _) = try await makeRequest(
             endpoint: "/v4/leagues/selection", requiresAuth: false)
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     /// GET /v4/leagues/{leagueId}/overview - League Overview
@@ -188,31 +188,31 @@ public class KickbaseAPIService: ObservableObject {
             endpoint += "?matchDay=\(matchDay)"
         }
         let (data, _) = try await makeRequest(endpoint: endpoint)
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     /// GET /v4/leagues/{leagueId}/me - My Stats in League
     public func getLeagueMe(leagueId: String) async throws -> [String: Any] {
         let (data, _) = try await makeRequest(endpoint: "/v4/leagues/\(leagueId)/me")
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     /// GET /v4/leagues/{leagueId}/me/budget - My Budget
     public func getMyBudget(leagueId: String) async throws -> [String: Any] {
         let (data, _) = try await makeRequest(endpoint: "/v4/leagues/\(leagueId)/me/budget")
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     /// GET /v4/leagues/{leagueId}/squad - My Squad/Team Players
     public func getMySquad(leagueId: String) async throws -> [String: Any] {
         let (data, _) = try await makeRequest(endpoint: "/v4/leagues/\(leagueId)/squad")
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     /// GET /v4/leagues/{leagueId}/lineup - My Lineup
     public func getMyLineup(leagueId: String) async throws -> [String: Any] {
         let (data, _) = try await makeRequest(endpoint: "/v4/leagues/\(leagueId)/lineup")
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     /// POST /v4/leagues/{leagueId}/lineup - Update My Lineup
@@ -223,7 +223,7 @@ public class KickbaseAPIService: ObservableObject {
             method: "POST",
             body: body
         )
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     /// GET /v4/leagues/{leagueId}/teamcenter/myeleven - My Eleven
@@ -256,19 +256,19 @@ public class KickbaseAPIService: ObservableObject {
             print("🌐 API: Calling ranking endpoint without dayNumber: \(endpoint)")
         }
         let (data, _) = try await makeRequest(endpoint: endpoint)
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     /// GET /v4/leagues/{leagueId}/settings - League Settings (Admin Only)
     public func getLeagueSettings(leagueId: String) async throws -> [String: Any] {
         let (data, _) = try await makeRequest(endpoint: "/v4/leagues/\(leagueId)/settings")
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     /// GET /v4/leagues/{leagueId}/settings/managers - League Members (Admin Only)
     public func getLeagueManagers(leagueId: String) async throws -> [String: Any] {
         let (data, _) = try await makeRequest(endpoint: "/v4/leagues/\(leagueId)/settings/managers")
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     // MARK: - Manager Endpoints
@@ -278,7 +278,7 @@ public class KickbaseAPIService: ObservableObject {
     {
         let (data, _) = try await makeRequest(
             endpoint: "/v4/leagues/\(leagueId)/managers/\(userId)/dashboard")
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     /// GET /v4/leagues/{leagueId}/managers/{userId}/performance - Manager Performance
@@ -287,14 +287,14 @@ public class KickbaseAPIService: ObservableObject {
     {
         let (data, _) = try await makeRequest(
             endpoint: "/v4/leagues/\(leagueId)/managers/\(userId)/performance")
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     /// GET /v4/leagues/{leagueId}/managers/{userId}/squad - Manager Squad Details
     public func getManagerSquad(leagueId: String, userId: String) async throws -> [String: Any] {
         let (data, _) = try await makeRequest(
             endpoint: "/v4/leagues/\(leagueId)/managers/\(userId)/squad")
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     /// GET /v4/leagues/{leagueId}/managers/{userId}/transfer - Manager Transfers
@@ -307,7 +307,7 @@ public class KickbaseAPIService: ObservableObject {
             endpoint += "?matchDay=\(matchDay)"
         }
         let (data, _) = try await makeRequest(endpoint: endpoint)
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     /// GET /v4/leagues/{leagueId}/users/{userId}/teamcenter - Team Center
@@ -319,7 +319,7 @@ public class KickbaseAPIService: ObservableObject {
             endpoint += "?matchDay=\(matchDay)"
         }
         let (data, _) = try await makeRequest(endpoint: endpoint)
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     // MARK: - Player Endpoints
@@ -328,7 +328,7 @@ public class KickbaseAPIService: ObservableObject {
     public func getPlayerDetails(leagueId: String, playerId: String) async throws -> [String: Any] {
         let (data, _) = try await makeRequest(
             endpoint: "/v4/leagues/\(leagueId)/players/\(playerId)")
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     /// GET /v4/leagues/{leagueId}/players/{playerId}/performance - Player Performance
@@ -348,7 +348,7 @@ public class KickbaseAPIService: ObservableObject {
     {
         let (data, _) = try await makeRequest(
             endpoint: "/v4/leagues/\(leagueId)/players/\(playerId)/marketvalue/\(timeframe)")
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     /// GET /v4/leagues/{leagueId}/players/{playerId}/transferHistory - Player Transfer History
@@ -360,7 +360,7 @@ public class KickbaseAPIService: ObservableObject {
             endpoint += "?matchDay=\(matchDay)"
         }
         let (data, _) = try await makeRequest(endpoint: endpoint)
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     /// GET /v4/leagues/{leagueId}/players/{playerId}/transfers - Player Transfers
@@ -368,7 +368,7 @@ public class KickbaseAPIService: ObservableObject {
     {
         let (data, _) = try await makeRequest(
             endpoint: "/v4/leagues/\(leagueId)/players/\(playerId)/transfers")
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     // MARK: - Market Endpoints
@@ -376,7 +376,7 @@ public class KickbaseAPIService: ObservableObject {
     /// GET /v4/leagues/{leagueId}/market - Get Players On Transfer Market
     public func getMarketPlayers(leagueId: String) async throws -> [String: Any] {
         let (data, _) = try await makeRequest(endpoint: "/v4/leagues/\(leagueId)/market")
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     /// POST /v4/leagues/{leagueId}/market - Set Player Transfer Price
@@ -391,7 +391,7 @@ public class KickbaseAPIService: ObservableObject {
             method: "POST",
             body: body
         )
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     /// DELETE /v4/leagues/{leagueId}/market/{playerId} - Remove Player From Market
@@ -402,7 +402,7 @@ public class KickbaseAPIService: ObservableObject {
             endpoint: "/v4/leagues/\(leagueId)/market/\(playerId)",
             method: "DELETE"
         )
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     /// POST /v4/leagues/{leagueId}/market/{playerId}/offers - Place An Offer
@@ -415,7 +415,7 @@ public class KickbaseAPIService: ObservableObject {
             method: "POST",
             body: body
         )
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     /// DELETE /v4/leagues/{leagueId}/market/{playerId}/offers/{offerId} - Withdraw Offer
@@ -427,7 +427,7 @@ public class KickbaseAPIService: ObservableObject {
             endpoint: "/v4/leagues/\(leagueId)/market/\(playerId)/offers/\(offerId)",
             method: "DELETE"
         )
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     /// DELETE /v4/leagues/{leagueId}/market/{playerId}/offers/{offerId}/accept - Accept Manager Offer
@@ -459,7 +459,7 @@ public class KickbaseAPIService: ObservableObject {
     /// GET /v4/leagues/{leagueId}/scoutedplayers - Get Scouted Players List
     public func getScoutedPlayers(leagueId: String) async throws -> [String: Any] {
         let (data, _) = try await makeRequest(endpoint: "/v4/leagues/\(leagueId)/scoutedplayers")
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     /// POST /v4/leagues/{leagueId}/scoutedplayers/{playerId} - Add Player To Scouted List
@@ -504,14 +504,14 @@ public class KickbaseAPIService: ObservableObject {
             endpoint += "?" + params.joined(separator: "&")
         }
         let (data, _) = try await makeRequest(endpoint: endpoint)
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     /// GET /v4/leagues/{leagueId}/activitiesFeed/{activityId} - Get Feed Item
     public func getFeedItem(leagueId: String, activityId: String) async throws -> [String: Any] {
         let (data, _) = try await makeRequest(
             endpoint: "/v4/leagues/\(leagueId)/activitiesFeed/\(activityId)")
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     /// POST /v4/leagues/{leagueId}/activitiesFeed/{activityId} - Send Feed Item Comment
@@ -542,7 +542,7 @@ public class KickbaseAPIService: ObservableObject {
             endpoint += "?" + params.joined(separator: "&")
         }
         let (data, _) = try await makeRequest(endpoint: endpoint)
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     // MARK: - Achievements Endpoints
@@ -550,7 +550,7 @@ public class KickbaseAPIService: ObservableObject {
     /// GET /v4/leagues/{leagueId}/user/achievements - Get All Achievements
     public func getUserAchievements(leagueId: String) async throws -> [String: Any] {
         let (data, _) = try await makeRequest(endpoint: "/v4/leagues/\(leagueId)/user/achievements")
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     /// GET /v4/leagues/{leagueId}/user/achievements/{type} - Get Achievements By Type
@@ -559,14 +559,14 @@ public class KickbaseAPIService: ObservableObject {
     {
         let (data, _) = try await makeRequest(
             endpoint: "/v4/leagues/\(leagueId)/user/achievements/\(type)")
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     /// GET /v4/leagues/{leagueId}/battles/{type}/users - Battle By Type
     public func getBattleByType(leagueId: String, type: String) async throws -> [String: Any] {
         let (data, _) = try await makeRequest(
             endpoint: "/v4/leagues/\(leagueId)/battles/\(type)/users")
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     // MARK: - Team Endpoints
@@ -586,7 +586,7 @@ public class KickbaseAPIService: ObservableObject {
     public func getCompetitionOverview(competitionId: String) async throws -> [String: Any] {
         let (data, _) = try await makeRequest(
             endpoint: "/v4/competitions/\(competitionId)/overview")
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     /// GET /v4/competitions/{competitionId}/players - Competition Players
@@ -599,7 +599,7 @@ public class KickbaseAPIService: ObservableObject {
             endpoint += "?matchDay=\(matchDay)"
         }
         let (data, _) = try await makeRequest(endpoint: endpoint)
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     /// GET /v4/competitions/{competitionId}/players/search - Search Competition Players
@@ -618,7 +618,7 @@ public class KickbaseAPIService: ObservableObject {
             endpoint += "&max=\(max)"
         }
         let (data, _) = try await makeRequest(endpoint: endpoint)
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     /// GET /v4/competitions/{competitionId}/players/{playerId}/performance - Competition Player Performance
@@ -628,7 +628,7 @@ public class KickbaseAPIService: ObservableObject {
     {
         let (data, _) = try await makeRequest(
             endpoint: "/v4/competitions/\(competitionId)/players/\(playerId)/performance")
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     /// GET /v4/competitions/{competitionId}/players/{playerId}/marketvalue/{timeframe} - Competition Player Market Value
@@ -638,7 +638,7 @@ public class KickbaseAPIService: ObservableObject {
         let (data, _) = try await makeRequest(
             endpoint:
                 "/v4/competitions/\(competitionId)/players/\(playerId)/marketvalue/\(timeframe)")
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     /// GET /v4/competitions/{competitionId}/playercenter/{playerId} - Player Event History
@@ -650,26 +650,26 @@ public class KickbaseAPIService: ObservableObject {
             endpoint += "?matchDay=\(matchDay)"
         }
         let (data, _) = try await makeRequest(endpoint: endpoint)
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     /// GET /v4/competitions/{competitionId}/ranking - Team Ranking
     public func getCompetitionRanking(competitionId: String) async throws -> [String: Any] {
         let (data, _) = try await makeRequest(endpoint: "/v4/competitions/\(competitionId)/ranking")
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     /// GET /v4/competitions/{competitionId}/table - Competition Table
     public func getCompetitionTable(competitionId: String) async throws -> [String: Any] {
         let (data, _) = try await makeRequest(endpoint: "/v4/competitions/\(competitionId)/table")
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     /// GET /v4/competitions/{competitionId}/matchdays - Fixtures
     public func getCompetitionMatchdays(competitionId: String) async throws -> [String: Any] {
         let (data, _) = try await makeRequest(
             endpoint: "/v4/competitions/\(competitionId)/matchdays")
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     /// GET /v4/competitions/{competitionId}/teams/{teamId}/teamcenter - Matchday Players
@@ -683,7 +683,7 @@ public class KickbaseAPIService: ObservableObject {
             endpoint += "?matchDay=\(matchDay)"
         }
         let (data, _) = try await makeRequest(endpoint: endpoint)
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     /// GET /v4/competitions/{competitionId}/teams/{teamId}/teamprofile - Competition Team Profile
@@ -693,7 +693,7 @@ public class KickbaseAPIService: ObservableObject {
     {
         let (data, _) = try await makeRequest(
             endpoint: "/v4/competitions/\(competitionId)/teams/\(teamId)/teamprofile")
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     // MARK: - Match Endpoints
@@ -701,13 +701,13 @@ public class KickbaseAPIService: ObservableObject {
     /// GET /v4/matches/{matchId}/details - Match Details
     public func getMatchDetails(matchId: String) async throws -> [String: Any] {
         let (data, _) = try await makeRequest(endpoint: "/v4/matches/\(matchId)/details")
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     /// GET /v4/matches/{matchId}/betlink - Match Betlink
     public func getMatchBetlink(matchId: String) async throws -> [String: Any] {
         let (data, _) = try await makeRequest(endpoint: "/v4/matches/\(matchId)/betlink")
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     // MARK: - Live Endpoints
@@ -724,7 +724,7 @@ public class KickbaseAPIService: ObservableObject {
     /// GET /v4/config - Get Config
     public func getConfig() async throws -> [String: Any] {
         let (data, _) = try await makeRequest(endpoint: "/v4/config")
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 
     // MARK: - Chat Endpoints
@@ -738,6 +738,6 @@ public class KickbaseAPIService: ObservableObject {
     /// GET /v4/chat/refreshtoken - Chat Refresh Token
     public func getChatRefreshToken() async throws -> [String: Any] {
         let (data, _) = try await makeRequest(endpoint: "/v4/chat/refreshtoken")
-        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return jsonDict(from: data)
     }
 }

@@ -33,8 +33,8 @@ final class KickbaseAPIClientTests: XCTestCase {
 
         let (data, response) = try await client.makeRequest(endpoint: "/v4/test")
         XCTAssertEqual((response as HTTPURLResponse).statusCode, 200)
-        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-        XCTAssertEqual(json?["ok"] as? Bool, true)
+        let json = jsonDict(from: data)
+        XCTAssertEqual(json["ok"] as? Bool, true)
     }
 
     func testMakeRequestThrowsWithoutAuthToken() async throws {
@@ -105,8 +105,8 @@ final class KickbaseAPIClientTests: XCTestCase {
         }
 
         let (data, json) = try await client.tryMultipleEndpoints(endpoints: ["/e1", "/e2"])
-        let parsed = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-        XCTAssertEqual(parsed?["ok"] as? Bool, true)
+        let parsed = jsonDict(from: data)
+        XCTAssertEqual(parsed["ok"] as? Bool, true)
         XCTAssertGreaterThanOrEqual(callCount, 2)
         XCTAssertEqual(json["ok"] as? Bool, true)
     }

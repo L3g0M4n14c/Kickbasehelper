@@ -43,7 +43,7 @@ struct TeamTab: View {
             isGeneratingLineup = true
             lineupGenerationError = nil
 
-            do {
+            
                 guard let league = kickbaseManager.selectedLeague else {
                     lineupGenerationError = "Keine Liga ausgewählt"
                     isGeneratingLineup = false
@@ -72,13 +72,7 @@ struct TeamTab: View {
                     isGeneratingLineup = false
                     print("✅ Lineup generation completed")
                 }
-            } catch {
-                await MainActor.run {
-                    lineupGenerationError =
-                        "Fehler bei der Aufstellungs-Generierung: \(error.localizedDescription)"
-                    isGeneratingLineup = false
-                }
-            }
+            
         }
     }
 

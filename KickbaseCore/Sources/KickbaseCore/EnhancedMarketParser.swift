@@ -16,7 +16,8 @@ private func parseMarketPlayersFromResponse(_ json: [String: Any]) -> [MarketPla
     DebugMarketParser.analyzeMarketResponse(json)
 
     // Intelligente Suche nach Marktspielerdaten
-    let playersArray = DebugMarketParser.findMarketPlayersInResponse(json)
+    let playersRaw = DebugMarketParser.findMarketPlayersInResponse(json)
+    let playersArray = playersRaw.compactMap { dict(from: $0) }
 
     if playersArray.isEmpty {
         print("❌ NO MARKET PLAYER DATA FOUND IN RESPONSE!")
@@ -28,21 +29,32 @@ private func parseMarketPlayersFromResponse(_ json: [String: Any]) -> [MarketPla
                 print("   \(key): \(stringValue)")
             } else if let numberValue = value as? NSNumber {
                 print("   \(key): \(numberValue)")
-            } else if let arrayValue = value as? [Any] {
-                print("   \(key): Array with \(arrayValue.count) elements")
-                // Schaue in das Array hinein
-                if let firstElement = arrayValue.first {
-                    print("     First element type: \(type(of: firstElement))")
-                    if let dictElement = firstElement as? [String: Any] {
-                        print("     First element keys: \(Array(dictElement.keys))")
+            } else {
+                let arrayValue = rawArray(from: value)
+                if !arrayValue.isEmpty {
+                    print("   \(key): Array with \(arrayValue.count) elements")
+                    // Schaue in das Array hinein
+                    if let firstElement = arrayValue.first {
+                        print("     First element type: \(type(of: firstElement))")
+                        if let dictElement = dict(from: firstElement) {
+                            print("     First element keys: \(Array(dictElement.keys))")
+                        }
                     }
-                }
-            } else if let dictValue = value as? [String: Any] {
-                print("   \(key): Dictionary with keys: \(Array(dictValue.keys))")
-                // Schaue nach verschachtelten Arrays
-                for (nestedKey, nestedValue) in dictValue {
-                    if let nestedArray = nestedValue as? [Any] {
-                        print("     \(key).\(nestedKey): Array with \(nestedArray.count) elements")
+                } else if let dictValue = dict(from: value) {
+                    print("   \(key): Dictionary with keys: \(Array(dictValue.keys))")
+                    // Schaue nach verschachtelten Arrays
+                    for (nestedKey, nestedValue) in dictValue {
+                        let nestedRawAny = rawArray(from: nestedValue)
+                        let nestedArray = nestedRawAny.compactMap { dict(from: $0) }
+                        if !nestedArray.isEmpty {
+                            print(
+                                "     \(key).\(nestedKey): Array with \(nestedArray.count) elements"
+                            )
+                        } else if !nestedRawAny.isEmpty {
+                            print(
+                                "     \(key).\(nestedKey): Array with \(nestedRawAny.count) elements"
+                            )
+                        }
                     }
                 }
             }
@@ -63,7 +75,7 @@ private func parseMarketPlayersFromResponse(_ json: [String: Any]) -> [MarketPla
                 print("   \(fieldKey): '\(stringValue)'")
             } else if let numberValue = fieldValue as? NSNumber {
                 print("   \(fieldKey): \(numberValue)")
-            } else if let nestedDict = fieldValue as? [String: Any] {
+            } else if let nestedDict = dict(from: fieldValue) {
                 print("   \(fieldKey): {nested dict with keys: \(Array(nestedDict.keys))}")
             } else {
                 print("   \(fieldKey): \(type(of: fieldValue))")
@@ -127,22 +139,22 @@ private func parseMarketPlayersFromResponse(_ json: [String: Any]) -> [MarketPla
     return parsedPlayers
 }
 
-private func extractSellerId(from playerData: [String: Any]) -> String {
-    if let seller = playerData["seller"] as? [String: Any] {
+func extractSellerId(from playerData: [String: Any]) -> String {
+    if let seller = dict(from: playerData["seller"]) {
         return seller["id"] as? String ?? seller["userId"] as? String ?? ""
     }
     return playerData["sellerId"] as? String ?? ""
 }
 
-private func extractSellerName(from playerData: [String: Any]) -> String {
-    if let seller = playerData["seller"] as? [String: Any] {
+func extractSellerName(from playerData: [String: Any]) -> String {
+    if let seller = dict(from: playerData["seller"]) {
         return seller["name"] as? String ?? seller["username"] as? String ?? "Unknown"
     }
     return playerData["sellerName"] as? String ?? "Unknown"
 }
 
-private func extractOwner(from playerData: [String: Any]) -> PlayerOwner? {
-    guard let ownerData = playerData["u"] as? [String: Any] else {
+func extractOwner(from playerData: [String: Any]) -> PlayerOwner? {
+    guard let ownerData = dict(from: playerData["u"]) else {
         return nil
     }
 

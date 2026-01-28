@@ -99,29 +99,24 @@ public class KickbaseDataParser: ObservableObject {
 
         var leaguesArray: [[String: Any]] = []
 
-        // Versuche verschiedene mögliche Response-Formate
-        if let leagues = json["leagues"] as? [[String: Any]] {
-            leaguesArray = leagues
-            print("✅ Found leagues array with \(leagues.count) entries")
-        } else if let data = json["data"] as? [[String: Any]] {
-            leaguesArray = data
-            print("✅ Found data array with \(data.count) entries")
-        } else if let leagues = json["l"] as? [[String: Any]] {
-            leaguesArray = leagues
-            print("✅ Found l array with \(leagues.count) entries")
-        } else if let it = json["it"] as? [[String: Any]] {
-            leaguesArray = it
-            print("✅ Found it array with \(it.count) entries")
-        } else if let anol = json["anol"] as? [[String: Any]] {
-            leaguesArray = anol
-            print("✅ Found anol array with \(anol.count) entries")
-        } else if json.keys.contains("id") {
+        // Versuche verschiedene mögliche Response-Formate (sichere, nicht-generic Runtime casts)
+        for key in ["leagues", "data", "l", "it", "anol"] {
+            let arrRawAny = rawArray(from: json[key])
+            let arr = arrRawAny.compactMap { dict(from: $0) }
+            if !arr.isEmpty {
+                leaguesArray = arr
+                print("✅ Found \(key) array with \(arr.count) entries")
+                break
+            }
+        }
+
+        if leaguesArray.isEmpty && json.keys.contains("id") {
             // Single league response
             leaguesArray = [json]
             print("✅ Found single league response")
         } else {
             // Erweiterte Behandlung für "it" und "anol" Keys
-            leaguesArray = findLeaguesInComplexStructure(json)
+            leaguesArray = findLeaguesInComplexStructure(json).compactMap { dict(from: $0) }
         }
 
         var parsedLeagues: [League] = []
@@ -152,25 +147,29 @@ public class KickbaseDataParser: ObservableObject {
         return parsedLeagues
     }
 
-    private func findLeaguesInComplexStructure(_ json: [String: Any]) -> [[String: Any]] {
+    private func findLeaguesInComplexStructure(_ json: [String: Any]) -> [Any] {
         print("🔍 Checking alternative formats for it/anol keys...")
 
         // Prüfe "it" key
         if let it = json["it"] {
             print("🔍 Found 'it' key with type: \(type(of: it))")
 
-            if let itDict = it as? [String: Any] {
+            if let itDict = dict(from: it) {
                 print("✅ 'it' is a dictionary with keys: \(Array(itDict.keys))")
                 for (key, value) in itDict {
-                    if let array = value as? [[String: Any]] {
-                        print("✅ Found leagues in it[\(key)] with \(array.count) entries")
-                        return array
+                    let arrRawAny = rawArray(from: value)
+                    if !arrRawAny.isEmpty {
+                        print("✅ Found leagues in it[\(key)] with \(arrRawAny.count) entries")
+                        return arrRawAny
                     }
                 }
-                return [itDict]
-            } else if let itArray = it as? [[String: Any]] {
-                print("✅ Found 'it' as direct array with \(itArray.count) entries")
-                return itArray
+                return [itDict] as [Any]
+            } else {
+                let arrRawAny = rawArray(from: it)
+                if !arrRawAny.isEmpty {
+                    print("✅ Found 'it' as direct array with \(arrRawAny.count) entries")
+                    return arrRawAny
+                }
             }
         }
 
@@ -178,30 +177,35 @@ public class KickbaseDataParser: ObservableObject {
         if let anol = json["anol"] {
             print("🔍 Found 'anol' key with type: \(type(of: anol))")
 
-            if let anolDict = anol as? [String: Any] {
+            if let anolDict = dict(from: anol) {
                 print("✅ 'anol' is a dictionary with keys: \(Array(anolDict.keys))")
                 for (key, value) in anolDict {
-                    if let array = value as? [[String: Any]] {
-                        print("✅ Found leagues in anol[\(key)] with \(array.count) entries")
-                        return array
+                    let arrRawAny = rawArray(from: value)
+                    if !arrRawAny.isEmpty {
+                        print("✅ Found leagues in anol[\(key)] with \(arrRawAny.count) entries")
+                        return arrRawAny
                     }
                 }
-                return [anolDict]
-            } else if let anolArray = anol as? [[String: Any]] {
-                print("✅ Found 'anol' as direct array with \(anolArray.count) entries")
-                return anolArray
+                return [anolDict] as [Any]
+            } else {
+                let arrRawAny = rawArray(from: anol)
+                if !arrRawAny.isEmpty {
+                    print("✅ Found 'anol' as direct array with \(arrRawAny.count) entries")
+                    return arrRawAny
+                }
             }
         }
 
         // Suche alle Keys nach Arrays ab
         print("🔍 Searching all keys for array data...")
         for (key, value) in json {
-            if let array = value as? [[String: Any]] {
-                print("✅ Found leagues in [\(key)] with \(array.count) entries")
-                return array
-            } else if let dict = value as? [String: Any], !dict.isEmpty {
+            let arrRawAny = rawArray(from: value)
+            if !arrRawAny.isEmpty {
+                print("✅ Found leagues in [\(key)] with \(arrRawAny.count) entries")
+                return arrRawAny
+            } else if let dict = dict(from: value), !dict.isEmpty {
                 if key != "it" && key != "anol" {
-                    return [dict]
+                    return [dict] as [Any]
                 }
             }
         }
@@ -211,11 +215,11 @@ public class KickbaseDataParser: ObservableObject {
             || json.keys.contains("n")
         {
             print("✅ Using entire response as single league")
-            return [json]
+            return [json] as [Any]
         }
 
         print("❌ Unknown response format. Keys: \(Array(json.keys))")
-        return []
+        return [] as [Any]
     }
 
     public func parseLeagueUser(from leagueData: [String: Any]) -> LeagueUser {
@@ -235,10 +239,11 @@ public class KickbaseDataParser: ObservableObject {
             mpst: 3
         )
 
-        if let userData = leagueData["currentUser"] as? [String: Any] ?? leagueData["cu"]
-            as? [String: Any] ?? leagueData["user"] as? [String: Any] ?? leagueData["it"]
-            as? [String: Any] ?? leagueData["anol"] as? [String: Any]
-        {
+        let _userData =
+            dict(from: leagueData["currentUser"]) ?? dict(from: leagueData["cu"]) ?? dict(
+                from: leagueData["user"]) ?? dict(from: leagueData["it"])
+            ?? dict(from: leagueData["anol"])
+        if let userData = _userData {
 
             print("👤 Available user keys: \(userData.keys.sorted())")
 
@@ -287,7 +292,8 @@ public class KickbaseDataParser: ObservableObject {
         print("🏆 Parsing league ranking... (isMatchDayQuery: \(isMatchDayQuery))")
 
         // The ranking uses "us" array according to API documentation
-        guard let usersArray = json["us"] as? [[String: Any]] else {
+        let usersArray = arrayOfDicts(from: json["us"])
+        guard !usersArray.isEmpty else {
             print("⚠️ No users array found in ranking response")
             print("📋 Available keys: \(json.keys.sorted())")
             return []
@@ -332,15 +338,25 @@ public class KickbaseDataParser: ObservableObject {
             // The API might return integers or strings, so handle both
             var lineupPlayerIds: [String] = []
 
-            if let lpArray = userData["lp"] as? [String] {
-                lineupPlayerIds = lpArray
-                print("✅ Found lp as [String]: \(lineupPlayerIds)")
-            } else if let lpArray = userData["lp"] as? [Int] {
-                lineupPlayerIds = lpArray.map { String($0) }
-                print("✅ Found lp as [Int], converted to [String]: \(lineupPlayerIds)")
-            } else if let lpArray = userData["lp"] as? [NSNumber] {
-                lineupPlayerIds = lpArray.map { $0.stringValue }
-                print("✅ Found lp as [NSNumber], converted to [String]: \(lineupPlayerIds)")
+            if let lpAnyArray = userData["lp"] as? [Any] {
+                for el in lpAnyArray {
+                    if let s = el as? String {
+                        lineupPlayerIds.append(s)
+                    } else if let n = el as? NSNumber {
+                        lineupPlayerIds.append(n.stringValue)
+                    } else if let i = el as? Int {
+                        lineupPlayerIds.append(String(i))
+                    }
+                }
+                if !lineupPlayerIds.isEmpty {
+                    print(
+                        "✅ Parsed lp array with \(lineupPlayerIds.count) entries: \(lineupPlayerIds)"
+                    )
+                } else {
+                    print(
+                        "⚠️ 'lp' field present but contained no parsable elements. Raw value: \(userData["lp"] ?? "nil")"
+                    )
+                }
             } else {
                 print(
                     "⚠️ No 'lp' field found or wrong format. Raw value: \(userData["lp"] ?? "nil")")
@@ -382,19 +398,19 @@ public class KickbaseDataParser: ObservableObject {
         var statsData: [String: Any] = json
 
         // Prüfe auf verschachtelte Strukturen
-        if let user = json["user"] as? [String: Any] {
+        if let user = dict(from: json["user"]) {
             print("✅ Found 'user' object")
             statsData = user
-        } else if let me = json["me"] as? [String: Any] {
+        } else if let me = dict(from: json["me"]) {
             print("✅ Found 'me' object")
             statsData = me
-        } else if let data = json["data"] as? [String: Any] {
+        } else if let data = dict(from: json["data"]) {
             print("✅ Found 'data' object")
             statsData = data
-        } else if let team = json["team"] as? [String: Any] {
+        } else if let team = dict(from: json["team"]) {
             print("✅ Found 'team' object")
             statsData = team
-        } else if let league = json["league"] as? [String: Any] {
+        } else if let league = dict(from: json["league"]) {
             print("✅ Found 'league' object")
             statsData = league
         }
@@ -460,7 +476,8 @@ public class KickbaseDataParser: ObservableObject {
         print("📊 Found PRLO value at root level: \(prloValue ?? 0)")
 
         // Extrahiere die "it" Liste mit den Marktwert-Einträgen
-        guard let itArray = json["it"] as? [[String: Any]] else {
+        let itArray = arrayOfDicts(from: json["it"])
+        guard !itArray.isEmpty else {
             print("❌ No 'it' array found in market value history response")
             return nil
         }

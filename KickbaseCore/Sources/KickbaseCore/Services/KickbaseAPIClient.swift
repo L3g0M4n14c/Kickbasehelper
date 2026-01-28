@@ -85,7 +85,8 @@ public class KickbaseAPIClient: ObservableObject {
                 )
 
                 if httpResponse.statusCode == 200 {
-                    if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    let json = jsonDict(from: data)
+                    if !json.isEmpty {
                         print(
                             "✅ Found working endpoint (\(index + 1)/\(endpoints.count)): \(endpoint)"
                         )

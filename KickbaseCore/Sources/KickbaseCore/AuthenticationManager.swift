@@ -169,9 +169,8 @@ public class AuthenticationManager: ObservableObject {
             print("✅ Token validation successful")
 
             // Try to extract user info if available
-            if let userData = userSettings["user"] as? [String: Any] ?? userSettings
-                as? [String: Any]
-            {
+            let userData = dict(from: userSettings["user"]) ?? dict(from: userSettings)
+            if let userData = userData {
                 let user = User(
                     id: userData["id"] as? String ?? "",
                     name: userData["name"] as? String ?? "",

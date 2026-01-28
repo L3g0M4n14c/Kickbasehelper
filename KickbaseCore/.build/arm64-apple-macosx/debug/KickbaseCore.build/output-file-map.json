@@ -114,6 +114,13 @@
     "swift-dependencies": "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/SaleRecommendationsView.swiftdeps",
     "diagnostics": "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/SaleRecommendationsView.dia"
   },
+  "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/JSONUtils.swift": {
+    "dependencies": "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/JSONUtils.d",
+    "object": "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/JSONUtils.swift.o",
+    "swiftmodule": "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/JSONUtils~partial.swiftmodule",
+    "swift-dependencies": "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/JSONUtils.swiftdeps",
+    "diagnostics": "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/JSONUtils.dia"
+  },
   "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/Sources/KickbaseCore/Services/KickbaseAPIClient.swift": {
     "dependencies": "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/KickbaseAPIClient.d",
     "object": "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/KickbaseAPIClient.swift.o",

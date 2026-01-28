@@ -334,17 +334,18 @@ public class KickbasePlayerService: ObservableObject {
 
         var playersArray: [[String: Any]] = []
 
-        // Erweiterte Suche nach Spieler-Daten
-        if let players = json["players"] as? [[String: Any]] {
-            playersArray = players
-            print("✅ Found 'players' array with \(players.count) entries")
-        } else if let squad = json["squad"] as? [[String: Any]] {
-            playersArray = squad
-            print("✅ Found 'squad' array with \(squad.count) entries")
-        } else if let data = json["data"] as? [[String: Any]] {
-            playersArray = data
-            print("✅ Found 'data' array with \(data.count) entries")
-        } else {
+        // Erweiterte Suche nach Spieler-Daten (sichere, helper-basierte Suche)
+        for key in ["players", "squad", "data"] {
+            let arrRaw = arrayOfDicts(from: json[key])
+            let arr = arrRaw.compactMap { dict(from: $0) }
+            if !arr.isEmpty {
+                playersArray = arr
+                print("✅ Found '\(key)' array with \(arr.count) entries")
+                break
+            }
+        }
+
+        if playersArray.isEmpty {
             // Umfassende Suche in verschachtelten Strukturen
             playersArray = findPlayersInNestedStructure(json)
         }
@@ -374,9 +375,11 @@ public class KickbasePlayerService: ObservableObject {
         print("🔍 Comprehensive search for player arrays in nested structures...")
 
         for (topKey, topValue) in json {
-            if let nestedDict = topValue as? [String: Any] {
+            if let nestedDict = dict(from: topValue) {
                 for (nestedKey, nestedValue) in nestedDict {
-                    if let array = nestedValue as? [[String: Any]], !array.isEmpty {
+                    let raw = arrayOfDicts(from: nestedValue)
+                    let array = raw.compactMap { dict(from: $0) }
+                    if !array.isEmpty {
                         if let firstItem = array.first {
                             let keys = firstItem.keys
                             let hasPlayerKeys =
@@ -394,19 +397,24 @@ public class KickbasePlayerService: ObservableObject {
                         }
                     }
                 }
-            } else if let directArray = topValue as? [[String: Any]], !directArray.isEmpty {
-                if let firstItem = directArray.first {
-                    let keys = firstItem.keys
-                    let hasPlayerKeys =
-                        keys.contains("firstName") || keys.contains("lastName")
-                        || keys.contains("name") || keys.contains("position") || keys.contains("fn")
-                        || keys.contains("ln") || keys.contains("n") || keys.contains("p")
+            } else {
+                let raw = arrayOfDicts(from: topValue)
+                let array = raw.compactMap { dict(from: $0) }
+                if !array.isEmpty {
+                    if let firstItem = array.first {
+                        let keys = firstItem.keys
+                        let hasPlayerKeys =
+                            keys.contains("firstName") || keys.contains("lastName")
+                            || keys.contains("name") || keys.contains("position")
+                            || keys.contains("fn")
+                            || keys.contains("ln") || keys.contains("n") || keys.contains("p")
 
-                    if hasPlayerKeys {
-                        print(
-                            "✅ Found player-like direct array in \(topKey) with \(directArray.count) entries"
-                        )
-                        return directArray
+                        if hasPlayerKeys {
+                            print(
+                                "✅ Found player-like direct array in \(topKey) with \(array.count) entries"
+                            )
+                            return array
+                        }
                     }
                 }
             }
@@ -517,12 +525,14 @@ public class KickbasePlayerService: ObservableObject {
 
         // Detaillierte JSON-Struktur-Analyse
         for (key, value) in json {
-            if let array = value as? [[String: Any]] {
+            let raw = rawArray(from: value)
+            let array = raw.compactMap { dict(from: $0) }
+            if !array.isEmpty {
                 print("📊 Key '\(key)' contains array with \(array.count) items")
                 if let firstItem = array.first {
                     print("   First item keys: \(Array(firstItem.keys))")
                 }
-            } else if let dict = value as? [String: Any] {
+            } else if let dict = dict(from: value) {
                 print("📊 Key '\(key)' contains dictionary with keys: \(Array(dict.keys))")
             } else {
                 print("📊 Key '\(key)' contains: \(type(of: value))")
@@ -531,31 +541,20 @@ public class KickbasePlayerService: ObservableObject {
 
         var playersArray: [[String: Any]] = []
 
-        // Erweiterte Suche nach Marktspielerdaten - jetzt inklusive "it" Array
-        if let it = json["it"] as? [[String: Any]] {
-            playersArray = it
-            print("✅ Found 'it' array with \(it.count) entries")
-        } else if let players = json["players"] as? [[String: Any]] {
-            playersArray = players
-            print("✅ Found 'players' array with \(players.count) entries")
-        } else if let market = json["market"] as? [[String: Any]] {
-            playersArray = market
-            print("✅ Found 'market' array with \(market.count) entries")
-        } else if let data = json["data"] as? [[String: Any]] {
-            playersArray = data
-            print("✅ Found 'data' array with \(data.count) entries")
-        } else if let transfers = json["transfers"] as? [[String: Any]] {
-            playersArray = transfers
-            print("✅ Found 'transfers' array with \(transfers.count) entries")
-        } else if let items = json["items"] as? [[String: Any]] {
-            playersArray = items
-            print("✅ Found 'items' array with \(items.count) entries")
-        } else if let list = json["list"] as? [[String: Any]] {
-            playersArray = list
-            print("✅ Found 'list' array with \(list.count) entries")
-        } else {
+        // Erweiterte Suche nach Marktspielerdaten (sichere, helper-basierte Suche)
+        for key in ["it", "players", "market", "data", "transfers", "items", "list"] {
+            let arrRawAny = rawArray(from: json[key])
+            let arr = arrRawAny.compactMap { dict(from: $0) }
+            if !arr.isEmpty {
+                playersArray = arr
+                print("✅ Found '\(key)' array with \(arr.count) entries")
+                break
+            }
+        }
+
+        if playersArray.isEmpty {
             // Umfassende Suche in verschachtelten Strukturen
-            playersArray = findMarketPlayersInNestedStructure(json)
+            playersArray = findMarketPlayersInNestedStructure(json).compactMap { dict(from: $0) }
         }
 
         if playersArray.isEmpty {
@@ -572,7 +571,7 @@ public class KickbasePlayerService: ObservableObject {
                     print("   \(key): Array with \(arrayValue.count) elements")
                     if let firstElement = arrayValue.first {
                         print("     First element type: \(type(of: firstElement))")
-                        if let dictElement = firstElement as? [String: Any] {
+                        if let dictElement = dict(from: firstElement) {
                             print("     First element keys: \(Array(dictElement.keys))")
                         }
                     }
@@ -601,16 +600,18 @@ public class KickbasePlayerService: ObservableObject {
         return parsedPlayers
     }
 
-    private func findMarketPlayersInNestedStructure(_ json: [String: Any]) -> [[String: Any]] {
+    private func findMarketPlayersInNestedStructure(_ json: [String: Any]) -> [Any] {
         print("🔍 Comprehensive search for market player arrays in nested structures...")
 
         for (topKey, topValue) in json {
             print("🔎 Checking top-level key: \(topKey)")
 
-            if let nestedDict = topValue as? [String: Any] {
+            if let nestedDict = dict(from: topValue) {
                 for (nestedKey, nestedValue) in nestedDict {
-                    if let array = nestedValue as? [[String: Any]], !array.isEmpty {
-                        if let firstItem = array.first {
+                    let arrRawAny = rawArray(from: nestedValue)
+                    if !arrRawAny.isEmpty {
+                        let firstItem = arrRawAny.compactMap { dict(from: $0) }.first
+                        if let firstItem = firstItem {
                             let keys = firstItem.keys
                             let hasMarketKeys =
                                 keys.contains("price") || keys.contains("seller")
@@ -621,27 +622,32 @@ public class KickbasePlayerService: ObservableObject {
 
                             if hasMarketKeys {
                                 print(
-                                    "✅ Found market players array at: \(topKey).\(nestedKey) with \(array.count) items"
+                                    "✅ Found market players array at: \(topKey).\(nestedKey) with \(arrRawAny.count) items"
                                 )
-                                return array
+                                return arrRawAny
                             }
                         }
                     }
                 }
-            } else if let array = topValue as? [[String: Any]], !array.isEmpty {
-                if let firstItem = array.first {
-                    let keys = firstItem.keys
-                    let hasMarketKeys =
-                        keys.contains("price") || keys.contains("seller") || keys.contains("expiry")
-                        || keys.contains("offers") || keys.contains("firstName")
-                        || keys.contains("lastName") || keys.contains("prc") || keys.contains("u")
-                        || keys.contains("n") || keys.contains("fn") || keys.contains("ln")
+            } else {
+                let arrRawAny = rawArray(from: topValue)
+                if !arrRawAny.isEmpty {
+                    if let firstItem = arrRawAny.compactMap({ dict(from: $0) }).first {
+                        let keys = firstItem.keys
+                        let hasMarketKeys =
+                            keys.contains("price") || keys.contains("seller")
+                            || keys.contains("expiry")
+                            || keys.contains("offers") || keys.contains("firstName")
+                            || keys.contains("lastName") || keys.contains("prc")
+                            || keys.contains("u")
+                            || keys.contains("n") || keys.contains("fn") || keys.contains("ln")
 
-                    if hasMarketKeys {
-                        print(
-                            "✅ Found market players array at top level: \(topKey) with \(array.count) items"
-                        )
-                        return array
+                        if hasMarketKeys {
+                            print(
+                                "✅ Found market players array at top level: \(topKey) with \(arrRawAny.count) items"
+                            )
+                            return arrRawAny
+                        }
                     }
                 }
             }
@@ -691,10 +697,10 @@ public class KickbasePlayerService: ObservableObject {
 
         // Seller-Informationen extrahieren
         let seller = MarketSeller(
-            id: (playerData["seller"] as? [String: Any])?["id"] as? String
-                ?? (playerData["u"] as? [String: Any])?["i"] as? String ?? "",
-            name: (playerData["seller"] as? [String: Any])?["name"] as? String
-                ?? (playerData["u"] as? [String: Any])?["n"] as? String ?? "Unknown"
+            id: dict(from: playerData["seller"])?["id"] as? String
+                ?? dict(from: playerData["u"])?["i"] as? String ?? "",
+            name: dict(from: playerData["seller"])?["name"] as? String
+                ?? dict(from: playerData["u"])?["n"] as? String ?? "Unknown"
         )
 
         // Owner-Informationen (falls vorhanden)
@@ -768,7 +774,7 @@ public class KickbasePlayerService: ObservableObject {
     // MARK: - Helper Functions
 
     private func extractOwnerFromPlayerData(_ playerData: [String: Any]) -> PlayerOwner? {
-        guard let ownerData = playerData["u"] as? [String: Any] else {
+        guard let ownerData = dict(from: playerData["u"]) else {
             return nil
         }
 
