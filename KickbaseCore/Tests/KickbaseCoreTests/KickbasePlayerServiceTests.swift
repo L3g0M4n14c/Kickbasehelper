@@ -164,4 +164,47 @@ final class KickbasePlayerServiceTests: XCTestCase {
         XCTAssertEqual(players.first?.lastName, "Last")
         XCTAssertEqual(players.first?.teamName, "Team X")
     }
+
+    func testLoadPlayerPerformanceWithTeamInfoCachesResults() async throws {
+        class CountingMock: MockAPI {
+            var playerPerformanceCalls = 0
+            var teamProfileCalls = 0
+
+            override func getPlayerPerformance(leagueId: String, playerId: String) async throws
+                -> PlayerPerformanceResponse
+            {
+                playerPerformanceCalls += 1
+                return try await super.getPlayerPerformance(leagueId: leagueId, playerId: playerId)
+            }
+
+            override func getTeamProfile(leagueId: String, teamId: String) async throws
+                -> TeamProfileResponse
+            {
+                teamProfileCalls += 1
+                return try await super.getTeamProfile(leagueId: leagueId, teamId: teamId)
+            }
+        }
+
+        let mock = CountingMock()
+
+        // Create a minimal performance response with one season and one match
+        let match = MatchPerformance(
+            day: 1, p: 5, mp: "90'", md: "2025-01-01", t1: "t1", t2: "t2", t1g: 1, t2g: 0, pt: "t1",
+            k: [], st: 5, cur: false, mdst: 0, ap: 5, tp: 5, asp: 5)
+        let season = SeasonPerformance(ti: "s", n: "L", ph: [match])
+        mock.performanceResponse = PlayerPerformanceResponse(it: [season])
+
+        let parser = MockParser()
+        let service = KickbasePlayerService(apiService: mock, dataParser: parser)
+
+        // First call should hit the API
+        let res1 = try await service.loadPlayerPerformanceWithTeamInfo(playerId: "p", leagueId: "l")
+        XCTAssertNotNil(res1)
+        XCTAssertEqual(mock.playerPerformanceCalls, 1)
+
+        // Second call should return cached result (no additional API calls)
+        let res2 = try await service.loadPlayerPerformanceWithTeamInfo(playerId: "p", leagueId: "l")
+        XCTAssertNotNil(res2)
+        XCTAssertEqual(mock.playerPerformanceCalls, 1)
+    }
 }

@@ -7,6 +7,13 @@ public class KickbasePlayerService: ObservableObject {
     private let apiService: KickbaseAPIServiceProtocol
     private let dataParser: KickbaseDataParserProtocol
 
+    // Simple in-memory caches (MainActor only)
+    private var playerPerformanceCache:
+        [String: (timestamp: Date, enhancedMatches: [EnhancedMatchPerformance])] = [:]
+    private var teamProfileCache: [String: (timestamp: Date, teamInfo: TeamInfo)] = [:]
+    private let playerPerformanceCacheTTL: TimeInterval = 5 * 60  // 5 minutes
+    private let teamProfileCacheTTL: TimeInterval = 10 * 60  // 10 minutes
+
     public init(apiService: KickbaseAPIServiceProtocol, dataParser: KickbaseDataParserProtocol) {
         self.apiService = apiService
         self.dataParser = dataParser
@@ -171,6 +178,14 @@ public class KickbasePlayerService: ObservableObject {
     // MARK: - Team Profile Loading
 
     public func loadTeamProfile(teamId: String, leagueId: String) async -> TeamInfo? {
+        let cacheKey = "\(teamId)|\(leagueId)"
+        if let cached = teamProfileCache[cacheKey],
+            Date().timeIntervalSince(cached.timestamp) < teamProfileCacheTTL
+        {
+            print("📥 Returning cached team profile for \(teamId)")
+            return cached.teamInfo
+        }
+
         print("🏆 Loading team profile for team \(teamId) in league \(leagueId)")
 
         do {
@@ -180,6 +195,8 @@ public class KickbasePlayerService: ObservableObject {
             print(
                 "✅ Successfully loaded team profile: \(teamInfo.name) (Platz \(teamInfo.placement))"
             )
+
+            teamProfileCache[cacheKey] = (timestamp: Date(), teamInfo: teamInfo)
             return teamInfo
         } catch {
             print("❌ Error loading team profile for \(teamId): \(error.localizedDescription)")
@@ -192,6 +209,14 @@ public class KickbasePlayerService: ObservableObject {
     public func loadPlayerPerformanceWithTeamInfo(playerId: String, leagueId: String) async throws
         -> [EnhancedMatchPerformance]?
     {
+        let cacheKey = "\(playerId)|\(leagueId)"
+        if let cached = playerPerformanceCache[cacheKey],
+            Date().timeIntervalSince(cached.timestamp) < playerPerformanceCacheTTL
+        {
+            print("📥 Returning cached enhanced matches for \(playerId)")
+            return cached.enhancedMatches
+        }
+
         print("📊 Loading optimized player performance with team info for player \(playerId)")
 
         // Lade zunächst die normale Performance
@@ -262,6 +287,10 @@ public class KickbasePlayerService: ObservableObject {
         }
 
         print("✅ Created \(enhancedMatches.count) enhanced matches with team info (optimized)")
+
+        // Cache the enhanced matches
+        playerPerformanceCache[cacheKey] = (timestamp: Date(), enhancedMatches: enhancedMatches)
+
         return enhancedMatches
     }
 

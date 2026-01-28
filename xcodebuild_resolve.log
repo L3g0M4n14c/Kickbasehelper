@@ -1,0 +1,59 @@
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -resolvePackageDependencies -project /Users/marcocorro/Documents/xCode/Kickbasehelper/Kickbasehelper.xcodeproj
+
+Resolve Package Graph
+
+Fetching from https://source.skip.tools/skip-unit.git (cached)
+
+Fetching from https://source.skip.tools/skip-ui.git (cached)
+
+Fetching from https://source.skip.tools/skip-foundation.git (cached)
+
+Fetching from https://source.skip.tools/skip.git (cached)
+
+Fetching from https://source.skip.tools/skip-model.git (cached)
+
+Fetching from https://github.com/nalexn/ViewInspector.git (cached)
+
+Fetching from https://source.skip.tools/skip-lib.git (cached)
+
+Creating working copy of package ‘skip’
+
+Checking out 1.7.0 of package ‘skip’
+
+Creating working copy of package ‘skip-unit’
+
+Checking out 1.4.0 of package ‘skip-unit’
+
+Creating working copy of package ‘skip-foundation’
+
+Checking out 1.3.11 of package ‘skip-foundation’
+
+Creating working copy of package ‘ViewInspector’
+
+Checking out 0.10.3 of package ‘ViewInspector’
+
+Creating working copy of package ‘skip-model’
+
+Checking out 1.7.0 of package ‘skip-model’
+
+Creating working copy of package ‘skip-lib’
+
+Checking out 1.3.8 of package ‘skip-lib’
+
+Creating working copy of package ‘skip-ui’
+
+Checking out 1.46.2 of package ‘skip-ui’
+
+
+Resolved source packages:
+  skip-lib: https://source.skip.tools/skip-lib.git @ 1.3.8
+  skip-unit: https://source.skip.tools/skip-unit.git @ 1.4.0
+  skip-model: https://source.skip.tools/skip-model.git @ 1.7.0
+  KickbaseCore: /Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore
+  skip-ui: https://source.skip.tools/skip-ui.git @ 1.46.2
+  ViewInspector: https://github.com/nalexn/ViewInspector.git @ 0.10.3
+  skip-foundation: https://source.skip.tools/skip-foundation.git @ 1.3.11
+  skip: https://source.skip.tools/skip.git @ 1.7.0
+
+resolved source packages: skip-lib, skip-unit, skip-model, KickbaseCore, skip-ui, ViewInspector, skip-foundation, skip

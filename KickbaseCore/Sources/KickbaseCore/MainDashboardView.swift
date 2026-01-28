@@ -1186,11 +1186,16 @@ struct MarketPlayerRowView: View {
 }
 
 // MARK: - Sales Recommendation View
+// TODO: Consider moving sale recommendation logic into `PlayerRecommendationService` to reuse caching/batching
 struct SalesRecommendationView: View {
     @EnvironmentObject var kickbaseManager: KickbaseManager
     @State private var selectedGoal: OptimizationGoal = .balancePositive
     @State private var recommendedSales: [SalesRecommendation] = []
     @State private var selectedSales: Set<String> = []
+
+    // Task management for recommendation generation (cancel/debounce)
+    @State private var recommendationTask: Task<Void, Never>? = nil
+    @State private var debounceTask: Task<Void, Never>? = nil
 
     enum OptimizationGoal: String, CaseIterable {
         case balancePositive = "Budget ins Plus"
@@ -1289,29 +1294,76 @@ struct SalesRecommendationView: View {
             .padding()
         }
         .onAppear {
-            generateIntelligentRecommendations()
+            scheduleGenerateImmediate()
         }
-        .onChange(of: selectedGoal) {
-            generateIntelligentRecommendations()
+        .onChange(of: selectedGoal) { _ in
+            scheduleGenerateDebounced()
         }
     }
 
     private func generateIntelligentRecommendations() {
-        Task {
-            let allPlayers = kickbaseManager.teamPlayers
-            let currentBudget = kickbaseManager.userStats?.budget ?? 0
+        // Cancel any running tasks and start a new immediate task
+        recommendationTask?.cancel()
+        recommendationTask = Task { @MainActor in
+            await self.generateIntelligentRecommendationsAsync()
+        }
+    }
 
-            var newRecommendations: [SalesRecommendation] = []
+    private func scheduleGenerateImmediate() {
+        debounceTask?.cancel()
+        recommendationTask?.cancel()
+        recommendationTask = Task { @MainActor in
+            await self.generateIntelligentRecommendationsAsync()
+        }
+    }
 
-            // Analysiere alle Spieler und erstelle Empfehlungen basierend auf echten Kriterien
-            for player in allPlayers {
-                if let recommendation = await analyzePlayerForSale(
-                    player: player,
-                    allPlayers: allPlayers,
-                    currentBudget: currentBudget,
-                    optimizationGoal: selectedGoal
-                ) {
-                    newRecommendations.append(recommendation)
+    private func scheduleGenerateDebounced() {
+        // Debounce input changes (e.g., segment switch)
+        debounceTask?.cancel()
+        debounceTask = Task {
+            try? await Task.sleep(nanoseconds: 300_000_000)  // 300 ms
+            if Task.isCancelled { return }
+            recommendationTask?.cancel()
+            recommendationTask = Task { @MainActor in
+                await self.generateIntelligentRecommendationsAsync()
+            }
+        }
+    }
+
+    private func generateIntelligentRecommendationsAsync() async {
+        let startTs = Date()
+        print("🔧 Recommendation generation started at \(startTs)")
+
+        let allPlayers = kickbaseManager.teamPlayers
+        let currentBudget = kickbaseManager.userStats?.budget ?? 0
+
+        var newRecommendations: [SalesRecommendation] = []
+
+        // Bounded concurrency: verarbeite Spieler in Chunks, z.B. 6 parallel
+        let concurrency = 6
+        let players = allPlayers
+
+        for start in stride(from: 0, to: players.count, by: concurrency) {
+            if Task.isCancelled { return }
+            let end = Swift.min(players.count, start + concurrency)
+            let slice = Array(players[start..<end])
+
+            await withTaskGroup(of: SalesRecommendation?.self) { group in
+                for player in slice {
+                    group.addTask { [selectedGoal, currentBudget] in
+                        if Task.isCancelled { return nil }
+                        return await self.analyzePlayerForSale(
+                            player: player,
+                            allPlayers: players,
+                            currentBudget: currentBudget,
+                            optimizationGoal: selectedGoal
+                        )
+                    }
+                }
+
+                for await result in group {
+                    if Task.isCancelled { return }
+                    if let rec = result { newRecommendations.append(rec) }
                 }
             }
 
@@ -1342,11 +1394,17 @@ struct SalesRecommendationView: View {
                 }
             }
 
-            // Update auf Main Thread
+            // Inkrementelles UI-Update
             await MainActor.run {
                 self.recommendedSales = newRecommendations
             }
+            print(
+                "🔔 Published \(newRecommendations.count) intermediate recommendations after \(Date().timeIntervalSince(startTs))s"
+            )
         }
+
+        let duration = Date().timeIntervalSince(startTs)
+        print("🔧 Recommendation generation finished in \(duration) seconds")
     }
 
     private func analyzePlayerForSale(
@@ -1497,6 +1555,7 @@ struct SalesRecommendationView: View {
         priority: inout SalesRecommendation.Priority
     ) async {
         guard let selectedLeague = kickbaseManager.selectedLeague else { return }
+        if Task.isCancelled { return }
 
         // Lade die letzten 5 Spiele des Spielers
         if let recentPerformances = await kickbaseManager.loadPlayerRecentPerformanceWithTeamInfo(
@@ -1567,6 +1626,7 @@ struct SalesRecommendationView: View {
             print("⚠️ Fixture-Analyse: Keine Liga ausgewählt für \(player.fullName)")
             return
         }
+        if Task.isCancelled { return }
 
         print("🔍 Fixture-Analyse startet für \(player.fullName) (Team: \(player.teamId))")
 

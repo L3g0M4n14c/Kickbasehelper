@@ -7,6 +7,20 @@
     }
   ],
   "copyCommands" : {
+    "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore_KickbaseCore.bundle/.KickbaseCore.sourcehash" : {
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/plugins/outputs/kickbasecore/KickbaseCore/destination/skipstone/.KickbaseCore.sourcehash"
+        }
+      ],
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore_KickbaseCore.bundle/.KickbaseCore.sourcehash"
+        }
+      ]
+    },
     "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore_KickbaseCore.bundle/Assets.xcassets" : {
       "inputs" : [
         {
@@ -154,8 +168,8 @@
     }
   },
   "generatedSourceTargetSet" : [
-    "Create_SkipLink",
-    "skipstone"
+    "skipstone",
+    "Create_SkipLink"
   ],
   "pluginDescriptions" : [
     {
@@ -426,7 +440,6 @@
         "-emit-objc-header",
         "-emit-objc-header-path",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/include/KickbaseCore-Swift.h",
-        "-color-diagnostics",
         "-swift-version",
         "5",
         "-plugin-path",
@@ -705,7 +718,6 @@
         "-emit-objc-header",
         "-emit-objc-header-path",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCorePackageTests.build/include/KickbaseCorePackageTests-Swift.h",
-        "-color-diagnostics",
         "-plugin-path",
         "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
         "-sdk",
@@ -868,7 +880,6 @@
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/ModuleCache",
         "-parseable-output",
         "-parse-as-library",
-        "-color-diagnostics",
         "-swift-version",
         "5",
         "-plugin-path",
@@ -1046,7 +1057,6 @@
         "-emit-objc-header",
         "-emit-objc-header-path",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/SkipDrive.build/include/SkipDrive-Swift.h",
-        "-color-diagnostics",
         "-swift-version",
         "5",
         "-plugin-path",
@@ -1458,7 +1468,6 @@
         "-emit-objc-header",
         "-emit-objc-header-path",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/SkipFoundation.build/include/SkipFoundation-Swift.h",
-        "-color-diagnostics",
         "-swift-version",
         "5",
         "-plugin-path",
@@ -2020,7 +2029,6 @@
         "-emit-objc-header",
         "-emit-objc-header-path",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/SkipLib.build/include/SkipLib-Swift.h",
-        "-color-diagnostics",
         "-swift-version",
         "5",
         "-plugin-path",
@@ -2347,7 +2355,6 @@
         "-emit-objc-header",
         "-emit-objc-header-path",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/SkipModel.build/include/SkipModel-Swift.h",
-        "-color-diagnostics",
         "-swift-version",
         "5",
         "-plugin-path",
@@ -2500,7 +2507,6 @@
         "-emit-objc-header",
         "-emit-objc-header-path",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/SkipTest.build/include/SkipTest-Swift.h",
-        "-color-diagnostics",
         "-swift-version",
         "5",
         "-plugin-path",
@@ -3667,7 +3673,6 @@
         "-emit-objc-header",
         "-emit-objc-header-path",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/SkipUI.build/include/SkipUI-Swift.h",
-        "-color-diagnostics",
         "-swift-version",
         "5",
         "-plugin-path",
@@ -4835,7 +4840,6 @@
         "-emit-objc-header",
         "-emit-objc-header-path",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/SkipUnit.build/include/SkipUnit-Swift.h",
-        "-color-diagnostics",
         "-swift-version",
         "5",
         "-plugin-path",
@@ -5554,7 +5558,6 @@
         "-emit-objc-header",
         "-emit-objc-header-path",
         "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/ViewInspector.build/include/ViewInspector-Swift.h",
-        "-color-diagnostics",
         "-swift-version",
         "5",
         "-plugin-path",
@@ -6293,7 +6296,6 @@
       "-emit-objc-header",
       "-emit-objc-header-path",
       "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCore.build/include/KickbaseCore-Swift.h",
-      "-color-diagnostics",
       "-swift-version",
       "5",
       "-plugin-path",
@@ -6362,7 +6364,6 @@
       "-emit-objc-header",
       "-emit-objc-header-path",
       "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/KickbaseCorePackageTests.build/include/KickbaseCorePackageTests-Swift.h",
-      "-color-diagnostics",
       "-plugin-path",
       "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
       "-sdk",
@@ -6438,7 +6439,6 @@
       "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/ModuleCache",
       "-parseable-output",
       "-parse-as-library",
-      "-color-diagnostics",
       "-swift-version",
       "5",
       "-plugin-path",
@@ -6509,7 +6509,6 @@
       "-emit-objc-header",
       "-emit-objc-header-path",
       "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/SkipDrive.build/include/SkipDrive-Swift.h",
-      "-color-diagnostics",
       "-swift-version",
       "5",
       "-plugin-path",
@@ -6634,7 +6633,6 @@
       "-emit-objc-header",
       "-emit-objc-header-path",
       "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/SkipFoundation.build/include/SkipFoundation-Swift.h",
-      "-color-diagnostics",
       "-swift-version",
       "5",
       "-plugin-path",
@@ -6736,7 +6734,6 @@
       "-emit-objc-header",
       "-emit-objc-header-path",
       "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/SkipLib.build/include/SkipLib-Swift.h",
-      "-color-diagnostics",
       "-swift-version",
       "5",
       "-plugin-path",
@@ -6814,7 +6811,6 @@
       "-emit-objc-header",
       "-emit-objc-header-path",
       "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/SkipModel.build/include/SkipModel-Swift.h",
-      "-color-diagnostics",
       "-swift-version",
       "5",
       "-plugin-path",
@@ -6882,7 +6878,6 @@
       "-emit-objc-header",
       "-emit-objc-header-path",
       "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/SkipTest.build/include/SkipTest-Swift.h",
-      "-color-diagnostics",
       "-swift-version",
       "5",
       "-plugin-path",
@@ -7162,7 +7157,6 @@
       "-emit-objc-header",
       "-emit-objc-header-path",
       "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/SkipUI.build/include/SkipUI-Swift.h",
-      "-color-diagnostics",
       "-swift-version",
       "5",
       "-plugin-path",
@@ -7231,7 +7225,6 @@
       "-emit-objc-header",
       "-emit-objc-header-path",
       "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/SkipUnit.build/include/SkipUnit-Swift.h",
-      "-color-diagnostics",
       "-swift-version",
       "5",
       "-plugin-path",
@@ -7422,7 +7415,6 @@
       "-emit-objc-header",
       "-emit-objc-header-path",
       "/Users/marcocorro/Documents/xCode/Kickbasehelper/KickbaseCore/.build/arm64-apple-macosx/debug/ViewInspector.build/include/ViewInspector-Swift.h",
-      "-color-diagnostics",
       "-swift-version",
       "5",
       "-plugin-path",
