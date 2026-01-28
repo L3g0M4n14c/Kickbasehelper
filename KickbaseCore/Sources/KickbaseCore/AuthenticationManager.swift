@@ -30,6 +30,9 @@ public class AuthenticationManager: ObservableObject {
             // Set token for API service
             apiService.setAuthToken(loginResponse.tkn)
             self.accessToken = loginResponse.tkn
+            
+            // Share token with BackgroundTaskManager for bonus collection
+            BackgroundTaskManager.shared.setAuthToken(loginResponse.tkn)
 
             // Wenn User-Daten in der Login-Response sind, verwende sie
             if let user = loginResponse.user {
@@ -112,6 +115,9 @@ public class AuthenticationManager: ObservableObject {
             // Set token for API service
             apiService.setAuthToken(demoLoginResponse.tkn)
             self.accessToken = demoLoginResponse.tkn
+            
+            // Share token with BackgroundTaskManager for bonus collection
+            BackgroundTaskManager.shared.setAuthToken(demoLoginResponse.tkn)
 
             if let user = demoLoginResponse.user {
                 print("👤 Demo User: \(user.name) - \(user.teamName)")
@@ -163,6 +169,9 @@ public class AuthenticationManager: ObservableObject {
         guard let token = accessToken else { return }
 
         apiService.setAuthToken(token)
+        
+        // Share token with BackgroundTaskManager
+        BackgroundTaskManager.shared.setAuthToken(token)
 
         do {
             let userSettings = try await apiService.getUserSettings()

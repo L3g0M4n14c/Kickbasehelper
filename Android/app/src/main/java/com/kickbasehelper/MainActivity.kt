@@ -19,6 +19,9 @@ class MainActivity : ComponentActivity() {
         // Retrieve and set the application context for Skip
         ProcessInfo.launch(application)
         
+        // Schedule bonus collection worker
+        BonusCollectionWorker.schedule(this)
+        
         setContent {
             val ligainsiderService = remember { LigainsiderService() }
             MaterialTheme {
