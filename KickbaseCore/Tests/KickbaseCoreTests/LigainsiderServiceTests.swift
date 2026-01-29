@@ -221,6 +221,29 @@ final class LigainsiderServiceTests: XCTestCase {
         XCTAssertEqual(p?.imageUrl, "https://www.ligainsider.de/player/team/lazy-player.jpg")
     }
 
+    func testFetchAllSquadsDoesNotConstructImageWhenNoImageFound() async throws {
+        let session = makeSession()
+        let service = LigainsiderService(session: session)
+
+        let html = """
+                <div></div>
+                <a href=\"/john-doe_12345\">John Doe</a>
+            """.data(using: .utf8)!
+
+        URLProtocolMock.requestHandler = { request in
+            let resp = HTTPURLResponse(
+                url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            return (resp, html)
+        }
+
+        XCTAssertEqual(service.playerCacheCount, 0)
+        await service.fetchAllSquadsAsync()
+        let p = service.getLigainsiderPlayer(firstName: "John", lastName: "Doe")
+        XCTAssertNotNil(p)
+        // No image should be constructed from slug; if the squad page has no image, imageUrl should remain nil
+        XCTAssertNil(p?.imageUrl)
+    }
+
     func testFetchAllSquadsCountsOnlyFlagsWhenNoPlayerImage() async throws {
         let session = makeSession()
         let service = LigainsiderService(session: session)
@@ -247,6 +270,61 @@ final class LigainsiderServiceTests: XCTestCase {
         XCTAssertTrue(
             service.onlyFlagsCount > 0,
             "Expected onlyFlagsCount to be incremented when only flags/wappen found")
+    }
+
+    func testSquadImageOverridesLineupImage() async throws {
+        let session = makeSession()
+        let service = LigainsiderService(session: session)
+
+        // Team lineup page contains a player image A
+        let lineupHtml = """
+                <html>
+                    <body>
+                        VORAUSSICHTLICHE AUFSTELLUNG
+                        <div>
+                            <img class=\"player_img\" src=\"https://www.ligainsider.de/player/team/lineup-player.jpg\" />
+                        </div>
+                        <a href=\"/john-doe_12345\">John Doe</a>
+                    </body>
+                </html>
+            """.data(using: .utf8)!
+
+        // Squad page contains a different image B which should take precedence
+        let squadHtml = """
+                <div>
+                    <img src=\"https://www.ligainsider.de/player/team/squad-player.jpg\" />
+                </div>
+                <a href=\"/john-doe_12345\">John Doe</a>
+            """.data(using: .utf8)!
+
+        URLProtocolMock.requestHandler = { request in
+            let urlStr = request.url!.absoluteString
+            let resp = HTTPURLResponse(
+                url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            if urlStr.contains("spieltage") {
+                // Overview returns a team link so that fetchLineupsAsync will call fetchTeamData
+                let overviewHTML = """
+                        <html>
+                            <body>
+                                <a href=\"/bundesliga/team/team1/saison-2025\">Team 1</a>
+                            </body>
+                        </html>
+                    """.data(using: .utf8)!
+                return (resp, overviewHTML)
+            }
+            if urlStr.contains("team1") {
+                // Return lineup html for team page
+                return (resp, lineupHtml)
+            }
+            // For squad fetches (called by fetchTeamData later) return squad html
+            return (resp, squadHtml)
+        }
+
+        await service.fetchLineupsAsync()
+        // The player should exist in cache and the image should be taken from the squad (squad-player.jpg)
+        let p = service.getLigainsiderPlayer(firstName: "John", lastName: "Doe")
+        XCTAssertNotNil(p)
+        XCTAssertEqual(p?.imageUrl, "https://www.ligainsider.de/player/team/squad-player.jpg")
     }
 
     func testFetchLineupsParsesMatchesAndPopulatesCache() async throws {
@@ -379,5 +457,55 @@ final class LigainsiderServiceTests: XCTestCase {
         XCTAssertTrue(
             service.session.configuration.protocolClasses == nil
                 || service.session.configuration.protocolClasses!.isEmpty)
+    }
+
+    func testMultipleBenchPlayersGetDistinctImages() async throws {
+        let session = makeSession()
+        let service = LigainsiderService(session: session)
+
+        // Team page with two bench players, each with their own image
+        let teamHtml = """
+                <html>
+                    <body>
+                        <div class=\"bench\">
+                            <img src=\"https://www.ligainsider.de/player/team/bench-player-a.jpg\" />
+                            <a href=\"/bench-player-a_111\">Bench A</a>
+                        </div>
+                        <div class=\"bench\">
+                            <img src=\"https://www.ligainsider.de/player/team/bench-player-b.jpg\" />
+                            <a href=\"/bench-player-b_112\">Bench B</a>
+                        </div>
+                    </body>
+                </html>
+            """.data(using: .utf8)!
+
+        URLProtocolMock.requestHandler = { request in
+            let urlStr = request.url!.absoluteString
+            let resp = HTTPURLResponse(
+                url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            if urlStr.contains("spieltage") {
+                let overviewHTML = """
+                        <html>
+                            <body>
+                                <a href=\"/bundesliga/team/team1/saison-2025\">Team 1</a>
+                            </body>
+                        </html>
+                    """.data(using: .utf8)!
+                return (resp, overviewHTML)
+            }
+            return (resp, teamHtml)
+        }
+
+        // Ensure cache empty and trigger background refresh
+        XCTAssertEqual(service.playerCacheCount, 0)
+        await service.fetchLineupsAsync()
+
+        let a = service.getLigainsiderPlayer(firstName: "Bench", lastName: "A")
+        let b = service.getLigainsiderPlayer(firstName: "Bench", lastName: "B")
+
+        XCTAssertNotNil(a)
+        XCTAssertNotNil(b)
+        XCTAssertEqual(a?.imageUrl, "https://www.ligainsider.de/player/team/bench-player-a.jpg")
+        XCTAssertEqual(b?.imageUrl, "https://www.ligainsider.de/player/team/bench-player-b.jpg")
     }
 }

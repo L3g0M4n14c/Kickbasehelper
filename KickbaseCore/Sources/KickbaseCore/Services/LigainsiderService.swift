@@ -98,15 +98,30 @@ public class LigainsiderService: ObservableObject {
                 for player in allSquad {
                     if let id = player.ligainsiderId {
                         newCache[id] = player
+                        if let imageUrl = player.imageUrl {
+                            print(
+                                "ℹ️ Ligainsider (merge): squad player \(id) has image: \(imageUrl)")
+                        } else {
+                            print("⚠️ Ligainsider (merge): squad player \(id) has NO image")
+                        }
                     }
                 }
 
                 let allRows = match.homeLineup + match.awayLineup
                 for row in allRows {
                     for player in row.players {
-                        // Speichere Hauptspieler (überschreibt Kader-Eintrag -> wichtig wegen 'alternative' Property)
+                        // Speichere Hauptspieler - prefer squad images that were inserted above
                         if let id = player.ligainsiderId {
-                            newCache[id] = player
+                            if let existing = newCache[id] {
+                                // Only replace existing if it had no image and lineup provides one
+                                if existing.imageUrl == nil && player.imageUrl != nil {
+                                    newCache[id] = player
+                                } else {
+                                    // keep existing (squad) entry
+                                }
+                            } else {
+                                newCache[id] = player
+                            }
                             newLineupIds.insert(id)  // Markiere als Startelfspieler
                         }
                         // Speichere Alternative falls vorhanden
@@ -212,7 +227,9 @@ public class LigainsiderService: ObservableObject {
         #if !SKIP
             return
                 manualReplacement
-                .folding(options: .diacriticInsensitive, locale: .current)
+                .folding(
+                    options: String.CompareOptions.diacriticInsensitive, locale: Locale.current
+                )
                 .replacingOccurrences(of: "-", with: " ")
                 .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
         #else
@@ -229,7 +246,13 @@ public class LigainsiderService: ObservableObject {
     public func getLigainsiderPlayer(firstName: String, lastName: String) -> LigainsiderPlayer? {
         // Check if cache has any data (not just matches)
         if playerCache.isEmpty {
-            print("[MATCHING] ❌ Cache EMPTY for \(firstName) \(lastName)")
+            print(
+                "[MATCHING] ❌ Cache EMPTY for \(firstName) \(lastName) — starting background fetch to populate cache"
+            )
+            // Trigger an asynchronous cache population in background so subsequent requests can hit the cache.
+            Task {
+                await self.fetchAllSquadsAsync()
+            }
             return nil
         }
 
@@ -355,7 +378,14 @@ public class LigainsiderService: ObservableObject {
     }
 
     public func getPlayerStatus(firstName: String, lastName: String) -> LigainsiderStatus {
-        if matches.isEmpty { return .out }  // Noch keine Daten
+        // If we don't have lineup/match data yet, use the player cache as a best-effort
+        // indicator: if the player exists in the cache, treat them as on the bench.
+        if matches.isEmpty {
+            if getLigainsiderPlayer(firstName: firstName, lastName: lastName) != nil {
+                return .bench
+            }
+            return .out
+        }
 
         let normalizedLastName = normalize(lastName)
         let normalizedFirstName = normalize(firstName)
@@ -621,69 +651,10 @@ public class LigainsiderService: ObservableObject {
                     // Da findLastRange komplex ist, splitten wir einfach nach src=" und nehmen das letzte was passt
                     let parts = previousComponent.components(separatedBy: "src=\"")
                     if parts.count > 1 {
-                        // Helper: extract candidate URLs from a HTML fragment
-                        func extractImageCandidates(_ html: String) -> [String] {
-                            var out: [String] = []
+                        // Use shared helper to extract candidates from the fragment before the link
+                        let allCandidates = extractImageCandidatesFromHtml(previousComponent)
 
-                            // src="..."
-                            let srcParts = html.components(separatedBy: "src=\"")
-                            for p in srcParts.dropFirst() {
-                                if let c = p.substringBefore("\"") { out.append(c) }
-                            }
-
-                            // data-src="..."
-                            let dParts = html.components(separatedBy: "data-src=\"")
-                            for p in dParts.dropFirst() {
-                                if let c = p.substringBefore("\"") { out.append(c) }
-                            }
-
-                            // srcset="..."
-                            let ssParts = html.components(separatedBy: "srcset=\"")
-                            for p in ssParts.dropFirst() {
-                                if let val = p.substringBefore("\"") {
-                                    let first = val.components(separatedBy: ",").first?
-                                        .trimmingCharacters(in: .whitespacesAndNewlines)
-                                    if let token = first?.components(separatedBy: " ").first {
-                                        out.append(token)
-                                    }
-                                }
-                            }
-
-                            // background-image:url(...)
-                            var searchStart = html.startIndex
-                            while let bgRange = html.range(
-                                of: "background-image", options: [],
-                                range: searchStart..<html.endIndex)
-                            {
-                                if let urlStart = html.range(
-                                    of: "url(", options: [],
-                                    range: bgRange.upperBound..<html.endIndex)
-                                {
-                                    let after = html[urlStart.upperBound...]
-                                    if let close = after.firstIndex(of: ")") {
-                                        var candidate = String(after[..<close])
-                                        candidate = candidate.replacingOccurrences(
-                                            of: "\"", with: "")
-                                        candidate = candidate.replacingOccurrences(
-                                            of: "'", with: "")
-                                        out.append(
-                                            candidate.trimmingCharacters(
-                                                in: .whitespacesAndNewlines))
-                                        searchStart = close
-                                        continue
-                                    }
-                                }
-                                break
-                            }
-
-                            return out.compactMap {
-                                $0.trimmingCharacters(in: .whitespacesAndNewlines)
-                            }.filter { !$0.isEmpty }
-                        }
-
-                        let allCandidates = extractImageCandidates(previousComponent)
-
-                        // If a player_img exists before a small_inner_icon, prefer the image(s) before the small_inner_icon
+                        // If a player_img exists before a small_inner_icon, prefer the image(s before the icon)
                         if previousComponent.contains("small_inner_icon")
                             && previousComponent.contains("player_img")
                         {
@@ -691,7 +662,7 @@ public class LigainsiderService: ObservableObject {
                                 .lowerBound
                             {
                                 let prefix = String(previousComponent[..<nationIdx])
-                                let prefixCandidates = extractImageCandidates(prefix)
+                                let prefixCandidates = extractImageCandidatesFromHtml(prefix)
                                 if let chosen = prefixCandidates.first(where: {
                                     isLikelyPlayerImage($0) || !isLikelyFlagImage($0)
                                 }) {
@@ -703,7 +674,7 @@ public class LigainsiderService: ObservableObject {
                             }
                         }
 
-                        // Otherwise scan all candidates (prefer explicit player images, then non-flag ligainsider images)
+                        // Otherwise scan candidates before the link (prefer explicit player images, then non-flag ligainsider images)
                         if imageUrl == nil {
                             if let playerCandidate = allCandidates.first(where: {
                                 isLikelyPlayerImage($0) && !isLikelyFlagImage($0)
@@ -719,10 +690,101 @@ public class LigainsiderService: ObservableObject {
                                 self.onlyFlagsCount += 1
                             }
                         }
+
+                        // If still nothing found in the immediate previous component, check earlier sibling components
+                        if imageUrl == nil {
+                            // Try up to 3 components to the left - covers cases where player_img occurs before a small_inner_icon component
+                            var earlierCandidates: [String] = []
+                            for offset in 2...4 {
+                                let idx = i - offset
+                                if idx >= 0 {
+                                    let comp = components[idx]
+                                    let cands = extractImageCandidatesFromHtml(comp)
+                                    if !cands.isEmpty {
+                                        earlierCandidates.append(contentsOf: cands)
+                                    }
+                                    // If we already have an explicit player image, stop early
+                                    if cands.contains(where: {
+                                        isLikelyPlayerImage($0) && !isLikelyFlagImage($0)
+                                    }) {
+                                        break
+                                    }
+                                }
+                            }
+
+                            if let playerCandidate = earlierCandidates.first(where: {
+                                isLikelyPlayerImage($0) && !isLikelyFlagImage($0)
+                            }) {
+                                imageUrl = playerCandidate
+                                print(
+                                    "ℹ️ Ligainsider (fetchSquad): found image for \(slug) in earlier component: \(playerCandidate)"
+                                )
+                            } else if let nonFlag = earlierCandidates.first(where: {
+                                !isLikelyFlagImage($0)
+                            }) {
+                                imageUrl = nonFlag
+                                self.nonPlayerImageUsedCount += 1
+                                print(
+                                    "ℹ️ Ligainsider (fetchSquad): found non-player image for \(slug) in earlier component: \(nonFlag)"
+                                )
+                            }
+                        }
+
+                        // If still nothing found, also check the HTML *after* the closing </a> inside this component
+                        if imageUrl == nil, let afterIndex = component.range(of: "</a>")?.upperBound
+                        {
+                            let tail = String(component[afterIndex...])
+                            let tailCandidates = extractImageCandidatesFromHtml(tail)
+
+                            if let playerCandidate = tailCandidates.first(where: {
+                                isLikelyPlayerImage($0) && !isLikelyFlagImage($0)
+                            }) {
+                                imageUrl = playerCandidate
+                            } else if let nonFlag = tailCandidates.first(where: {
+                                !isLikelyFlagImage($0)
+                            }) {
+                                imageUrl = nonFlag
+                                self.nonPlayerImageUsedCount += 1
+                            } else if !tailCandidates.isEmpty {
+                                self.onlyFlagsCount += 1
+                            }
+
+                            // Debug: If still no image, log detailed context for the slug to help diagnose missing images
+                            if imageUrl == nil {
+                                let beforeCandidates = extractImageCandidatesFromHtml(
+                                    previousComponent)
+                                let afterCandidates = tailCandidates
+                                let sampleBefore = String(previousComponent.prefix(320))
+                                let sampleAfter = String(tail.prefix(320))
+                                print(
+                                    "⚠️ Ligainsider (fetchSquad DEBUG): no image for slug=\(slug), name=\(name), team=\(teamName)"
+                                )
+                                print(
+                                    "   Candidates BEFORE (\(beforeCandidates.count)): \(beforeCandidates)"
+                                )
+                                print(
+                                    "   Candidates AFTER (\(afterCandidates.count)): \(afterCandidates)"
+                                )
+                                print("   PREV_FRAGMENT: \(sampleBefore)")
+                                print("   TAIL_FRAGMENT: \(sampleAfter)")
+                            }
+                        }
                     }
                 }
 
+                // No constructed fallback: if we didn't find an explicit image in the HTML
+                // leave imageUrl nil. (We only use images scraped from the squad HTML.)
+
                 if !players.contains(where: { $0.ligainsiderId == slug }) {
+                    if let img = imageUrl {
+                        print(
+                            "ℹ️ Ligainsider (fetchSquad): found image for \(slug) (team: \(teamName)): \(img)"
+                        )
+                    } else {
+                        print(
+                            "⚠️ Ligainsider (fetchSquad): no image found for \(slug) (name: \(name), team: \(teamName))"
+                        )
+                    }
                     players.append(
                         LigainsiderPlayer(
                             name: name, alternative: nil, ligainsiderId: slug, imageUrl: imageUrl))
@@ -779,17 +841,25 @@ public class LigainsiderService: ObservableObject {
             }
         }
 
+        // If there's an unpaired last link (odd number of links), include it so we still fetch that team
+        if !currentPair.isEmpty {
+            matchPairs.append(currentPair)
+        }
+
         // 3. Details laden (parallel für bessere Performance)
         print("Starte paralleles Laden der Match-Details...")
         return await withTaskGroup(of: LigainsiderMatch?.self) { group in
             for pair in matchPairs {
                 group.addTask {
                     let homeUrl = pair[0]
-                    let awayUrl = pair[1]
+                    let awayUrl = pair.count > 1 ? pair[1] : nil
 
                     do {
                         let home = try await self.fetchTeamData(url: homeUrl)
-                        let away = try await self.fetchTeamData(url: awayUrl)
+                        let away =
+                            awayUrl != nil
+                            ? try await self.fetchTeamData(url: awayUrl!)
+                            : TeamDataResult(name: "", logo: nil, lineup: [], squad: [])
 
                         return LigainsiderMatch(
                             homeTeam: home.name,
@@ -897,6 +967,35 @@ public class LigainsiderService: ObservableObject {
 
             // Aufteilen in Rows
             let rowComponents = cleanSearchArea.splitBy("player_position_row")
+
+            if rowComponents.count <= 1 {
+                // Fallback: Wenn die Aufstellung keine 'player_position_row' Markup verwendet
+                // (vereinfachte Mock-HTML in Tests oder alternative Seiten), dann scanne die
+                // gesamte Suchzone nach <a href="/slug">Name</a> Links und behandle diese
+                // als eine einfache Aufstellung (eine Reihe)
+                var fallbackPlayers: [LigainsiderPlayer] = []
+                let linkComponents = cleanSearchArea.splitBy("<a ")
+                for linkPart in linkComponents.dropFirst() {
+                    guard let slug = linkPart.substringBetween("href=\"/", "\"") else { continue }
+                    if !slug.contains("_") { continue }
+                    if slug.contains("/") { continue }
+                    if let last = slug.last, !"0123456789".contains(last) { continue }
+                    guard let rawName = linkPart.substringBetween(">", "</a>") else { continue }
+                    let clearName = removeHtmlTags(rawName)
+                    let name = clearName.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+                    if name.isEmpty || name.count > 50 { continue }
+
+                    let player = LigainsiderPlayer(
+                        name: name, alternative: nil, ligainsiderId: slug, imageUrl: nil)
+                    fallbackPlayers.append(player)
+                    print(
+                        "ℹ️ Ligainsider (fetchTeamData fallback lineup): found starting player: \(slug) name=\(name)"
+                    )
+                }
+                if !fallbackPlayers.isEmpty {
+                    formationRows.append(fallbackPlayers)
+                }
+            }
 
             for i in 1..<rowComponents.count {
                 let rowHtml = rowComponents[i]
@@ -1038,7 +1137,7 @@ public class LigainsiderService: ObservableObject {
                         let isMainPlayer = (index == 0)
                         let alternativeField =
                             isMainPlayer && namesInColumn.count > 1 ? namesInColumn[1].name : nil
-                        
+
                         allParsedPlayers.append(
                             LigainsiderPlayer(
                                 name: playerData.name,
@@ -1057,9 +1156,25 @@ public class LigainsiderService: ObservableObject {
         }
 
         // Kader laden: Kombiniere geparste Spieler mit fetchSquad (für zusätzliche Spieler die nicht in Aufstellung sind)
-        let path = URL(string: url)?.path ?? ""
-        let fetchedSquad = await fetchSquad(path: path, teamName: teamName)
-    
+        // Prefer using a known team-specific squad path when available (teamSquadPaths), otherwise
+        // fall back to the team page path.
+        // Derive a sensible squad path using our known mapping or the team name as a slug
+        let squadPath: String
+        if let mapped = self.teamSquadPaths[teamName] {
+            squadPath = mapped
+        } else {
+            // Fallback: use team name -> slug/kader pattern (e.g., 'FC Bayern München' -> '/fc-bayern-muenchen/kader/')
+            let slug =
+                teamName
+                .lowercased()
+                .replacingOccurrences(of: " ", with: "-")
+                .folding(
+                    options: String.CompareOptions.diacriticInsensitive, locale: Locale.current)
+            squadPath = "/\(slug)/kader/"
+        }
+
+        let fetchedSquad = await fetchSquad(path: squadPath, teamName: teamName)
+
         // Merge allParsedPlayers mit fetchedSquad
         // Strategie: Priorisiere Spieler mit Bildern aus allParsedPlayers (Aufstellungsseite),
         // behalte aber fetchedSquad-Einträge für Spieler die nicht in der Aufstellung sind
@@ -1072,18 +1187,17 @@ public class LigainsiderService: ObservableObject {
             }
         }
 
-        // Dann allParsedPlayers einfügen (überschreibt nur wenn wir bessere Daten haben)
+        // Dann allParsedPlayers einfügen.
+        // Strategy: Prefer squad images (fetchedSquad) over lineup images. Only use the lineup image
+        // if the squad entry has no image. This ensures squad page is the single source of images.
         for player in allParsedPlayers {
             if let id = player.ligainsiderId {
                 if let existingPlayer = squadMap[id] {
-                    // Überschreibe nur wenn der neue Spieler ein Bild hat und der alte nicht
-                    if player.imageUrl != nil && existingPlayer.imageUrl == nil {
+                    // Only overwrite if the existing (squad) has no image and the lineup provides one
+                    if existingPlayer.imageUrl == nil && player.imageUrl != nil {
                         squadMap[id] = player
                     }
-                    // Wenn beide Bilder haben, behalte allParsedPlayers (Aufstellungsseite ist aktueller)
-                    else if player.imageUrl != nil {
-                        squadMap[id] = player
-                    }
+                    // Otherwise, keep squad's data (prefer squad image even if lineup has one)
                 } else {
                     // Neuer Spieler, füge hinzu
                     squadMap[id] = player
@@ -1091,7 +1205,188 @@ public class LigainsiderService: ObservableObject {
             }
         }
 
-        let finalSquad = Array(squadMap.values)
+        var finalSquad = Array(squadMap.values)
+
+        // Ensure bench/kader players also get images by searching the team HTML for image candidates
+        for (index, player) in finalSquad.enumerated() {
+            if player.imageUrl == nil, let slug = player.ligainsiderId {
+                if let fragments = findComponentsForSlug(html, slug: slug) {
+                    let previousComponent = fragments.previous
+                    let nextComponent = fragments.tail
+
+                    let candidatesBefore = extractImageCandidatesFromHtml(previousComponent)
+                    let candidatesAfter = extractImageCandidatesFromHtml(nextComponent)
+
+                    // Prefer explicit player images found before the link, else after, then non-flag images
+                    if let playerCandidate = candidatesBefore.first(where: {
+                        isLikelyPlayerImage($0) && !isLikelyFlagImage($0)
+                    }) {
+                        print(
+                            "ℹ️ Ligainsider (squad-fill): assigned image BEFORE link for \(slug): \(playerCandidate)"
+                        )
+                        finalSquad[index] = LigainsiderPlayer(
+                            name: player.name, alternative: player.alternative,
+                            ligainsiderId: player.ligainsiderId, imageUrl: playerCandidate)
+                    } else if let playerCandidate = candidatesAfter.first(where: {
+                        isLikelyPlayerImage($0) && !isLikelyFlagImage($0)
+                    }) {
+                        print(
+                            "ℹ️ Ligainsider (squad-fill): assigned image AFTER link for \(slug): \(playerCandidate)"
+                        )
+                        finalSquad[index] = LigainsiderPlayer(
+                            name: player.name, alternative: player.alternative,
+                            ligainsiderId: player.ligainsiderId, imageUrl: playerCandidate)
+                    } else if let nonFlag = (candidatesBefore + candidatesAfter).first(where: {
+                        !isLikelyFlagImage($0)
+                    }) {
+                        print(
+                            "ℹ️ Ligainsider (squad-fill): assigned non-player image for \(slug): \(nonFlag)"
+                        )
+                        finalSquad[index] = LigainsiderPlayer(
+                            name: player.name, alternative: player.alternative,
+                            ligainsiderId: player.ligainsiderId, imageUrl: nonFlag)
+                        self.nonPlayerImageUsedCount += 1
+                    } else if !(candidatesBefore + candidatesAfter).isEmpty {
+                        print("⚠️ Ligainsider (squad-fill): only flags found for \(slug)")
+                        self.onlyFlagsCount += 1
+
+                        // As a fallback, try a wider neighbourhood around the slug (e.g., adjacent components)
+                        let expanded = extractImageCandidatesAroundSlug(html, slug: slug, window: 2)
+                        if let expandedPlayer = expanded.first(where: {
+                            isLikelyPlayerImage($0) && !isLikelyFlagImage($0)
+                        }) {
+                            print(
+                                "ℹ️ Ligainsider (squad-fill): assigned image VIA expanded-search for \(slug): \(expandedPlayer)"
+                            )
+                            finalSquad[index] = LigainsiderPlayer(
+                                name: player.name, alternative: player.alternative,
+                                ligainsiderId: player.ligainsiderId, imageUrl: expandedPlayer)
+                        } else if let expandedNonFlag = expanded.first(where: {
+                            !isLikelyFlagImage($0)
+                        }) {
+                            print(
+                                "ℹ️ Ligainsider (squad-fill): assigned non-player image VIA expanded-search for \(slug): \(expandedNonFlag)"
+                            )
+                            finalSquad[index] = LigainsiderPlayer(
+                                name: player.name, alternative: player.alternative,
+                                ligainsiderId: player.ligainsiderId, imageUrl: expandedNonFlag)
+                            self.nonPlayerImageUsedCount += 1
+                        } else if !expanded.isEmpty {
+                            print(
+                                "⚠️ Ligainsider (squad-fill): expanded search found only flags for \(slug)"
+                            )
+                            self.onlyFlagsCount += 1
+                        } else {
+                            print(
+                                "⚠️ Ligainsider (squad-fill): no candidates found even after expanded search for \(slug)"
+                            )
+
+                            // Final fallback: search anywhere near the slug text (character radius)
+                            let anywhere = extractImageCandidatesAroundSlugAnywhere(
+                                html, slug: slug, radius: 800)
+                            print(
+                                "ℹ️ Ligainsider (squad-fill): anywhere-search candidates for \(slug): \(anywhere.count)"
+                            )
+                            if let anywherePlayer = anywhere.first(where: {
+                                isLikelyPlayerImage($0) && !isLikelyFlagImage($0)
+                            }) {
+                                print(
+                                    "ℹ️ Ligainsider (squad-fill): assigned image VIA anywhere-search for \(slug): \(anywherePlayer)"
+                                )
+                                finalSquad[index] = LigainsiderPlayer(
+                                    name: player.name, alternative: player.alternative,
+                                    ligainsiderId: player.ligainsiderId, imageUrl: anywherePlayer)
+                            } else if let anywhereNonFlag = anywhere.first(where: {
+                                !isLikelyFlagImage($0)
+                            }) {
+                                print(
+                                    "ℹ️ Ligainsider (squad-fill): assigned non-player image VIA anywhere-search for \(slug): \(anywhereNonFlag)"
+                                )
+                                finalSquad[index] = LigainsiderPlayer(
+                                    name: player.name, alternative: player.alternative,
+                                    ligainsiderId: player.ligainsiderId, imageUrl: anywhereNonFlag)
+                                self.nonPlayerImageUsedCount += 1
+                            } else if !anywhere.isEmpty {
+                                print(
+                                    "⚠️ Ligainsider (squad-fill): anywhere-search found only flags for \(slug)"
+                                )
+                                self.onlyFlagsCount += 1
+                            } else {
+                                print(
+                                    "⚠️ Ligainsider (squad-fill): anywhere-search found nothing for \(slug)"
+                                )
+                            }
+                        }
+                    } else {
+                        // No candidates at all in immediate neighbourhood - try expanded search
+                        let expanded = extractImageCandidatesAroundSlug(html, slug: slug, window: 2)
+                        if let expandedPlayer = expanded.first(where: {
+                            isLikelyPlayerImage($0) && !isLikelyFlagImage($0)
+                        }) {
+                            print(
+                                "ℹ️ Ligainsider (squad-fill): assigned image VIA expanded-search for \(slug): \(expandedPlayer)"
+                            )
+                            finalSquad[index] = LigainsiderPlayer(
+                                name: player.name, alternative: player.alternative,
+                                ligainsiderId: player.ligainsiderId, imageUrl: expandedPlayer)
+                        } else if let expandedNonFlag = expanded.first(where: {
+                            !isLikelyFlagImage($0)
+                        }) {
+                            print(
+                                "ℹ️ Ligainsider (squad-fill): assigned non-player image VIA expanded-search for \(slug): \(expandedNonFlag)"
+                            )
+                            finalSquad[index] = LigainsiderPlayer(
+                                name: player.name, alternative: player.alternative,
+                                ligainsiderId: player.ligainsiderId, imageUrl: expandedNonFlag)
+                            self.nonPlayerImageUsedCount += 1
+                        } else if !expanded.isEmpty {
+                            print(
+                                "⚠️ Ligainsider (squad-fill): expanded search found only flags for \(slug)"
+                            )
+                            self.onlyFlagsCount += 1
+                        } else {
+                            print("⚠️ Ligainsider (squad-fill): no candidates found for \(slug)")
+
+                            // Final fallback: search anywhere near the slug text (character radius)
+                            let anywhere = extractImageCandidatesAroundSlugAnywhere(
+                                html, slug: slug, radius: 800)
+                            print(
+                                "ℹ️ Ligainsider (squad-fill): anywhere-search candidates for \(slug): \(anywhere.count)"
+                            )
+                            if let anywherePlayer = anywhere.first(where: {
+                                isLikelyPlayerImage($0) && !isLikelyFlagImage($0)
+                            }) {
+                                print(
+                                    "ℹ️ Ligainsider (squad-fill): assigned image VIA anywhere-search for \(slug): \(anywherePlayer)"
+                                )
+                                finalSquad[index] = LigainsiderPlayer(
+                                    name: player.name, alternative: player.alternative,
+                                    ligainsiderId: player.ligainsiderId, imageUrl: anywherePlayer)
+                            } else if let anywhereNonFlag = anywhere.first(where: {
+                                !isLikelyFlagImage($0)
+                            }) {
+                                print(
+                                    "ℹ️ Ligainsider (squad-fill): assigned non-player image VIA anywhere-search for \(slug): \(anywhereNonFlag)"
+                                )
+                                finalSquad[index] = LigainsiderPlayer(
+                                    name: player.name, alternative: player.alternative,
+                                    ligainsiderId: player.ligainsiderId, imageUrl: anywhereNonFlag)
+                                self.nonPlayerImageUsedCount += 1
+                            } else if !anywhere.isEmpty {
+                                print(
+                                    "⚠️ Ligainsider (squad-fill): anywhere-search found only flags for \(slug)"
+                                )
+                                self.onlyFlagsCount += 1
+                            } else {
+                                print(
+                                    "⚠️ Ligainsider (squad-fill): anywhere-search found nothing for \(slug)"
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
         return TeamDataResult(
             name: teamName, logo: teamLogo, lineup: formationRows, squad: finalSquad)
@@ -1113,6 +1408,174 @@ public class LigainsiderService: ObservableObject {
         }
         return result
     }
+
+    // Extracts image candidate URLs from an arbitrary HTML fragment (src, data-src, srcset, background-image)
+    private func extractImageCandidatesFromHtml(_ html: String) -> [String] {
+        var out: [String] = []
+
+        // src="..."
+        let srcParts = html.components(separatedBy: "src=\"")
+        for p in srcParts.dropFirst() {
+            if let c = p.substringBefore("\"") { out.append(c) }
+        }
+
+        // data-src="..."
+        let dParts = html.components(separatedBy: "data-src=\"")
+        for p in dParts.dropFirst() {
+            if let c = p.substringBefore("\"") { out.append(c) }
+        }
+
+        // srcset="..." -> take first token
+        let ssParts = html.components(separatedBy: "srcset=\"")
+        for p in ssParts.dropFirst() {
+            if let val = p.substringBefore("\"") {
+                let first = val.components(separatedBy: ",").first?
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                if let token = first?.components(separatedBy: " ").first {
+                    out.append(token)
+                }
+            }
+        }
+
+        // data-srcset="..." (lazy srcset)
+        let dssParts = html.components(separatedBy: "data-srcset=\"")
+        for p in dssParts.dropFirst() {
+            if let val = p.substringBefore("\"") {
+                let first = val.components(separatedBy: ",").first?
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                if let token = first?.components(separatedBy: " ").first {
+                    out.append(token)
+                }
+            }
+        }
+
+        // data-lazy-src / data-lazy / data-original / data-bg / data-background
+        let lazyKeys = [
+            "data-lazy-src=\"", "data-lazy=\"", "data-original=\"", "data-bg=\"",
+            "data-background=\"",
+        ]
+        for key in lazyKeys {
+            let parts = html.components(separatedBy: key)
+            for p in parts.dropFirst() {
+                if let c = p.substringBefore("\")") { out.append(c) }
+                if let c = p.substringBefore("\"") { out.append(c) }
+            }
+        }
+
+        // background-image:url(...)
+        var searchStart = html.startIndex
+        while let bgRange = html.range(
+            of: "background-image", options: [], range: searchStart..<html.endIndex)
+        {
+            if let urlStart = html.range(
+                of: "url(", options: [], range: bgRange.upperBound..<html.endIndex)
+            {
+                let after = html[urlStart.upperBound...]
+                if let close = after.firstIndex(of: ")") {
+                    var candidate = String(after[..<close])
+                    candidate = candidate.replacingOccurrences(of: "\"", with: "")
+                    candidate = candidate.replacingOccurrences(of: "'", with: "")
+                    out.append(candidate.trimmingCharacters(in: .whitespacesAndNewlines))
+                    searchStart = close
+                    continue
+                }
+            }
+            break
+        }
+
+        return out.compactMap { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter {
+            !$0.isEmpty
+        }
+    }
+
+    // Find the HTML components directly surrounding an anchor with the given slug.
+    // Returns (previous, tail) where 'previous' is the HTML before the anchor and 'tail' is the remainder after the anchor in that component.
+    private func findComponentsForSlug(_ html: String, slug: String) -> (
+        previous: String, tail: String
+    )? {
+        let comps = html.components(separatedBy: "href=\"/")
+        guard comps.count > 1 else { return nil }
+        for i in 1..<comps.count {
+            let comp = comps[i]
+            if let raw = comp.substringBefore("\"") {
+                let candidate = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+                if candidate == slug || candidate.hasPrefix(slug + "_") {
+                    return (previous: comps[i - 1], tail: comp)
+                }
+            }
+        }
+        return nil
+    }
+
+    // Search N components around the slug and return extracted image candidates (flattened)
+    private func extractImageCandidatesAroundSlug(_ html: String, slug: String, window: Int = 2)
+        -> [String]
+    {
+        let comps = html.components(separatedBy: "href=\"/")
+        guard comps.count > 1 else { return [] }
+        var foundIndex: Int? = nil
+        for i in 1..<comps.count {
+            let comp = comps[i]
+            if let raw = comp.substringBefore("\"") {
+                let candidate = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+                if candidate == slug || candidate.hasPrefix(slug + "_") {
+                    foundIndex = i
+                    break
+                }
+            }
+        }
+        guard let idx = foundIndex else { return [] }
+
+        let start = max(0, idx - window - 1)
+        let end = min(comps.count - 1, idx + window)
+
+        var candidates: [String] = []
+        for j in start...end {
+            // include the component before and the component itself (since comps are split by href)
+            candidates.append(contentsOf: extractImageCandidatesFromHtml(comps[j]))
+        }
+        return candidates
+    }
+
+    // Search the entire HTML for occurrences of the slug and extract image candidates within a character radius
+    #if !SKIP
+        private func extractImageCandidatesAroundSlugAnywhere(
+            _ html: String, slug: String, radius: Int = 600
+        ) -> [String] {
+            var out: [String] = []
+            var searchStart = html.startIndex
+            while let r = html.range(
+                of: slug, options: String.CompareOptions.caseInsensitive,
+                range: searchStart..<html.endIndex)
+            {
+                // compute window bounds
+                let start =
+                    html.index(r.lowerBound, offsetBy: -radius, limitedBy: html.startIndex)
+                    ?? html.startIndex
+                let end =
+                    html.index(r.upperBound, offsetBy: radius, limitedBy: html.endIndex)
+                    ?? html.endIndex
+                let fragment = String(html[start..<end])
+                out.append(contentsOf: extractImageCandidatesFromHtml(fragment))
+                searchStart = r.upperBound
+            }
+
+            var seen: Set<String> = []
+            return out.compactMap { candidate -> String? in
+                let trimmed = candidate.trimmingCharacters(in: .whitespacesAndNewlines)
+                if trimmed.isEmpty || seen.contains(trimmed) { return nil }
+                seen.insert(trimmed)
+                return trimmed
+            }
+        }
+    #else
+        private func extractImageCandidatesAroundSlugAnywhere(
+            _ html: String, slug: String, radius: Int = 600
+        ) -> [String] {
+            // Not available under SKIP — return empty result to keep behavior stable
+            return []
+        }
+    #endif
 
     // Backup (Lokal Speichern)
     private func saveToLocal(matches: [LigainsiderMatch]) {
@@ -1136,5 +1599,12 @@ public class LigainsiderService: ObservableObject {
                 self.matches = cached
             }
         #endif
+    }
+
+    // Public helper to trigger an async refresh of the Ligainsider squad cache
+    public func refreshCache() {
+        Task {
+            await self.fetchAllSquadsAsync()
+        }
     }
 }

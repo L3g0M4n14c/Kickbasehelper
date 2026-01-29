@@ -13,7 +13,16 @@ final class URLProtocolMock: URLProtocol {
 
     override func startLoading() {
         guard let handler = URLProtocolMock.requestHandler else {
-            fatalError("Request handler not set")
+            // Do not crash tests due to missing handler - return a simple 404 response so tests
+            // that don't care about network will continue to run without causing fatal errors.
+            if let url = request.url {
+                let resp = HTTPURLResponse(
+                    url: url, statusCode: 404, httpVersion: nil, headerFields: nil)!
+                client?.urlProtocol(self, didReceive: resp, cacheStoragePolicy: .notAllowed)
+                client?.urlProtocol(self, didLoad: Data())
+                client?.urlProtocolDidFinishLoading(self)
+            }
+            return
         }
 
         do {

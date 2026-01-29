@@ -57,29 +57,26 @@ func isLikelyPlayerImage(_ urlString: String) -> Bool {
     return false
 }
 
-/// Chooses a profile image URL from available sources, preferring explicit player images and skipping likely flag images.
+/// Chooses a profile image URL from available sources, preferring Ligainsider/player images and skipping Kickbase-provided images.
+/// We intentionally *ignore* Kickbase-supplied images (profileBigUrl/pim/etc.) to prefer Ligainsider or explicit player images.
 func chooseProfileBigUrl(_ details: PlayerDetailResponse?, _ playerData: [String: Any]) -> String {
-    // Prefer detail-provided image if present and not a flag
-    if let d = details, let pb = d.profileBigUrl, !pb.isEmpty, !isLikelyFlagImage(pb) {
-        return pb
-    }
-
-    // Candidate keys to try in order
+    // Candidate keys to try in order (these often come from Kickbase API, but we'll only accept Ligainsider/player ones)
     let keys = ["profileBigUrl", "imageUrl", "image", "photo", "pim"]
-    var candidates = keys.compactMap { playerData[$0] as? String }
+    let candidates = keys.compactMap { playerData[$0] as? String }
 
-    // Prefer explicit player images (e.g., contain '/player/team/') if present
-    if let playerCandidate = candidates.first(where: {
-        isLikelyPlayerImage($0) && !isLikelyFlagImage($0)
+    // 1) Prefer explicit Ligainsider-hosted images (strong signal)
+    if let liga = candidates.first(where: {
+        $0.contains("ligainsider.de") && !isLikelyFlagImage($0)
     }) {
-        return playerCandidate
+        return liga
     }
 
-    // Otherwise pick first non-flag candidate
-    if let nonFlag = candidates.first(where: { !isLikelyFlagImage($0) }) {
-        return nonFlag
+    // 2) Prefer explicit player images (e.g., '/player/team/') if present and not a flag
+    if let playerImg = candidates.first(where: { isLikelyPlayerImage($0) && !isLikelyFlagImage($0) }
+    ) {
+        return playerImg
     }
 
-    // No suitable image found
+    // 3) Otherwise, do not use Kickbase-supplied images -> return empty
     return ""
 }

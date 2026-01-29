@@ -6,6 +6,8 @@ import SwiftUI
 public class KickbasePlayerService: ObservableObject {
     private let apiService: KickbaseAPIServiceProtocol
     private let dataParser: KickbaseDataParserProtocol
+    // Optional LigainsiderService for cache-only lookups (fallback for market images)
+    private let ligainsiderService: LigainsiderService?
 
     // Simple in-memory caches (MainActor only)
     private var playerPerformanceCache:
@@ -14,9 +16,13 @@ public class KickbasePlayerService: ObservableObject {
     private let playerPerformanceCacheTTL: TimeInterval = 5 * 60  // 5 minutes
     private let teamProfileCacheTTL: TimeInterval = 10 * 60  // 10 minutes
 
-    public init(apiService: KickbaseAPIServiceProtocol, dataParser: KickbaseDataParserProtocol) {
+    public init(
+        apiService: KickbaseAPIServiceProtocol, dataParser: KickbaseDataParserProtocol,
+        ligainsiderService: LigainsiderService? = nil
+    ) {
         self.apiService = apiService
         self.dataParser = dataParser
+        self.ligainsiderService = ligainsiderService
     }
 
     // MARK: - Current Matchday
@@ -102,6 +108,13 @@ public class KickbasePlayerService: ObservableObject {
             let json = try await apiService.getPlayerDetails(leagueId: leagueId, playerId: playerId)
             print("✅ Got player details for ID: \(playerId)")
 
+            // If the detail endpoint returned an empty object, treat it as "no data" so that
+            // callers fall back to market-provided names/fields instead of using empty strings.
+            if json.isEmpty {
+                print("   ⚠️ Player details empty for ID: \(playerId) — treating as nil")
+                return nil
+            }
+
             return PlayerDetailResponse(
                 fn: json["fn"] as? String,
                 ln: json["ln"] as? String,
@@ -114,22 +127,8 @@ public class KickbasePlayerService: ObservableObject {
                 totalPoints: json["totalPoints"] as? Int ?? json["tp"] as? Int,
                 marketValue: json["marketValue"] as? Int,
                 marketValueTrend: json["marketValueTrend"] as? Int,
-                profileBigUrl: {
-                    if let pb = json["profileBigUrl"] as? String, isLikelyPlayerImage(pb) {
-                        return pb
-                    }
-                    if let pim = json["pim"] as? String, isLikelyPlayerImage(pim) {
-                        return pim
-                    }
-                    // Fallback: if we have a non-flag explicit URL, return it, otherwise nil
-                    if let pb = json["profileBigUrl"] as? String, !isLikelyFlagImage(pb) {
-                        return pb
-                    }
-                    if let pim = json["pim"] as? String, !isLikelyFlagImage(pim) {
-                        return pim
-                    }
-                    return nil
-                }(),
+                // We no longer read images from Kickbase details here — prefer Ligainsider or other sources.
+                profileBigUrl: nil,
                 teamId: json["teamId"] as? String,
                 tfhmvt: json["tfhmvt"] as? Int,
                 prlo: json["prlo"] as? Int,
@@ -836,11 +835,25 @@ public class KickbasePlayerService: ObservableObject {
             ? "\(finalFirstName)-\(finalLastName)-\(seller.id)-\(UUID().uuidString.prefix(8))"
             : apiId
 
+        // Determine profile image: prefer Kickbase API's ligainsider/player images, else fallback to LigainsiderService cache (cache-only lookup)
+        var profileBig = chooseProfileBigUrl(playerDetails, playerData)
+        if profileBig.isEmpty, let liga = self.ligainsiderService {
+            // Debug: log Ligainsider cache lookup result for market fallback
+            let ligaPlayer = liga.getLigainsiderPlayer(
+                firstName: finalFirstName, lastName: finalLastName)
+            print(
+                "[MarketFallback] Ligainsider lookup for \(finalFirstName) \(finalLastName) -> id=\(ligaPlayer?.ligainsiderId ?? "nil") image=\(ligaPlayer?.imageUrl ?? "nil")"
+            )
+            if let ligaPlayer = ligaPlayer, let ligaUrl = ligaPlayer.imageUrl, !ligaUrl.isEmpty {
+                profileBig = ligaUrl
+            }
+        }
+
         return MarketPlayer(
             id: uniqueId,
             firstName: finalFirstName,
             lastName: finalLastName,
-            profileBigUrl: chooseProfileBigUrl(playerDetails, playerData),
+            profileBigUrl: profileBig,
             teamName: teamName,
             teamId: playerDetails?.teamId ?? playerData["teamId"] as? String ?? playerData["tid"]
                 as? String ?? "",

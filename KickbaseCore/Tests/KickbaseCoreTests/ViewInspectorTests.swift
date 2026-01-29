@@ -17,7 +17,13 @@ extension LineupSlotRowView: Inspectable {}
 
 #if canImport(ViewInspector)
     // Make our InspectableSheet act as a PopupPresenter so ViewInspector can inspect the sheet content
-    extension InspectableSheet: PopupPresenter {}
+    // Provide a minimal compatibility shim for the newer ViewInspector PopupPresenter requirements
+    extension InspectableSheet: PopupPresenter {
+        public typealias Popup = AnyView
+        public var isPresented: Binding<Bool> { Binding.constant(false) }
+        public var popupBuilder: () -> AnyView { { AnyView(EmptyView()) } }
+        public var onDismiss: (() -> Void)? { nil }
+    }
 #endif
 
 @MainActor

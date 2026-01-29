@@ -26,6 +26,9 @@ public class KickbaseManager: ObservableObject {
     private let playerService: KickbasePlayerService
     private let userStatsService: KickbaseUserStatsService
 
+    // Ligainsider service reference used to prefetch squad cache at startup
+    private let ligainsiderService: LigainsiderService?
+
     // MARK: - Public Service Access
 
     public var authenticatedPlayerService: KickbasePlayerService {
@@ -55,8 +58,12 @@ public class KickbaseManager: ObservableObject {
         self.dataParser = parser
         self.leagueService =
             leagueService ?? KickbaseLeagueService(apiService: api, dataParser: parser)
+        // Create or use provided playerService. Provide a LigainsiderService instance for cache fallback.
+        let liga = LigainsiderService()
         self.playerService =
-            playerService ?? KickbasePlayerService(apiService: api, dataParser: parser)
+            playerService
+            ?? KickbasePlayerService(apiService: api, dataParser: parser, ligainsiderService: liga)
+        self.ligainsiderService = liga
         self.userStatsService =
             userStatsService ?? KickbaseUserStatsService(apiService: api, dataParser: parser)
     }
@@ -95,6 +102,12 @@ public class KickbaseManager: ObservableObject {
             }
 
             print("✅ Loaded \(leagues.count) leagues")
+
+            // Trigger an async refresh of Ligainsider squad cache so player images are available
+            if let liga = self.ligainsiderService {
+                print("🔄 Triggering Ligainsider squad cache refresh...")
+                Task { liga.refreshCache() }
+            }
         } catch {
             print("❌ Error loading leagues: \(error)")
             errorMessage = "Fehler beim Laden der Ligen: \(error.localizedDescription)"
