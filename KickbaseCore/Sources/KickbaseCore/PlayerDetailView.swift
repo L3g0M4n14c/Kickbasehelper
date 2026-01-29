@@ -99,6 +99,16 @@ struct PlayerHeroHeader: View {
                             .foregroundColor(positionColor(player.position))
                     }
                 }
+                .onAppear {
+                    print(
+                        "Loading player image (hero) for \(player.firstName) \(player.lastName): \(heroImageUrl?.absoluteString ?? "nil")"
+                    )
+                }
+                .onChange(of: heroImageUrl) {
+                    print(
+                        "Player hero image URL changed for \(player.firstName) \(player.lastName): \(heroImageUrl?.absoluteString ?? "nil")"
+                    )
+                }
                 .frame(width: 120, height: 120)
                 .clipShape(Circle())
                 .overlay {
@@ -1222,6 +1232,16 @@ struct AlternativePlayerCard: View {
                             .font(.system(size: 20))
                             .foregroundColor(positionColor(alternativePlayer.position))
                     }
+                }
+                .onAppear {
+                    print(
+                        "Loading alternative player image for \(alternativePlayer.fullName): \(alternativePlayer.imageUrl?.absoluteString ?? "nil")"
+                    )
+                }
+                .onChange(of: alternativePlayer.imageUrl) {
+                    print(
+                        "Alternative player image URL changed for \(alternativePlayer.fullName): \(alternativePlayer.imageUrl?.absoluteString ?? "nil")"
+                    )
                 }
                 .frame(width: 50, height: 50)
                 .clipShape(Circle())

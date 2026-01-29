@@ -51,6 +51,16 @@ struct PlayerMatchDetailView: View {
                                         .resizable().scaledToFit()
                                         .foregroundColor(.gray)
                                 }
+                                .onAppear {
+                                    print(
+                                        "Loading match player image for \(player.name): \(photoUrl?.absoluteString ?? "nil")"
+                                    )
+                                }
+                                .onChange(of: photoUrl) {
+                                    print(
+                                        "Match player image URL changed for \(player.name): \(photoUrl?.absoluteString ?? "nil")"
+                                    )
+                                }
                                 .frame(width: 80, height: 80)
                                 .clipShape(Circle())
 

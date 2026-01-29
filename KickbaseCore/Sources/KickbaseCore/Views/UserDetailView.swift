@@ -313,6 +313,16 @@ struct UserSquadPlayerRow: View {
                         .foregroundColor(userDetailPositionColor(player.position))
                 }
             }
+            .onAppear {
+                print(
+                    "Loading player image for \(player.fullName): \(player.imageUrl?.absoluteString ?? "nil")"
+                )
+            }
+            .onChange(of: player.imageUrl) {
+                print(
+                    "Player image URL changed for \(player.fullName): \(player.imageUrl?.absoluteString ?? "nil")"
+                )
+            }
             .frame(width: 50, height: 50)
             .clipShape(Circle())
 

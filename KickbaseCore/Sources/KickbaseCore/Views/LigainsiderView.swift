@@ -229,56 +229,66 @@ struct PlayerPillView: View {
             if let imgString = player.imageUrl, let url = URL(string: imgString) {
                 // Show player photo
                 #if !SKIP
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .empty:
-                        // Loading - show initial letter
-                        ZStack {
-                            Circle()
-                                .fill(Color.white)
-                                .frame(width: 30, height: 30)
-
-                            Text(String(player.name.prefix(1)))
-                                .font(.caption).bold()
-                                .foregroundColor(.black)
-                        }
-                    case .success(let image):
-                        // Show photo
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(width: 30, height: 30)
-                            .clipShape(Circle())
-                            .overlay(
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .empty:
+                            // Loading - show initial letter
+                            ZStack {
                                 Circle()
-                                    .stroke(Color.white, lineWidth: 2)
-                            )
-                    case .failure:
-                        // Fallback to initial letter
-                        ZStack {
-                            Circle()
-                                .fill(Color.white)
+                                    .fill(Color.white)
+                                    .frame(width: 30, height: 30)
+
+                                Text(String(player.name.prefix(1)))
+                                    .font(.caption).bold()
+                                    .foregroundColor(.black)
+                            }
+                        case .success(let image):
+                            // Show photo
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
                                 .frame(width: 30, height: 30)
+                                .clipShape(Circle())
+                                .overlay(
+                                    Circle()
+                                        .stroke(Color.white, lineWidth: 2)
+                                )
+                        case .failure:
+                            // Fallback to initial letter
+                            ZStack {
+                                Circle()
+                                    .fill(Color.white)
+                                    .frame(width: 30, height: 30)
 
-                            Text(String(player.name.prefix(1)))
-                                .font(.caption).bold()
-                                .foregroundColor(.black)
+                                Text(String(player.name.prefix(1)))
+                                    .font(.caption).bold()
+                                    .foregroundColor(.black)
+                            }
+                        @unknown default:
+                            EmptyView()
                         }
-                    @unknown default:
-                        EmptyView()
                     }
-                }
+                    .onAppear {
+                        print(
+                            "Loading Ligainsider player image for \(player.name): \(url.absoluteString)"
+                        )
+                    }
+                    .onChange(of: url) {
+                        print(
+                            "Ligainsider player image URL changed for \(player.name): \(url.absoluteString)"
+                        )
+                    }
                 #else
-                // Fallback for non-Apple platforms
-                ZStack {
-                    Circle()
-                        .fill(Color.white)
-                        .frame(width: 30, height: 30)
+                    // Fallback for non-Apple platforms
+                    ZStack {
+                        Circle()
+                            .fill(Color.white)
+                            .frame(width: 30, height: 30)
 
-                    Text(String(player.name.prefix(1)))
-                        .font(.caption).bold()
-                        .foregroundColor(.black)
-                }
+                        Text(String(player.name.prefix(1)))
+                            .font(.caption).bold()
+                            .foregroundColor(.black)
+                    }
                 #endif
             } else {
                 // No photo available - show initial letter

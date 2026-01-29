@@ -60,7 +60,20 @@ public class KickbaseAPIService: ObservableObject {
 
         print("📤 \(method) \(endpoint)")
 
-        let (data, response) = try await self.session.data(for: request)
+        let (data, response): (Data, URLResponse)
+        do {
+            (data, response) = try await self.session.data(for: request)
+        } catch let urlError as URLError {
+            // Handle cancelled specially without using 'where' to keep compatibility with Kotlin transpilation
+            if urlError.code == .cancelled {
+                // Normalize cancelled error to a specific APIError
+                throw APIError.requestCancelled
+            } else {
+                throw urlError
+            }
+        } catch {
+            throw error
+        }
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw APIError.noHTTPResponse

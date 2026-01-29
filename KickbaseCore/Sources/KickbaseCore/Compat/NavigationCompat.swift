@@ -14,26 +14,26 @@ import SwiftUI
 // apply the directive when generating Kotlin.
 
 #if os(Android)
-// SKIP REPLACE:
-// // Kotlin replacement for NavigationStack to keep Android output simple/stable
-// package skip.ui
-//
-// public class NavigationStack {
-//     public fun didCompose(navController: Any, destinations: Any, path: Any?, navigationPath: Any?, keyboardController: Any?) { }
-//     public fun navigate(to: Any) { }
-// }
+    // SKIP REPLACE:
+    // // Kotlin replacement for NavigationStack to keep Android output simple/stable
+    // package skip.ui
+    //
+    // public class NavigationStack {
+    //     public fun didCompose(navController: Any, destinations: Any, path: Any?, navigationPath: Any?, keyboardController: Any?) { }
+    //     public fun navigate(to: Any) { }
+    // }
 
-// Android stub implementation used only for transpiler guidance.
-struct NavigationStackAndroidStub: View {
-    let content: () -> AnyView
-    init(@ViewBuilder content: @escaping () -> AnyView) {
-        self.content = content
+    // Android stub implementation used only for transpiler guidance.
+    struct NavigationStackAndroidStub: View {
+        let content: () -> AnyView
+        init(@ViewBuilder content: @escaping () -> AnyView) {
+            self.content = content
+        }
+        var body: some View { EmptyView() }
     }
-    var body: some View { EmptyView() }
-}
 
 #else
-// On non-Android platforms, do nothing and use real NavigationStack.
+    // On non-Android platforms, do nothing and use real NavigationStack.
 #endif
 
 // TODO: Replace the SKIP REPLACE snippet above with a minimal, exact Kotlin signature that

@@ -98,8 +98,8 @@ private func parseMarketPlayersFromResponse(_ json: [String: Any]) -> [MarketPla
                 ?? playerData["name"] as? String ?? "",
             lastName: playerData["lastName"] as? String ?? playerData["ln"] as? String
                 ?? playerData["n"] as? String ?? "",
-            profileBigUrl: playerData["profileBigUrl"] as? String ?? playerData["imageUrl"]
-                as? String ?? playerData["pim"] as? String ?? playerData["image"] as? String ?? "",
+            // Choose profile image using shared heuristics (keeps behavior consistent with team parsing)
+            profileBigUrl: chooseProfileBigUrl(nil, playerData),
             teamName: playerData["teamName"] as? String ?? playerData["tn"] as? String
                 ?? playerData["club"] as? String ?? "",
             teamId: playerData["teamId"] as? String ?? playerData["tid"] as? String ?? "",

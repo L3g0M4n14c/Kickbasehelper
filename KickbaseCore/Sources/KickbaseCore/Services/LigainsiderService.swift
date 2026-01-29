@@ -68,6 +68,10 @@ public class LigainsiderService: ObservableObject {
     // Cache für Spieler in der Startelf (IDs)
     private var startingLineupIds: Set<String> = []
 
+    // Simple image selection metrics (for monitoring/debugging)
+    public private(set) var onlyFlagsCount: Int = 0
+    public private(set) var nonPlayerImageUsedCount: Int = 0
+
     // Exposed as internal for tests
     let session: URLSession
 
@@ -113,9 +117,14 @@ public class LigainsiderService: ObservableObject {
                 }
             }
 
+            // Snapshot mutable accumulators into immutable values for safe capture
+            let cacheToMerge = newCache
+            let altsToMerge = newAlts
+            let lineupIdsToMerge = newLineupIds
+
             await MainActor.run {
                 // Merge new cache into existing to preserve squad data
-                for (id, player) in newCache {
+                for (id, player) in cacheToMerge {
                     // Preserve existing imageUrl if new player doesn't have one
                     if let existingPlayer = self.playerCache[id],
                         let existingImageUrl = existingPlayer.imageUrl,
@@ -133,22 +142,27 @@ public class LigainsiderService: ObservableObject {
                     }
                 }
                 // Merge alternatives
-                for alt in newAlts {
+                for alt in altsToMerge {
                     self.alternativeNames.insert(alt)
                 }
                 // Merge lineup IDs
-                for id in newLineupIds {
+                for id in lineupIdsToMerge {
                     self.startingLineupIds.insert(id)
                 }
 
                 print(
-                    "[Ligainsider] fetchLineupsAsync complete: newCache had \(newCache.count) players, total playerCache now: \(self.playerCache.count)"
+                    "[Ligainsider] fetchLineupsAsync complete: newCache had \(cacheToMerge.count) players, total playerCache now: \(self.playerCache.count)"
                 )
                 print("[Ligainsider] Alternative names found: \(self.alternativeNames.count)")
                 print("[Ligainsider] Starting lineup IDs: \(self.startingLineupIds.count)")
 
                 self.matches = fetchedMatches
                 self.isLoading = false
+                // Metrics summary
+                print(
+                    "[Ligainsider][Metrics] onlyFlags=\(self.onlyFlagsCount) nonPlayerUsed=\(self.nonPlayerImageUsedCount)"
+                )
+
                 // Trigger UI-Updates durch Cache-Signal auf Main Thread
                 print("[DEBUG] 🔔 Setting cacheUpdateTrigger on Main Thread")
                 self.cacheUpdateTrigger = UUID()
@@ -226,7 +240,7 @@ public class LigainsiderService: ObservableObject {
         )
 
         // First try: exact lastName match (as separate word)
-        let candidates = playerCache.filter { key, _ in
+        var candidates = playerCache.filter { key, _ in
             let normalizedKey = normalize(key)
             // Split by space and underscore to get name parts
             let keyParts = normalizedKey.components(separatedBy: CharacterSet(charactersIn: " _-"))
@@ -240,12 +254,44 @@ public class LigainsiderService: ObservableObject {
             candidates.forEach { print("[Ligainsider]   - \($0.key)") }
         }
 
+        // If nothing by last name and we have a meaningful firstName, try searching by firstName (handles single-name cases and swapped storage)
+        if candidates.isEmpty && !normalizedFirstName.isEmpty {
+            let firstBased = playerCache.filter { key, _ in
+                let normalizedKey = normalize(key)
+                let keyParts = normalizedKey.components(
+                    separatedBy: CharacterSet(charactersIn: " _-"))
+                return keyParts.contains(normalizedFirstName)
+            }
+            if !firstBased.isEmpty {
+                print(
+                    "   → Step 1b: Found \(firstBased.count) candidates by first name '\(normalizedFirstName)'"
+                )
+                candidates = firstBased
+            }
+        }
+
         if candidates.count == 1 {
             print(
                 "[Ligainsider] FOUND (exact): \(firstName) \(lastName) -> \(candidates.first?.key ?? "")"
             )
             return candidates.first?.1
         } else if candidates.count > 1 {
+            // Multiple matches: try entries that contain BOTH first and last name when possible
+            if !normalizedFirstName.isEmpty {
+                if let bothMatch = candidates.first(where: { key, _ in
+                    let normalizedKey = normalize(key)
+                    let keyParts = normalizedKey.components(
+                        separatedBy: CharacterSet(charactersIn: " _-"))
+                    return keyParts.contains(normalizedFirstName)
+                        && keyParts.contains(normalizedLastName)
+                }) {
+                    print(
+                        "[Ligainsider] FOUND (both names present): \(firstName) \(lastName) -> \(bothMatch.key)"
+                    )
+                    return bothMatch.1
+                }
+            }
+
             // Multiple matches: use firstName to disambiguate
             let bestMatch = candidates.first(where: { key, _ in
                 let normalizedKey = normalize(key)
@@ -431,9 +477,12 @@ public class LigainsiderService: ObservableObject {
                 }
             }
 
+            // Make an immutable snapshot to avoid capturing a mutable var in the MainActor closure
+            let playersToMerge = accumulatedPlayers
+
             await MainActor.run {
-                print("Kader-Abruf beendet. Gefundene Spieler: \(accumulatedPlayers.count)")
-                for player in accumulatedPlayers {
+                print("Kader-Abruf beendet. Gefundene Spieler: \(playersToMerge.count)")
+                for player in playersToMerge {
                     if let id = player.ligainsiderId {
                         // Update playerCache safely
                         if let existing = self.playerCache[id] {
@@ -510,7 +559,15 @@ public class LigainsiderService: ObservableObject {
                 if contentInLink.contains("<img") {
                     if let extracted = contentInLink.substringBetween("src=\"", "\"") {
                         if extracted.contains("ligainsider.de") {
-                            imageUrl = extracted
+                            // Prefer explicit player images (e.g., '/player/team/') but accept any non-flag image
+                            if isLikelyPlayerImage(extracted) || !isLikelyFlagImage(extracted) {
+                                imageUrl = extracted
+                                if !isLikelyPlayerImage(extracted) {
+                                    print(
+                                        "ℹ️ Ligainsider: using non-player image for \(name): \(extracted)"
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -522,12 +579,102 @@ public class LigainsiderService: ObservableObject {
                     // Da findLastRange komplex ist, splitten wir einfach nach src=" und nehmen das letzte was passt
                     let parts = previousComponent.components(separatedBy: "src=\"")
                     if parts.count > 1 {
-                        for part in parts.reversed() {
-                            if let candidate = part.substringBefore("\""),
-                                candidate.contains("ligainsider.de")
+                        // Helper: extract candidate URLs from a HTML fragment
+                        func extractImageCandidates(_ html: String) -> [String] {
+                            var out: [String] = []
+
+                            // src="..."
+                            let srcParts = html.components(separatedBy: "src=\"")
+                            for p in srcParts.dropFirst() {
+                                if let c = p.substringBefore("\"") { out.append(c) }
+                            }
+
+                            // data-src="..."
+                            let dParts = html.components(separatedBy: "data-src=\"")
+                            for p in dParts.dropFirst() {
+                                if let c = p.substringBefore("\"") { out.append(c) }
+                            }
+
+                            // srcset="..."
+                            let ssParts = html.components(separatedBy: "srcset=\"")
+                            for p in ssParts.dropFirst() {
+                                if let val = p.substringBefore("\"") {
+                                    let first = val.components(separatedBy: ",").first?
+                                        .trimmingCharacters(in: .whitespacesAndNewlines)
+                                    if let token = first?.components(separatedBy: " ").first {
+                                        out.append(token)
+                                    }
+                                }
+                            }
+
+                            // background-image:url(...)
+                            var searchStart = html.startIndex
+                            while let bgRange = html.range(
+                                of: "background-image", options: [],
+                                range: searchStart..<html.endIndex)
                             {
-                                imageUrl = candidate
+                                if let urlStart = html.range(
+                                    of: "url(", options: [],
+                                    range: bgRange.upperBound..<html.endIndex)
+                                {
+                                    let after = html[urlStart.upperBound...]
+                                    if let close = after.firstIndex(of: ")") {
+                                        var candidate = String(after[..<close])
+                                        candidate = candidate.replacingOccurrences(
+                                            of: "\"", with: "")
+                                        candidate = candidate.replacingOccurrences(
+                                            of: "'", with: "")
+                                        out.append(
+                                            candidate.trimmingCharacters(
+                                                in: .whitespacesAndNewlines))
+                                        searchStart = close
+                                        continue
+                                    }
+                                }
                                 break
+                            }
+
+                            return out.compactMap {
+                                $0.trimmingCharacters(in: .whitespacesAndNewlines)
+                            }.filter { !$0.isEmpty }
+                        }
+
+                        let allCandidates = extractImageCandidates(previousComponent)
+
+                        // If a player_img exists before a small_inner_icon, prefer the image(s) before the small_inner_icon
+                        if previousComponent.contains("small_inner_icon")
+                            && previousComponent.contains("player_img")
+                        {
+                            if let nationIdx = previousComponent.range(of: "small_inner_icon")?
+                                .lowerBound
+                            {
+                                let prefix = String(previousComponent[..<nationIdx])
+                                let prefixCandidates = extractImageCandidates(prefix)
+                                if let chosen = prefixCandidates.first(where: {
+                                    isLikelyPlayerImage($0) || !isLikelyFlagImage($0)
+                                }) {
+                                    imageUrl = chosen
+                                    if !isLikelyPlayerImage(chosen) {
+                                        self.nonPlayerImageUsedCount += 1
+                                    }
+                                }
+                            }
+                        }
+
+                        // Otherwise scan all candidates (prefer explicit player images, then non-flag ligainsider images)
+                        if imageUrl == nil {
+                            if let playerCandidate = allCandidates.first(where: {
+                                isLikelyPlayerImage($0) && !isLikelyFlagImage($0)
+                            }) {
+                                imageUrl = playerCandidate
+                            } else if let nonFlag = allCandidates.first(where: {
+                                !isLikelyFlagImage($0)
+                            }) {
+                                imageUrl = nonFlag
+                                self.nonPlayerImageUsedCount += 1
+                            } else if !allCandidates.isEmpty {
+                                // All candidates were flags/wappen
+                                self.onlyFlagsCount += 1
                             }
                         }
                     }
@@ -869,7 +1016,7 @@ public class LigainsiderService: ObservableObject {
 
         // Kader laden: Kombiniere geparste Spieler mit fetchSquad (für zusätzliche Spieler die nicht in Aufstellung sind)
         let path = URL(string: url)?.path ?? ""
-        var fetchedSquad = await fetchSquad(path: path, teamName: teamName)
+        let fetchedSquad = await fetchSquad(path: path, teamName: teamName)
 
         // Merge allParsedPlayers mit fetchedSquad
         // Strategie: Priorisiere Spieler mit Bildern aus allParsedPlayers (Aufstellungsseite),

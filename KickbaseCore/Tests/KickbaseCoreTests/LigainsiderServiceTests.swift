@@ -40,6 +40,157 @@ final class LigainsiderServiceTests: XCTestCase {
         XCTAssertTrue(service.playerCacheCount > 0, "Expected player cache to be populated")
     }
 
+    func testFetchAllSquadsUsesNonPlayerLigainsiderImage() async throws {
+        let session = makeSession()
+        let service = LigainsiderService(session: session)
+
+        let html = """
+                <div>
+                    <img src=\"https://www.ligainsider.de/images/player.jpg\" />
+                </div>
+                <a href=\"/john-doe_12345\">John Doe</a>
+            """.data(using: .utf8)!
+
+        URLProtocolMock.requestHandler = { request in
+            let resp = HTTPURLResponse(
+                url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            return (resp, html)
+        }
+
+        await service.fetchAllSquadsAsync()
+        let p = service.getLigainsiderPlayer(firstName: "John", lastName: "Doe")
+        XCTAssertNotNil(p)
+        XCTAssertEqual(p?.imageUrl, "https://www.ligainsider.de/images/player.jpg")
+    }
+
+    func testFetchAllSquadsPrefersPlayerImgOverNation() async throws {
+        let session = makeSession()
+        let service = LigainsiderService(session: session)
+
+        let html = """
+                <div>
+                    <img class="player_img" src=\"https://www.ligainsider.de/player/team/player123.jpg\" />
+                    <img class="small_inner_icon" src=\"https://www.ligainsider.de/images/nations/de.png\" />
+                </div>
+                <a href=\"/john-doe_12345\">John Doe</a>
+            """.data(using: .utf8)!
+
+        URLProtocolMock.requestHandler = { request in
+            let resp = HTTPURLResponse(
+                url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            return (resp, html)
+        }
+
+        await service.fetchAllSquadsAsync()
+        let p = service.getLigainsiderPlayer(firstName: "John", lastName: "Doe")
+        XCTAssertNotNil(p)
+        XCTAssertEqual(p?.imageUrl, "https://www.ligainsider.de/player/team/player123.jpg")
+    }
+
+    func testGetLigainsiderPlayerMatchesWhenKickbaseHasOnlyFirstName() async throws {
+        let session = makeSession()
+        let service = LigainsiderService(session: session)
+
+        let html = """
+                <div>
+                    <img src=\"https://www.ligainsider.de/player/team/bernardo.jpg\" />
+                </div>
+                <a href=\"/bernardo_12345\">Bernardo</a>
+            """.data(using: .utf8)!
+
+        URLProtocolMock.requestHandler = { request in
+            let resp = HTTPURLResponse(
+                url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            return (resp, html)
+        }
+
+        await service.fetchAllSquadsAsync()
+        // Kickbase has only first name 'Bernardo'
+        let p1 = service.getLigainsiderPlayer(firstName: "Bernardo", lastName: "")
+        XCTAssertNotNil(p1)
+        XCTAssertEqual(p1?.name, "Bernardo")
+
+        // Also check if searching with empty firstName and lastName 'Bernardo' succeeds
+        let p2 = service.getLigainsiderPlayer(firstName: "", lastName: "Bernardo")
+        XCTAssertNotNil(p2)
+        XCTAssertEqual(p2?.name, "Bernardo")
+    }
+
+    func testGetLigainsiderPlayerMatchesWhenNamesSwapped() async throws {
+        let session = makeSession()
+        let service = LigainsiderService(session: session)
+
+        let html = """
+                <div>
+                    <img src=\"https://www.ligainsider.de/player/team/silva-bernardo.jpg\" />
+                </div>
+                <a href=\"/silva-bernardo_99999\">Bernardo Silva</a>
+            """.data(using: .utf8)!
+
+        URLProtocolMock.requestHandler = { request in
+            let resp = HTTPURLResponse(
+                url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            return (resp, html)
+        }
+
+        await service.fetchAllSquadsAsync()
+        let p = service.getLigainsiderPlayer(firstName: "Bernardo", lastName: "Silva")
+        XCTAssertNotNil(p)
+        XCTAssertTrue(p?.ligainsiderId?.contains("bernardo") ?? false)
+    }
+
+    func testFetchAllSquadsHandlesDataSrcAndSrcset() async throws {
+        let session = makeSession()
+        let service = LigainsiderService(session: session)
+
+        let html = """
+                <div>
+                    <img class="player_img lazy" data-src=\"https://www.ligainsider.de/player/team/lazy-player.jpg\" />
+                    <img class="small_inner_icon" src=\"https://www.ligainsider.de/images/nations/de.png\" />
+                </div>
+                <a href=\"/john-doe_12345\">John Doe</a>
+            """.data(using: .utf8)!
+
+        URLProtocolMock.requestHandler = { request in
+            let resp = HTTPURLResponse(
+                url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            return (resp, html)
+        }
+
+        await service.fetchAllSquadsAsync()
+        let p = service.getLigainsiderPlayer(firstName: "John", lastName: "Doe")
+        XCTAssertNotNil(p)
+        XCTAssertEqual(p?.imageUrl, "https://www.ligainsider.de/player/team/lazy-player.jpg")
+    }
+
+    func testFetchAllSquadsCountsOnlyFlagsWhenNoPlayerImage() async throws {
+        let session = makeSession()
+        let service = LigainsiderService(session: session)
+
+        let html = """
+                <div>
+                    <img src=\"https://www.ligainsider.de/images/teams/wappen-bayern.png\" />
+                    <img class=\"small_inner_icon\" src=\"https://www.ligainsider.de/images/nations/de.png\" />
+                </div>
+                <a href=\"/jane-doe_54321\">Jane Doe</a>
+            """.data(using: .utf8)!
+
+        URLProtocolMock.requestHandler = { request in
+            let resp = HTTPURLResponse(
+                url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            return (resp, html)
+        }
+
+        XCTAssertEqual(service.playerCacheCount, 0)
+        await service.fetchAllSquadsAsync()
+        let p = service.getLigainsiderPlayer(firstName: "Jane", lastName: "Doe")
+        XCTAssertNotNil(p)
+        XCTAssertNil(p?.imageUrl)
+        XCTAssertTrue(
+            service.onlyFlagsCount > 0,
+            "Expected onlyFlagsCount to be incremented when only flags/wappen found")
+    }
+
     func testFetchLineupsParsesMatchesAndPopulatesCache() async throws {
         let session = makeSession()
         let service = LigainsiderService(session: session)

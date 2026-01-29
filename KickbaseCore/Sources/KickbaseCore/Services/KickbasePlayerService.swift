@@ -81,6 +81,13 @@ public class KickbasePlayerService: ObservableObject {
             let marketPlayers = await parseMarketPlayersFromResponse(json, league: league)
             print("✅ Successfully loaded \(marketPlayers.count) market players from API")
             return marketPlayers
+        } catch let apiError as APIError {
+            if case .requestCancelled = apiError {
+                print("⚠️ Market players request cancelled for league \(league.id)")
+                return []
+            }
+            print("❌ Failed to load market players: \(apiError.localizedDescription)")
+            throw apiError
         } catch {
             print("❌ Failed to load market players: \(error.localizedDescription)")
             throw error
@@ -107,7 +114,22 @@ public class KickbasePlayerService: ObservableObject {
                 totalPoints: json["totalPoints"] as? Int ?? json["tp"] as? Int,
                 marketValue: json["marketValue"] as? Int,
                 marketValueTrend: json["marketValueTrend"] as? Int,
-                profileBigUrl: json["profileBigUrl"] as? String ?? json["pim"] as? String,
+                profileBigUrl: {
+                    if let pb = json["profileBigUrl"] as? String, isLikelyPlayerImage(pb) {
+                        return pb
+                    }
+                    if let pim = json["pim"] as? String, isLikelyPlayerImage(pim) {
+                        return pim
+                    }
+                    // Fallback: if we have a non-flag explicit URL, return it, otherwise nil
+                    if let pb = json["profileBigUrl"] as? String, !isLikelyFlagImage(pb) {
+                        return pb
+                    }
+                    if let pim = json["pim"] as? String, !isLikelyFlagImage(pim) {
+                        return pim
+                    }
+                    return nil
+                }(),
                 teamId: json["teamId"] as? String,
                 tfhmvt: json["tfhmvt"] as? Int,
                 prlo: json["prlo"] as? Int,
@@ -133,6 +155,15 @@ public class KickbasePlayerService: ObservableObject {
                 leagueId: leagueId, playerId: playerId)
             print("✅ Successfully loaded performance data for player \(playerId)")
             return performanceResponse
+        } catch let apiError as APIError {
+            if case .requestCancelled = apiError {
+                print("⚠️ Request cancelled while loading player performance for \(playerId)")
+                return nil
+            }
+            print(
+                "❌ Error loading player performance for \(playerId): \(apiError.localizedDescription)"
+            )
+            throw apiError
         } catch {
             print(
                 "❌ Error loading player performance for \(playerId): \(error.localizedDescription)")
@@ -239,13 +270,55 @@ public class KickbasePlayerService: ObservableObject {
             return matchDay >= (currentMatchDay - 4) && matchDay <= (currentMatchDay + 3)
         }
 
+        // Deduplicate nach 'day' (behalte die erste Vorkommnis pro day)
+        var seenDays = Set<Int>()
+        var relevantMatchesToUse: [MatchPerformance] = []
+        var duplicateDays: [Int: Int] = [:]
+        for match in relevantMatches {
+            if seenDays.contains(match.day) {
+                duplicateDays[match.day, default: 0] += 1
+                continue
+            }
+            seenDays.insert(match.day)
+            relevantMatchesToUse.append(match)
+        }
+
+        if !duplicateDays.isEmpty {
+            for (day, count) in duplicateDays {
+                print(
+                    "❌ Duplicate match entries for player \(playerId) on day \(day): \(count + 1) entries found"
+                )
+            }
+        }
+
+        // Fallback: when no matches in window, try nearby/last-played matches
+        if relevantMatchesToUse.isEmpty {
+            let sorted = currentSeason.ph.sorted(by: { $0.day < $1.day })
+            let played = sorted.filter { $0.hasPlayed }
+            if !played.isEmpty {
+                let lastPlayed = Array(played.suffix(5))
+                relevantMatchesToUse = lastPlayed
+                print(
+                    "⚠️ No relevant matches in window; falling back to last played matches (\(relevantMatchesToUse.count))"
+                )
+            } else {
+                let fallback = Array(sorted.suffix(8))
+                if !fallback.isEmpty {
+                    relevantMatchesToUse = fallback
+                    print(
+                        "⚠️ No relevant matches and no played matches; falling back to last season matches (\(relevantMatchesToUse.count))"
+                    )
+                }
+            }
+        }
+
         print(
-            "🎯 Filtered to \(relevantMatches.count) relevant matches (days \(currentMatchDay - 4) to \(currentMatchDay + 3))"
+            "🎯 Filtered to \(relevantMatchesToUse.count) relevant matches (days \(currentMatchDay - 4) to \(currentMatchDay + 3))"
         )
 
         // Sammle nur einzigartige Team-IDs aus den relevanten Matches
         var uniqueTeamIds = Set<String>()
-        for match in relevantMatches {
+        for match in relevantMatchesToUse {
             uniqueTeamIds.insert(match.t1)
             uniqueTeamIds.insert(match.t2)
         }
@@ -269,7 +342,7 @@ public class KickbasePlayerService: ObservableObject {
         // Erstelle erweiterte Match-Performance Objekte nur für relevante Matches
         var enhancedMatches: [EnhancedMatchPerformance] = []
 
-        for match in relevantMatches {
+        for match in relevantMatchesToUse {
             let team1Info = teamInfoCache[match.t1]
             let team2Info = teamInfoCache[match.t2]
             let playerTeamInfo = teamInfoCache[match.pt ?? ""]
@@ -299,14 +372,32 @@ public class KickbasePlayerService: ObservableObject {
     private func getCurrentMatchDayFromPerformance(
         _ matches: [MatchPerformance], fallbackMatchDay: Int? = nil
     ) -> Int {
+        // Deduplicate matches by 'day' (keep first occurrence)
+        var seenDays = Set<Int>()
+        var dedupedMatches: [MatchPerformance] = []
+        var duplicateDays: [Int: Int] = [:]
+        for m in matches {
+            if seenDays.contains(m.day) {
+                duplicateDays[m.day, default: 0] += 1
+                continue
+            }
+            seenDays.insert(m.day)
+            dedupedMatches.append(m)
+        }
+        if !duplicateDays.isEmpty {
+            for (day, count) in duplicateDays {
+                print("❌ Duplicate match entries for day \(day): \(count + 1) entries found")
+            }
+        }
+
         // Strategie 1: Finde den aktuellen Spieltag über "cur" Flag
-        if let currentMatch = matches.first(where: { $0.cur == true }) {
+        if let currentMatch = dedupedMatches.first(where: { $0.cur == true }) {
             print("🎯 Found current match via 'cur' flag: day \(currentMatch.day)")
             return currentMatch.day
         }
 
         // Strategie 2: Finde den letzten gespielten Spieltag
-        let playedMatches = matches.filter { $0.hasPlayed }
+        let playedMatches = dedupedMatches.filter { $0.hasPlayed }
         if let lastPlayedMatch = playedMatches.max(by: { $0.day < $1.day }) {
             let currentDay = lastPlayedMatch.day + 1  // Nächster Spieltag nach dem letzten gespielten
             print("🎯 Determined current match day from last played: \(currentDay)")
@@ -498,8 +589,7 @@ public class KickbasePlayerService: ObservableObject {
             id: uniqueId,
             firstName: finalFirstName,
             lastName: finalLastName,
-            profileBigUrl: playerData["profileBigUrl"] as? String ?? playerData["pim"] as? String
-                ?? playerData["imageUrl"] as? String ?? playerData["photo"] as? String ?? "",
+            profileBigUrl: chooseProfileBigUrl(nil, playerData),
             teamName: teamName,
             teamId: teamId,
             position: position,
@@ -750,8 +840,7 @@ public class KickbasePlayerService: ObservableObject {
             id: uniqueId,
             firstName: finalFirstName,
             lastName: finalLastName,
-            profileBigUrl: playerDetails?.profileBigUrl ?? playerData["profileBigUrl"] as? String
-                ?? playerData["pim"] as? String ?? "",
+            profileBigUrl: chooseProfileBigUrl(playerDetails, playerData),
             teamName: teamName,
             teamId: playerDetails?.teamId ?? playerData["teamId"] as? String ?? playerData["tid"]
                 as? String ?? "",

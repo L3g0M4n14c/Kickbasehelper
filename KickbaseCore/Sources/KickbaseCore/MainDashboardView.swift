@@ -668,6 +668,16 @@ struct PlayerRowViewWithSale: View {
                         PositionBadge(position: player.position)
                     }
                 }
+                .onAppear {
+                    print(
+                        "Loading dashboard player image for \(player.fullName): \(url.absoluteString)"
+                    )
+                }
+                .onChange(of: url) {
+                    print(
+                        "Dashboard player image URL changed for \(player.fullName): \(url.absoluteString)"
+                    )
+                }
                 .frame(width: 32, height: 32)
             } else {
                 PositionBadge(position: player.position)

@@ -664,8 +664,8 @@ public class KickbaseManager: ObservableObject {
         let fullName = playerData["pn"] as? String ?? ""
         let (firstName, lastName) = parseFullName(fullName)
 
-        // Profile image URL - use "pi" as fallback? No, that's ID. Check for profile image fields
-        let profileBigUrl = playerData["pim"] as? String ?? playerData["prf"] as? String ?? ""
+        // Profile image URL - prefer explicit player images and avoid flags
+        let profileBigUrl = chooseProfileBigUrl(nil, playerData)
 
         // Team information
         let teamName = playerData["tn"] as? String ?? ""
