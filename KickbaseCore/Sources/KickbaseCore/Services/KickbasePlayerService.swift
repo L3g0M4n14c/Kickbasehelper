@@ -543,6 +543,9 @@ public class KickbasePlayerService: ObservableObject {
 
         // Erweiterte Suche nach Marktspielerdaten (sichere, helper-basierte Suche)
         for key in ["it", "players", "market", "data", "transfers", "items", "list"] {
+            // SKIP REPLACE:
+            // val arrRawAny = rawArray(from = json[key])
+            // val arr = arrayToDicts(arrRawAny)
             let arrRawAny = rawArray(from: json[key])
             let arr = arrRawAny.compactMap { dict(from: $0) }
             if !arr.isEmpty {

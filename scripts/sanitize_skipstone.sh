@@ -82,6 +82,14 @@ find "$SKIP_OUT" -name "*.kt" -print0 | while IFS= read -r -d '' file; do
   perl -0777 -pi -e "s/Binding<Array<\*>\?>\?/Binding<Array<*>>?/g" "$file" || true
   perl -0777 -pi -e "s/KClass<Dictionary<\s*\*,\s*\*>\s*,\s*keyType:/KClass<Dictionary<*, *>>, keyType:/g" "$file" || true
 
+  # 8.3) Navigation-specific renames were previously applied here, but have been removed.
+  # NOTE: Replacing or renaming identifiers across generated files is fragile and can cause
+  # subtle Kotlin compile errors (see SKIP_SKILL.md). Prefer using SKIP directives in Swift
+  # sources or `skip.yml` bridging options to influence generated Kotlin output.
+  # If a targeted, intentional replacement is needed, add a local, well‑documented rule here
+  # with an accompanying test and a backup of the original generated artifact.
+  # (No automatic rename is performed.)
+
   # 9) Convert Swift half-open ranges 'start..<end' into Kotlin 'start until end'
   # Use a simpler and more reliable pattern matching the '..<' operator and the following expression
   perl -0777 -pi -e 's/([0-9A-Za-z_\)\]]+)\s*\.\.<\s*([^\s\)\}]+)/\1 until \2/g' "$file" || true

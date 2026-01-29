@@ -17,6 +17,13 @@ class DebugMarketParser {
     private static func analyzeValue(key: String, value: Any, depth: Int) {
         let indent = String(repeating: "  ", count: depth)
 
+        // SKIP REPLACE:
+        // val raw = rawArray(from = value)
+        // var array: Array<Dictionary<String, Any>> = arrayOf()
+        // for (el_0 in raw.sref()) {
+        //     val el: Any? = el_0
+        //     dict(from = el)?.let { array.append(it) }
+        // }
         let raw = rawArray(from: value)
         let array = raw.compactMap { dict(from: $0) }
         if !array.isEmpty {

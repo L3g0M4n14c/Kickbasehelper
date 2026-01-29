@@ -545,7 +545,7 @@ open class KickbaseManager: ObservableObject {
 
             // Squad endpoint returns players in "it" field
             val playersRaw = arrayOfDicts(from = json["it"])
-            val playersArray = playersRaw.compactMap { it -> dict(from = it) }
+            val playersArray = arrayToDicts(playersRaw)
             if (playersArray.isEmpty) {
                 print("⚠️ No 'it' array found or empty in squad response. Available keys: ${json.keys.sorted()}")
                 return@l null

@@ -22,7 +22,7 @@ private fun parseMarketPlayersFromResponse(json: Dictionary<String, Any>): Array
 
     // Intelligente Suche nach Marktspielerdaten
     val playersRaw = DebugMarketParser.findMarketPlayersInResponse(json)
-    val playersArray = playersRaw.compactMap { it -> dict(from = it) }
+    val playersArray = arrayToDicts(playersRaw)
 
     if (playersArray.isEmpty) {
         print("❌ NO MARKET PLAYER DATA FOUND IN RESPONSE!")
@@ -56,7 +56,7 @@ private fun parseMarketPlayersFromResponse(json: Dictionary<String, Any>): Array
                             // Schaue nach verschachtelten Arrays
                             for ((nestedKey, nestedValue) in dictValue.sref()) {
                                 val nestedRawAny = rawArray(from = nestedValue)
-                                val nestedArray = nestedRawAny.compactMap { it -> dict(from = it) }
+                                val nestedArray = arrayToDicts(nestedRawAny)
                                 if (!nestedArray.isEmpty) {
                                     print("     ${key}.${nestedKey}: Array with ${nestedArray.count} elements")
                                 } else if (!nestedRawAny.isEmpty) {

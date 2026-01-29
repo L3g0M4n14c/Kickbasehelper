@@ -1348,6 +1348,19 @@ struct SalesRecommendationView: View {
             let end = Swift.min(players.count, start + concurrency)
             let slice = Array(players[start..<end])
 
+            // SKIP REPLACE:
+            // withTaskGroup(of = Any::class) l@{ group ->
+            //     for (player in slice.sref()) {
+            //         group.addTask(operation = suspend {
+            //             val maybe = this.analyzePlayerForSale(player = player, allPlayers = players, currentBudget = currentBudget, optimizationGoal = selectedGoal)
+            //             (maybe ?: Unit)
+            //         })
+            //     }
+            //     for (result in group.sref()) {
+            //         val rec = result.sref() as? SalesRecommendation
+            //         if (rec != null) { newRecommendations.append(rec) }
+            //     }
+            // }
             await withTaskGroup(of: SalesRecommendation?.self) { group in
                 for player in slice {
                     group.addTask { [selectedGoal, currentBudget] in

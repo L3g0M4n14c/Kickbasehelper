@@ -199,6 +199,23 @@ public class PlayerRecommendationService: ObservableObject {
             let batchEnd = min(batchStart + batchSize, qualityMarketPlayers.count)
             let batch = Array(qualityMarketPlayers[batchStart..<batchEnd])
 
+            // SKIP REPLACE:
+            // withTaskGroup(of = Any::class) { group ->
+            //     for (marketPlayer in batch.sref()) {
+            //         group.addTask(operation = suspend {
+            //             val result = Task.detached(operation = suspend {
+            //                 val analysis = this.analyzePlayerNonIsolated(marketPlayer, teamAnalysis = teamAnalysis)
+            //                 val recommendation = this.createRecommendationNonIsolated(marketPlayer = marketPlayer, analysis = analysis, teamAnalysis = teamAnalysis)
+            //                 if (recommendation.recommendationScore >= 2.0) recommendation else null
+            //             }).value()
+            //             (result ?: Unit)
+            //         })
+            //     }
+            //     for (result in group.sref()) {
+            //         val rec = result.sref() as? TransferRecommendation
+            //         if (rec != null) { batchRecommendations.append(rec) }
+            //     }
+            // }
             // Verarbeite Batch parallel OFF the MainActor using detached tasks
             var batchRecommendations: [TransferRecommendation] = []
             await withTaskGroup(of: TransferRecommendation?.self) { group in
