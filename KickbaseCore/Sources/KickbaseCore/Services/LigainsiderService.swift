@@ -376,23 +376,65 @@ public class LigainsiderService: ObservableObject {
         var foundPlayer: LigainsiderPlayer?
         var foundId: String?
 
-        let candidates = playerCache.filter { key, _ in
+        var candidates = playerCache.filter { key, _ in
             let normalizedKey = normalize(key)  // key ist z.B. "adam-dzwigala_25807"
             return normalizedKey.contains(normalizedLastName)
+        }
+
+        // If no matches by last name, attempt a first-name-based search (handles single-name / swapped cases)
+        var usedFirstNameFallback = false
+        if candidates.isEmpty && !normalizedFirstName.isEmpty {
+            let firstBased = playerCache.filter { key, _ in
+                let normalizedKey = normalize(key)
+                return normalizedKey.contains(normalizedFirstName)
+            }
+            if !firstBased.isEmpty {
+                candidates = firstBased
+                usedFirstNameFallback = true
+                print("[MATCHING] ℹ️ used first-name fallback for \(firstName) \(lastName)")
+            }
         }
 
         if candidates.count == 1 {
             foundPlayer = candidates.first?.1
             foundId = candidates.first?.0
         } else if candidates.count > 1 {
-            let bestMatch = candidates.first(where: { key, _ in
-                let normalizedKey = normalize(key)
-                return normalizedKey.contains(normalizedFirstName)
-            })
-            // Fallback: Lockereres Matching bei Statusabfrage
-            if let match = bestMatch ?? candidates.first {
-                foundPlayer = match.1
-                foundId = match.0
+            // Prefer entries that contain both names when available
+            if !normalizedFirstName.isEmpty && !normalizedLastName.isEmpty {
+                if let both = candidates.first(where: { key, _ in
+                    let normalizedKey = normalize(key)
+                    let parts = normalizedKey.components(
+                        separatedBy: CharacterSet(charactersIn: " _-"))
+                    return parts.contains(normalizedFirstName) && parts.contains(normalizedLastName)
+                }) {
+                    foundPlayer = both.1
+                    foundId = both.0
+                }
+            }
+
+            if foundPlayer == nil {
+                // If we used first-name fallback, prefer candidates containing the first name explicitly
+                if usedFirstNameFallback {
+                    if let byFirst = candidates.first(where: { key, _ in
+                        let normalizedKey = normalize(key)
+                        return normalizedKey.contains(normalizedFirstName)
+                    }) {
+                        foundPlayer = byFirst.1
+                        foundId = byFirst.0
+                    }
+                }
+            }
+
+            if foundPlayer == nil {
+                // Try to disambiguate by first name occurrence
+                let bestMatch = candidates.first(where: { key, _ in
+                    let normalizedKey = normalize(key)
+                    return normalizedKey.contains(normalizedFirstName)
+                })
+                if let match = bestMatch ?? candidates.first {
+                    foundPlayer = match.1
+                    foundId = match.0
+                }
             }
         }
 
@@ -996,7 +1038,7 @@ public class LigainsiderService: ObservableObject {
                         let isMainPlayer = (index == 0)
                         let alternativeField =
                             isMainPlayer && namesInColumn.count > 1 ? namesInColumn[1].name : nil
-
+                        
                         allParsedPlayers.append(
                             LigainsiderPlayer(
                                 name: playerData.name,
@@ -1017,7 +1059,7 @@ public class LigainsiderService: ObservableObject {
         // Kader laden: Kombiniere geparste Spieler mit fetchSquad (für zusätzliche Spieler die nicht in Aufstellung sind)
         let path = URL(string: url)?.path ?? ""
         let fetchedSquad = await fetchSquad(path: path, teamName: teamName)
-
+    
         // Merge allParsedPlayers mit fetchedSquad
         // Strategie: Priorisiere Spieler mit Bildern aus allParsedPlayers (Aufstellungsseite),
         // behalte aber fetchedSquad-Einträge für Spieler die nicht in der Aufstellung sind

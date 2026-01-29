@@ -139,6 +139,64 @@ final class LigainsiderServiceTests: XCTestCase {
         XCTAssertTrue(p?.ligainsiderId?.contains("bernardo") ?? false)
     }
 
+    func testGetPlayerStatusHandlesFirstNameFallbackAndSwappedNames() async throws {
+        let session = makeSession()
+        let service = LigainsiderService(session: session)
+
+        // Case 1: Kickbase only has first name, Ligainsider has bernardo in squad (not start)
+        var html = """
+                <div>
+                    <img src=\"https://www.ligainsider.de/player/team/bernardo.jpg\" />
+                </div>
+                <a href=\"/bernardo_12345\">Bernardo</a>
+            """.data(using: .utf8)!
+
+        URLProtocolMock.requestHandler = { request in
+            let resp = HTTPURLResponse(
+                url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            return (resp, html)
+        }
+
+        await service.fetchAllSquadsAsync()
+
+        let status1 = service.getPlayerStatus(firstName: "Bernardo", lastName: "")
+        XCTAssertEqual(status1, .bench)
+
+        // Case 2: Ligainsider lists 'Bernardo Silva' in starting lineup -> should be likelyStart
+        html = """
+                <html>
+                    <body>
+                        <h2 itemprop=\"name\">TeamName</h2>
+                        VORAUSSICHTLICHE AUFSTELLUNG
+                        <a href=\"/silva-bernardo_99999\">Bernardo Silva</a>
+                    </body>
+                </html>
+            """.data(using: .utf8)!
+
+        URLProtocolMock.requestHandler = { request in
+            let urlStr = request.url!.absoluteString
+            let resp = HTTPURLResponse(
+                url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            if urlStr.contains("spieltage") {
+                // Overview page: return a page that includes team links
+                let overviewHTML = """
+                        <html>
+                            <body>
+                                <a href=\"/bundesliga/team/team1/saison-2025\">Team 1</a>
+                            </body>
+                        </html>
+                    """.data(using: .utf8)!
+                return (resp, overviewHTML)
+            }
+            return (resp, html)
+        }
+
+        // Re-fetch lineups which will pick up the starting lineup entry
+        await service.fetchLineupsAsync()
+        let status2 = service.getPlayerStatus(firstName: "Bernardo", lastName: "Silva")
+        XCTAssertEqual(status2, .likelyStart)
+    }
+
     func testFetchAllSquadsHandlesDataSrcAndSrcset() async throws {
         let session = makeSession()
         let service = LigainsiderService(session: session)
