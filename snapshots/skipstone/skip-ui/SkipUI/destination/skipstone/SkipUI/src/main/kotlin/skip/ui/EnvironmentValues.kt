@@ -1,0 +1,2393 @@
+package skip.ui
+
+import kotlin.reflect.KClass
+import skip.lib.*
+import skip.lib.Set
+
+// Copyright 2023–2025 Skip
+// SPDX-License-Identifier: LGPL-3.0-only WITH LGPL-3.0-linking-exception
+import skip.foundation.*
+
+import android.content.res.Configuration
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.InternalComposeApi
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.ProvidableCompositionLocal
+import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.currentComposer
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import kotlin.reflect.full.companionObjectInstance
+
+interface EnvironmentKey<Value> {
+}
+
+/// Added to `EnvironmentKey` companion objects.
+interface EnvironmentKeyCompanion<Value> {
+    val defaultValue: Value
+}
+
+// Model as a class because our implementation only holds the global environment keys, and so does not need to copy.
+// Each key handles its own scoping of values using Android's `CompositionLocal` system
+class EnvironmentValues {
+
+    // We type erase all keys and values. The alternative would be to reify these functions.
+    internal val compositionLocals: MutableMap<Any, ProvidableCompositionLocal<Any>> = mutableMapOf()
+    internal val lastSetValues: MutableMap<ProvidableCompositionLocal<Any>, Any> = mutableMapOf()
+    internal val lastSetActions: MutableList<@Composable () -> Unit> = mutableListOf()
+
+    /// Retrieve an environment value by its `EnvironmentKey`.
+    @Composable operator fun <Key, Value> get(key: KClass<Key>): Value where Key: EnvironmentKey<Value> {
+        val compositionLocal = valueCompositionLocal(key = key)
+        return (compositionLocal.current as Value).sref()
+    }
+
+    /// Retrieve an environment object by type.
+    @Composable fun <ObjectType> environmentObject(type: KClass<ObjectType>): ObjectType? where ObjectType: Any {
+        val compositionLocal = objectCompositionLocal(type = type)
+        val value = compositionLocal.current.sref()
+        return (if (value == Unit) null else value as ObjectType).sref()
+    }
+
+    /// Set environment values.
+    ///
+    /// - Seealso: ``View/environment(_:)``
+    /// - Warning: Setting environment values should only be done within the `execute` block of this function.
+    @Composable
+    internal fun setValues(execute: @Composable (EnvironmentValues) -> ComposeResult, in_: @Composable () -> Unit) {
+        val content = in_
+        // Set the values in EnvironmentValues to keep any user-defined setter logic in place, then retrieve and clear the last set values
+        execute(this)
+        for (action in lastSetActions.sref()) {
+            action()
+        }
+        lastSetActions.clear()
+        val provided = lastSetValues.map { entry ->
+            val element = entry.key provides entry.value
+            element
+        }.toTypedArray()
+        lastSetValues.clear()
+
+        CompositionLocalProvider(*provided) { -> content() }
+    }
+
+    /// Set environment values during a composition that returns a value.
+    ///
+    /// - Seealso: ``setValues(_:in:)``
+    @OptIn(InternalComposeApi::class)
+    @Composable
+    internal fun <R> setValuesWithReturn(execute: @Composable (EnvironmentValues) -> ComposeResult, in_: @Composable () -> R): R {
+        val content = in_
+        // Set the values in EnvironmentValues to keep any user-defined setter logic in place, then retrieve and clear the last set values
+        execute(this)
+        for (action in lastSetActions.sref()) {
+            action()
+        }
+        lastSetActions.clear()
+        val provided = lastSetValues.map { entry ->
+            val element = entry.key provides entry.value
+            element
+        }.toTypedArray()
+        lastSetValues.clear()
+
+        // Note: this is an adaptation of the standard `CompositionLocalProvider(*provided)` function modified to return a value.
+        // This uses internal API
+        currentComposer.startProviders(provided)
+        val ret = content()
+        currentComposer.endProviders()
+        return ret.sref()
+    }
+
+    // On set we populate our `lastSetValues` map, which our `setValues` function reads from and then clears after
+    // packaging the values for sending to downstream Composables. This should be safe to do even on this effectively
+    // global object because it should only be occurring sequentially on the main thread.
+
+    operator fun <Key, Value> set(key: KClass<Key>, value: Value) where Key: EnvironmentKey<Value>, Value: Any {
+        val compositionLocal = valueCompositionLocal(key = key)
+        lastSetValues[compositionLocal] = value.sref()
+    }
+
+    @Composable
+    fun bridged(key: String): EnvironmentSupport? {
+        builtinBridged(key = key)?.let { builtinValue ->
+            return builtinValue
+        }
+        val compositionLocal = bridgedCompositionLocal(key = key)
+        val value = compositionLocal.current.sref()
+        return if (value == Unit) null else value as EnvironmentSupport
+    }
+
+    fun setBridged(key: String, value: EnvironmentSupport?) {
+        if (setBuiltinBridged(key = key, value = value)) {
+            return
+        }
+        val compositionLocal = bridgedCompositionLocal(key = key)
+        lastSetValues[compositionLocal] = value ?: Unit
+    }
+
+    /// The Compose `CompositionLocal` for the given environment value key type.
+    fun valueCompositionLocal(key: KClass<*>): ProvidableCompositionLocal<Any> {
+        val defaultValue = { (key.companionObjectInstance as EnvironmentKeyCompanion<*>).defaultValue }
+        return compositionLocal(key = key, defaultValue = defaultValue)
+    }
+
+    /// The Compose `CompositionLocal` for the given environment object type.
+    fun objectCompositionLocal(type: KClass<*>): ProvidableCompositionLocal<Any> {
+        return compositionLocal(key = type, defaultValue = { -> null })
+    }
+
+    /// The Compose `CompositionLocal` for the given bridged key.
+    fun bridgedCompositionLocal(key: String): ProvidableCompositionLocal<Any> {
+        return compositionLocal(key = key, defaultValue = { -> null })
+    }
+
+    internal fun compositionLocal(key: AnyHashable, defaultValue: () -> Any?): ProvidableCompositionLocal<Any> {
+        compositionLocals[key].sref()?.let { value ->
+            return value.sref()
+        }
+        val value = compositionLocalOf { -> defaultValue() ?: Unit }
+        compositionLocals[key] = value.sref()
+        return value.sref()
+    }
+
+    @Composable
+    private fun builtinValue(key: AnyHashable, defaultValue: () -> Any?): Any? {
+        val compositionLocal = compositionLocal(key = key, defaultValue = defaultValue)
+        val current = compositionLocal.current.sref()
+        return (if (current == Unit) null else current).sref()
+    }
+
+    private fun setBuiltinValue(key: AnyHashable, value: Any?, defaultValue: () -> Any?) {
+        val compositionLocal = compositionLocal(key = key, defaultValue = defaultValue)
+        lastSetValues[compositionLocal] = (value ?: Unit).sref()
+    }
+
+    // MARK: - Builtin EnvironmentValues bridging
+    // Note: Must be matched by equivalent code in SkipSwiftUI.EnvironmentValues
+
+    @Composable
+    private fun builtinBridged(key: String): EnvironmentSupport? {
+        // NOTE: We also maintain equivalent code in SkipSwiftUI.EnvironmentValues.
+        // It would be nice to come up with a better way to do this...
+        when (key) {
+            "autocorrectionDisabled" -> return EnvironmentSupport(builtinValue = autocorrectionDisabled)
+            "backgroundStyle" -> return EnvironmentSupport(builtinValue = backgroundStyle)
+            "colorScheme" -> return EnvironmentSupport(builtinValue = colorScheme.rawValue)
+            "dismiss" -> return EnvironmentSupport(builtinValue = dismiss)
+            "font" -> return EnvironmentSupport(builtinValue = font)
+            "horizontalSizeClass" -> {
+                return EnvironmentSupport(builtinValue = horizontalSizeClass?.rawValue)
+            }
+            "isEnabled" -> return EnvironmentSupport(builtinValue = isEnabled)
+            "isSearching" -> return EnvironmentSupport(builtinValue = isSearching)
+            "layoutDirection" -> return EnvironmentSupport(builtinValue = layoutDirection.rawValue)
+            "lineLimit" -> return EnvironmentSupport(builtinValue = lineLimit)
+            "locale" -> return EnvironmentSupport(builtinValue = locale)
+            "openURL" -> return EnvironmentSupport(builtinValue = openURL)
+            "refresh" -> return EnvironmentSupport(builtinValue = refresh)
+            "scenePhase" -> return EnvironmentSupport(builtinValue = scenePhase.rawValue)
+            "scrollDismissesKeyboardMode" -> return EnvironmentSupport(builtinValue = scrollDismissesKeyboardMode.rawValue)
+            "timeZone" -> return EnvironmentSupport(builtinValue = timeZone.identifier)
+            "truncationMode" -> {
+                return EnvironmentSupport(builtinValue = truncationMode?.rawValue)
+            }
+            "verticalSizeClass" -> {
+                return EnvironmentSupport(builtinValue = verticalSizeClass?.rawValue)
+            }
+            else -> return null
+        }
+    }
+
+    private fun setBuiltinBridged(key: String, value: EnvironmentSupport?): Boolean {
+        when (key) {
+            "autocorrectionDisabled" -> return false
+            "backgroundStyle" -> {
+                setbackgroundStyle(value?.builtinValue as? ShapeStyle)
+                return true
+            }
+            "colorScheme" -> return false // Doesn't support setting outside of `.colorScheme(_:)` func
+            "dismiss" -> {
+                setdismiss(value?.builtinValue as? DismissAction ?: DismissAction.default)
+                return true
+            }
+            "font" -> {
+                setfont(value?.builtinValue as? Font)
+                return true
+            }
+            "isEnabled" -> {
+                setisEnabled(value as? Boolean != false)
+                return true
+            }
+            "isSearching" -> return false
+            "horizontalSizeClass" -> return false
+            "layoutDirection" -> {
+                val rawValue = value?.builtinValue as? Int
+                val layoutDirection: LayoutDirection = if (rawValue == null) LayoutDirection.leftToRight else LayoutDirection(rawValue = rawValue!!) ?: LayoutDirection.leftToRight
+                setlayoutDirection(layoutDirection)
+                return true
+            }
+            "lineLimit" -> {
+                setlineLimit(value?.builtinValue as? Int)
+                return true
+            }
+            "locale" -> {
+                (value?.builtinValue as? Locale)?.let { locale ->
+                    setlocale(locale)
+                }
+                return true
+            }
+            "openURL" -> {
+                setopenURL(value?.builtinValue as? OpenURLAction ?: OpenURLAction.default)
+                return true
+            }
+            "refresh" -> {
+                setrefresh(value?.builtinValue as? RefreshAction)
+                return true
+            }
+            "scenePhase" -> return false
+            "scrollDismissesKeyboardMode" -> {
+                val rawValue = value?.builtinValue as? Int ?: 0
+                setscrollDismissesKeyboardMode(ScrollDismissesKeyboardMode(rawValue = rawValue) ?: ScrollDismissesKeyboardMode.automatic)
+                return true
+            }
+            "timeZone" -> {
+                (value?.builtinValue as? String)?.let { identifier ->
+                    (try { TimeZone(identifier = identifier) } catch (_: NullReturnException) { null })?.let { timeZone ->
+                        settimeZone(timeZone)
+                    }
+                }
+                return true
+            }
+            "truncationMode" -> {
+                (value?.builtinValue as? Int)?.let { rawValue ->
+                    settruncationMode(Text.TruncationMode(rawValue = rawValue))
+                }
+                return true
+            }
+            "verticalSizeClass" -> return false
+            else -> return false
+        }
+    }
+
+    // MARK: - Public values
+
+    open val autocorrectionDisabled: Boolean
+        @Composable
+        get() {
+            return _keyboardOptions?.autoCorrect == false
+        }
+
+    open val backgroundStyle: ShapeStyle?
+        @Composable
+        get() {
+            return (builtinValue(key = "backgroundStyle", defaultValue = { -> null }) as ShapeStyle?).sref()
+        }
+    fun setbackgroundStyle(newValue: ShapeStyle?) {
+        setBuiltinValue(key = "backgroundStyle", value = if (newValue is BackgroundStyle) null else newValue, defaultValue = { -> null })
+    }
+
+    open val colorScheme: ColorScheme
+        @Composable
+        get() = ColorScheme.fromMaterialTheme()
+    fun setcolorScheme(newValue: ColorScheme) {
+        // Implemented as a special case in .colorScheme and .preferredColorScheme, because Compose forces us to go through MaterialTheme
+        // rather than exposing its LocalColorScheme.current provider
+    }
+
+    open val dismiss: DismissAction
+        @Composable
+        get() {
+            return builtinValue(key = "dismiss", defaultValue = { -> DismissAction.default }) as DismissAction
+        }
+    fun setdismiss(newValue: DismissAction) {
+        setBuiltinValue(key = "dismiss", value = newValue, defaultValue = { -> DismissAction.default })
+    }
+
+    open val font: Font?
+        @Composable
+        get() {
+            return (builtinValue(key = "font", defaultValue = { -> null }) as Font?).sref()
+        }
+    fun setfont(newValue: Font?) {
+        setBuiltinValue(key = "font", value = newValue, defaultValue = { -> null })
+    }
+
+    open val horizontalSizeClass: UserInterfaceSizeClass?
+        @Composable
+        get() = UserInterfaceSizeClass.fromWindowWidthSizeClass(currentWindowAdaptiveInfo().windowSizeClass.windowWidthSizeClass)
+
+    open val isEnabled: Boolean
+        @Composable
+        get() {
+            return builtinValue(key = "isEnabled", defaultValue = { -> true }) as Boolean
+        }
+    fun setisEnabled(newValue: Boolean) {
+        setBuiltinValue(key = "isEnabled", value = newValue, defaultValue = { -> true })
+    }
+
+    open val isSearching: Boolean
+        @Composable
+        get() {
+            return _isSearching?.value == true
+        }
+
+    open val layoutDirection: LayoutDirection
+        @Composable
+        get() = if (LocalLayoutDirection.current == androidx.compose.ui.unit.LayoutDirection.Rtl) LayoutDirection.rightToLeft else LayoutDirection.leftToRight
+    fun setlayoutDirection(newValue: LayoutDirection) {
+        lastSetValues[LocalLayoutDirection as ProvidableCompositionLocal<Any>] = (if (newValue == LayoutDirection.rightToLeft) androidx.compose.ui.unit.LayoutDirection.Rtl else androidx.compose.ui.unit.LayoutDirection.Ltr).sref()
+    }
+
+    open val lineLimit: Int?
+        @Composable
+        get() {
+            return builtinValue(key = "lineLimit", defaultValue = { -> null }) as Int?
+        }
+    fun setlineLimit(newValue: Int?) {
+        setBuiltinValue(key = "lineLimit", value = newValue, defaultValue = { -> null })
+    }
+
+    open val locale: Locale
+        @Composable
+        get() = Locale(LocalConfiguration.current.locales[0])
+    fun setlocale(newValue: Locale) {
+        val action: @Composable () -> Unit = { ->
+            // Requires a @Composable context to copy LocalConfiguration.current
+            val configuration = Configuration(LocalConfiguration.current)
+            configuration.setLocale(newValue.kotlin())
+            lastSetValues[LocalConfiguration as ProvidableCompositionLocal<Any>] = configuration.sref()
+        }
+        lastSetActions.add(action)
+    }
+
+    open val multilineTextAlignment: TextAlignment
+        @Composable
+        get() {
+            return builtinValue(key = "multilineTextAlignment", defaultValue = { -> TextAlignment.leading }) as TextAlignment
+        }
+    fun setmultilineTextAlignment(newValue: TextAlignment) {
+        setBuiltinValue(key = "multilineTextAlignment", value = newValue, defaultValue = { -> TextAlignment.leading })
+    }
+
+    open val openURL: OpenURLAction
+        @Composable
+        get() {
+            val uriHandler = LocalUriHandler.current.sref()
+            val openURLAction = builtinValue(key = "openURL", defaultValue = { -> OpenURLAction.default }) as OpenURLAction
+            return OpenURLAction(handler = openURLAction.handler, systemHandler = { it -> uriHandler.openUri(it.absoluteString) })
+        }
+    fun setopenURL(newValue: OpenURLAction) {
+        setBuiltinValue(key = "openURL", value = newValue, defaultValue = { -> OpenURLAction.default })
+    }
+
+    open val redactionReasons: RedactionReasons
+        @Composable
+        get() {
+            return (builtinValue(key = "redactionReasons", defaultValue = { -> RedactionReasons(rawValue = 0) }) as RedactionReasons).sref()
+        }
+    fun setredactionReasons(newValue: RedactionReasons) {
+        setBuiltinValue(key = "redactionReasons", value = newValue, defaultValue = { -> RedactionReasons(rawValue = 0) })
+    }
+
+    open val refresh: RefreshAction?
+        @Composable
+        get() {
+            return builtinValue(key = "refresh", defaultValue = { -> null }) as RefreshAction?
+        }
+    fun setrefresh(newValue: RefreshAction?) {
+        setBuiltinValue(key = "refresh", value = newValue, defaultValue = { -> null })
+    }
+
+    open val scenePhase: ScenePhase
+        @Composable
+        get() {
+            when (UIApplication.shared.applicationState) {
+                UIApplication.State.active -> return ScenePhase.active
+                UIApplication.State.inactive -> return ScenePhase.inactive
+                UIApplication.State.background -> return ScenePhase.background
+            }
+        }
+
+    open val scrollDismissesKeyboardMode: ScrollDismissesKeyboardMode
+        @Composable
+        get() {
+            return builtinValue(key = "scrollDismissesKeyboardMode", defaultValue = { -> ScrollDismissesKeyboardMode.automatic }) as ScrollDismissesKeyboardMode
+        }
+    fun setscrollDismissesKeyboardMode(newValue: ScrollDismissesKeyboardMode) {
+        setBuiltinValue(key = "scrollDismissesKeyboardMode", value = newValue, defaultValue = { -> ScrollDismissesKeyboardMode.automatic })
+    }
+
+    open val timeZone: TimeZone
+        @Composable
+        get() {
+            return (builtinValue(key = "timeZone", defaultValue = { -> TimeZone.current }) as TimeZone).sref()
+        }
+    fun settimeZone(newValue: TimeZone) {
+        setBuiltinValue(key = "timeZone", value = newValue, defaultValue = { -> TimeZone.current })
+    }
+
+    open val truncationMode: Text.TruncationMode?
+        @Composable
+        get() {
+            return builtinValue(key = "truncationMode", defaultValue = { -> null }) as Text.TruncationMode?
+        }
+    fun settruncationMode(newValue: Text.TruncationMode?) {
+        setBuiltinValue(key = "truncationMode", value = newValue, defaultValue = { -> null })
+    }
+
+    open val verticalSizeClass: UserInterfaceSizeClass?
+        @Composable
+        get() = UserInterfaceSizeClass.fromWindowHeightSizeClass(currentWindowAdaptiveInfo().windowSizeClass.windowHeightSizeClass)
+
+    /* Not yet supported
+    var accessibilityDimFlashingLights: Bool
+    var accessibilityDifferentiateWithoutColor: Bool
+    var accessibilityEnabled: Bool
+    var accessibilityInvertColors: Bool
+    var accessibilityLargeContentViewerEnabled: Bool
+    var accessibilityPlayAnimatedImages: Bool
+    var accessibilityPrefersHeadAnchorAlternative: Bool
+    var accessibilityQuickActionsEnabled: Bool
+    var accessibilityReduceMotion: Bool
+    var accessibilityReduceTransparency: Bool
+    var accessibilityShowButtonShapes: Bool
+    var accessibilitySwitchControlEnabled: Bool
+    var accessibilityVoiceOverEnabled: Bool
+    var legibilityWeight: LegibilityWeight?
+
+    var dismissSearch: DismissSearchAction
+    var dismissWindow: DismissWindowAction
+    var openImmersiveSpace: OpenImmersiveSpaceAction
+    var dismissImmersiveSpace: DismissImmersiveSpaceAction
+    var newDocument: NewDocumentAction
+    var openDocument: OpenDocumentAction
+    var openWindow: OpenWindowAction
+    var purchase: PurchaseAction
+    var rename: RenameAction?
+    var resetFocus: ResetFocusAction
+    var authorizationController: AuthorizationController
+    var webAuthenticationSession: WebAuthenticationSession
+
+    var buttonRepeatBehavior: ButtonRepeatBehavior
+    var controlSize: ControlSize
+    var controlActiveState: ControlActiveState
+    var defaultWheelPickerItemHeight: CGFloat
+    var keyboardShortcut: KeyboardShortcut?
+    var menuIndicatorVisibility: Visibility
+    var menuOrder: MenuOrder
+    var searchSuggestionsPlacement: SearchSuggestionsPlacement
+    var colorSchemeContrast: ColorSchemeContrast
+    var displayScale: CGFloat
+    var imageScale: Image.Scale
+    var pixelLength: CGFloat
+    var sidebarRowSize: SidebarRowSize
+    var calendar: Calendar
+    var documentConfiguration: DocumentConfiguration?
+    var managedObjectContext: NSManagedObjectContext
+    var modelContext: ModelContext
+    var undoManager: UndoManager?
+
+    var isScrollEnabled: Bool
+    var horizontalScrollIndicatorVisibility: ScrollIndicatorVisibility
+    var verticalScrollIndicatorVisibility: ScrollIndicatorVisibility
+    var horizontalScrollBounceBehavior: ScrollBounceBehavior
+    var verticalScrollBounceBehavior: ScrollBounceBehavior
+
+    var editMode: Binding<EditMode>?
+    var isActivityFullscreen: Bool
+    var isFocused: Bool
+    var isHoverEffectEnabled: Bool
+    var isLuminanceReduced: Bool
+    var isPresented: Bool
+    var isSceneCaptured: Bool
+    var supportsMultipleWindows: Bool
+
+    var displayStoreKitMessage: DisplayMessageAction
+    var requestReview: RequestReviewAction
+
+    var allowsTightening: Bool
+    var dynamicTypeSize: DynamicTypeSize
+    var lineSpacing: CGFloat
+    var minimumScaleFactor: CGFloat
+    var textCase: Text.Case?
+
+    var allowedDynamicRange: Image.DynamicRange?
+    var backgroundMaterial: Material?
+    var backgroundProminence: BackgroundProminence
+    var badgeProminence: BadgeProminence
+    var contentTransition: ContentTransition
+    var contentTransitionAddsDrawingGroup: Bool
+    var defaultMinListHeaderHeight: CGFloat?
+    var defaultMinListRowHeight: CGFloat
+    var isFocusEffectEnabled: Bool
+    var headerProminence: Prominence
+    var physicalMetrics: PhysicalMetricsConverter
+    var springLoadingBehavior: SpringLoadingBehavior
+    var symbolRenderingMode: SymbolRenderingMode?
+    var symbolVariants: SymbolVariants
+
+    var showsWidgetContainerBackground: Bool
+    var showsWidgetLabel: Bool
+    var widgetFamily: WidgetFamily
+    var widgetRenderingMode: WidgetRenderingMode
+    var widgetContentMargins: EdgeInsets
+    */
+
+    // MARK: - Internal values
+
+    internal open val _animation: Animation?
+        @Composable
+        get() {
+            return (builtinValue(key = "_animation", defaultValue = { -> null }) as Animation?).sref()
+        }
+    internal fun set_animation(newValue: Animation?) {
+        setBuiltinValue(key = "_animation", value = newValue, defaultValue = { -> null })
+    }
+
+    internal open val _aspectRatio: Tuple2<Double?, ContentMode>?
+        @Composable
+        get() {
+            return builtinValue(key = "_aspectRatio", defaultValue = { -> null }) as Tuple2<Double?, ContentMode>?
+        }
+    internal fun set_aspectRatio(newValue: Tuple2<Double?, ContentMode>?) {
+        setBuiltinValue(key = "_aspectRatio", value = newValue, defaultValue = { -> null })
+    }
+
+    internal open val _buttonStyle: ButtonStyle?
+        @Composable
+        get() {
+            return builtinValue(key = "_buttonStyle", defaultValue = { -> null }) as ButtonStyle?
+        }
+    internal fun set_buttonStyle(newValue: ButtonStyle?) {
+        setBuiltinValue(key = "_buttonStyle", value = newValue, defaultValue = { -> null })
+    }
+
+    internal open val _contentPadding: EdgeInsets
+        @Composable
+        get() {
+            return (builtinValue(key = "_contentPadding", defaultValue = { -> EdgeInsets() }) as EdgeInsets).sref()
+        }
+    internal fun set_contentPadding(newValue: EdgeInsets) {
+        setBuiltinValue(key = "_contentPadding", value = newValue, defaultValue = { -> EdgeInsets() })
+    }
+
+    internal open val _flexibleHeight: (@Composable (Float?, Float?, Float?) -> Modifier)?
+        @Composable
+        get() {
+            return builtinValue(key = "_flexibleHeight", defaultValue = { -> null }) as (@Composable (Float?, Float?, Float?) -> Modifier)?
+        }
+    internal fun set_flexibleHeight(newValue: (@Composable (Float?, Float?, Float?) -> Modifier)?) {
+        setBuiltinValue(key = "_flexibleHeight", value = newValue, defaultValue = { -> null })
+    }
+
+    internal open val _flexibleWidth: (@Composable (Float?, Float?, Float?) -> Modifier)?
+        @Composable
+        get() {
+            return builtinValue(key = "_flexibleWidth", defaultValue = { -> null }) as (@Composable (Float?, Float?, Float?) -> Modifier)?
+        }
+    internal fun set_flexibleWidth(newValue: (@Composable (Float?, Float?, Float?) -> Modifier)?) {
+        setBuiltinValue(key = "_flexibleWidth", value = newValue, defaultValue = { -> null })
+    }
+
+    internal open val _flexibleHeightModifier: ((Float?, Float?, Float?) -> Modifier)?
+        @Composable
+        get() {
+            return builtinValue(key = "_flexibleHeightModifier", defaultValue = { -> null }) as ((Float?, Float?, Float?) -> Modifier)?
+        }
+    internal fun set_flexibleHeightModifier(newValue: ((Float?, Float?, Float?) -> Modifier)?) {
+        setBuiltinValue(key = "_flexibleHeightModifier", value = newValue, defaultValue = { -> null })
+    }
+
+    internal open val _flexibleWidthModifier: ((Float?, Float?, Float?) -> Modifier)?
+        @Composable
+        get() {
+            return builtinValue(key = "_flexibleWidthModifier", defaultValue = { -> null }) as ((Float?, Float?, Float?) -> Modifier)?
+        }
+    internal fun set_flexibleWidthModifier(newValue: ((Float?, Float?, Float?) -> Modifier)?) {
+        setBuiltinValue(key = "_flexibleWidthModifier", value = newValue, defaultValue = { -> null })
+    }
+
+    internal open val _foregroundStyle: ShapeStyle?
+        @Composable
+        get() {
+            return (builtinValue(key = "_foregroundStyle", defaultValue = { -> null }) as ShapeStyle?).sref()
+        }
+    internal fun set_foregroundStyle(newValue: ShapeStyle?) {
+        setBuiltinValue(key = "_foregroundStyle", value = if (newValue is ForegroundStyle) null else newValue, defaultValue = { -> null })
+    }
+
+    internal open val _isEdgeToEdge: Boolean?
+        @Composable
+        get() {
+            return builtinValue(key = "_isEdgeToEdge", defaultValue = { -> null }) as Boolean?
+        }
+    internal fun set_isEdgeToEdge(newValue: Boolean?) {
+        setBuiltinValue(key = "_isEdgeToEdge", value = newValue, defaultValue = { -> null })
+    }
+
+    internal open val _isNavigationRoot: Boolean?
+        @Composable
+        get() {
+            return builtinValue(key = "_isNavigationRoot", defaultValue = { -> null }) as Boolean?
+        }
+    internal fun set_isNavigationRoot(newValue: Boolean?) {
+        setBuiltinValue(key = "_isNavigationRoot", value = newValue, defaultValue = { -> null })
+    }
+
+    internal open val _isSearching: MutableState<Boolean>?
+        @Composable
+        get() {
+            return (builtinValue(key = "_isSearching", defaultValue = { -> null }) as MutableState<Boolean>?).sref()
+        }
+    internal fun set_isSearching(newValue: MutableState<Boolean>?) {
+        setBuiltinValue(key = "_isSearching", value = newValue, defaultValue = { -> null })
+    }
+
+    internal open val _keyboardOptions: KeyboardOptions?
+        @Composable
+        get() {
+            return (builtinValue(key = "_keyboardOptions", defaultValue = { -> null }) as KeyboardOptions?).sref()
+        }
+    internal fun set_keyboardOptions(newValue: KeyboardOptions?) {
+        setBuiltinValue(key = "_keyboardOptions", value = newValue, defaultValue = { -> null })
+    }
+
+    internal open val _labelsHidden: Boolean
+        @Composable
+        get() {
+            return builtinValue(key = "_labelsHidden", defaultValue = { -> false }) as Boolean
+        }
+    internal fun set_labelsHidden(newValue: Boolean) {
+        setBuiltinValue(key = "_labelsHidden", value = newValue, defaultValue = { -> false })
+    }
+
+    internal open val _labelStyle: LabelStyle?
+        @Composable
+        get() {
+            return builtinValue(key = "_labelStyle", defaultValue = { -> null }) as LabelStyle?
+        }
+    internal fun set_labelStyle(newValue: LabelStyle?) {
+        setBuiltinValue(key = "_labelStyle", value = newValue, defaultValue = { -> null })
+    }
+
+    internal open val _layoutAxis: Axis?
+        @Composable
+        get() {
+            return builtinValue(key = "_layoutAxis", defaultValue = { -> null }) as Axis?
+        }
+    internal fun set_layoutAxis(newValue: Axis?) {
+        setBuiltinValue(key = "_layoutAxis", value = newValue, defaultValue = { -> null })
+    }
+
+    /// The axes that are unbound due to scrolling.
+    ///
+    /// This is different than `_scrollAxes`, because using a fixed size container or applying a different layout axis
+    /// can bound a scrollable layout axis and remove it from this set.
+    internal open val _layoutScrollAxes: Axis.Set
+        @Composable
+        get() {
+            return (builtinValue(key = "_layoutScrollAxes", defaultValue = { -> Axis.Set(rawValue = 0) }) as Axis.Set).sref()
+        }
+    internal fun set_layoutScrollAxes(newValue: Axis.Set) {
+        setBuiltinValue(key = "_layoutScrollAxes", value = newValue, defaultValue = { -> Axis.Set(rawValue = 0) })
+    }
+
+    /// Allow users to revert to previous layout behavior.
+    internal open val _layoutImplementationVersion: Int
+        @Composable
+        get() {
+            return builtinValue(key = "_layoutImplementationVersion", defaultValue = { -> 1 }) as Int
+        }
+    internal fun set_layoutImplementationVersion(newValue: Int) {
+        setBuiltinValue(key = "_layoutImplementationVersion", value = newValue, defaultValue = { -> 1 })
+    }
+
+    internal open val _lineLimitReservesSpace: Boolean?
+        @Composable
+        get() {
+            return builtinValue(key = "_lineLimitReservesSpace", defaultValue = { -> null }) as Boolean?
+        }
+    internal fun set_lineLimitReservesSpace(newValue: Boolean?) {
+        setBuiltinValue(key = "_lineLimitReservesSpace", value = newValue, defaultValue = { -> null })
+    }
+
+    internal open val _listItemTint: Color?
+        @Composable
+        get() {
+            return (builtinValue(key = "_listItemTint", defaultValue = { -> null }) as Color?).sref()
+        }
+    internal fun set_listItemTint(newValue: Color?) {
+        setBuiltinValue(key = "_listItemTint", value = newValue, defaultValue = { -> null })
+    }
+
+    internal open val _listSectionHeaderStyle: ListStyle?
+        @Composable
+        get() {
+            return builtinValue(key = "_listSectionHeaderStyle", defaultValue = { -> null }) as ListStyle?
+        }
+    internal fun set_listSectionHeaderStyle(newValue: ListStyle?) {
+        setBuiltinValue(key = "_listSectionHeaderStyle", value = newValue, defaultValue = { -> null })
+    }
+
+    internal open val _listSectionFooterStyle: ListStyle?
+        @Composable
+        get() {
+            return builtinValue(key = "_listSectionFooterStyle", defaultValue = { -> null }) as ListStyle?
+        }
+    internal fun set_listSectionFooterStyle(newValue: ListStyle?) {
+        setBuiltinValue(key = "_listSectionFooterStyle", value = newValue, defaultValue = { -> null })
+    }
+
+    internal open val _listStyle: ListStyle?
+        @Composable
+        get() {
+            return builtinValue(key = "_listStyle", defaultValue = { -> null }) as ListStyle?
+        }
+    internal fun set_listStyle(newValue: ListStyle?) {
+        setBuiltinValue(key = "_listStyle", value = newValue, defaultValue = { -> null })
+    }
+
+    internal open val _material3BottomAppBar: (@Composable (Material3BottomAppBarOptions) -> Material3BottomAppBarOptions)?
+        @Composable
+        get() {
+            return builtinValue(key = "_material3BottomAppBar", defaultValue = { -> null }) as (@Composable (Material3BottomAppBarOptions) -> Material3BottomAppBarOptions)?
+        }
+    internal fun set_material3BottomAppBar(newValue: (@Composable (Material3BottomAppBarOptions) -> Material3BottomAppBarOptions)?) {
+        setBuiltinValue(key = "_material3BottomAppBar", value = newValue, defaultValue = { -> null })
+    }
+
+    internal open val _material3Button: (@Composable (Material3ButtonOptions) -> Material3ButtonOptions)?
+        @Composable
+        get() {
+            return builtinValue(key = "_material3Button", defaultValue = { -> null }) as (@Composable (Material3ButtonOptions) -> Material3ButtonOptions)?
+        }
+    internal fun set_material3Button(newValue: (@Composable (Material3ButtonOptions) -> Material3ButtonOptions)?) {
+        setBuiltinValue(key = "_material3Button", value = newValue, defaultValue = { -> null })
+    }
+
+    internal open val _material3ColorScheme: (@Composable (androidx.compose.material3.ColorScheme, Boolean) -> androidx.compose.material3.ColorScheme)?
+        @Composable
+        get() {
+            return builtinValue(key = "_material3ColorScheme", defaultValue = { -> null }) as (@Composable (androidx.compose.material3.ColorScheme, Boolean) -> androidx.compose.material3.ColorScheme)?
+        }
+    internal fun set_material3ColorScheme(newValue: (@Composable (androidx.compose.material3.ColorScheme, Boolean) -> androidx.compose.material3.ColorScheme)?) {
+        setBuiltinValue(key = "_material3ColorScheme", value = newValue, defaultValue = { -> null })
+    }
+
+    internal open val _material3NavigationBar: (@Composable (Material3NavigationBarOptions) -> Material3NavigationBarOptions)?
+        @Composable
+        get() {
+            return builtinValue(key = "_material3NavigationBar", defaultValue = { -> null }) as (@Composable (Material3NavigationBarOptions) -> Material3NavigationBarOptions)?
+        }
+    internal fun set_material3NavigationBar(newValue: (@Composable (Material3NavigationBarOptions) -> Material3NavigationBarOptions)?) {
+        setBuiltinValue(key = "_material3NavigationBar", value = newValue, defaultValue = { -> null })
+    }
+
+    internal open val _material3SegmentedButton: (@Composable (Material3SegmentedButtonOptions) -> Material3SegmentedButtonOptions)?
+        @Composable
+        get() {
+            return builtinValue(key = "_material3SegmentedButton", defaultValue = { -> null }) as (@Composable (Material3SegmentedButtonOptions) -> Material3SegmentedButtonOptions)?
+        }
+    internal fun set_material3SegmentedButton(newValue: (@Composable (Material3SegmentedButtonOptions) -> Material3SegmentedButtonOptions)?) {
+        setBuiltinValue(key = "_material3SegmentedButton", value = newValue, defaultValue = { -> null })
+    }
+
+    internal open val _material3Text: (@Composable (Material3TextOptions) -> Material3TextOptions)?
+        @Composable
+        get() {
+            return builtinValue(key = "_material3Text", defaultValue = { -> null }) as (@Composable (Material3TextOptions) -> Material3TextOptions)?
+        }
+    internal fun set_material3Text(newValue: (@Composable (Material3TextOptions) -> Material3TextOptions)?) {
+        setBuiltinValue(key = "_material3Text", value = newValue, defaultValue = { -> null })
+    }
+
+    internal open val _material3TextField: (@Composable (Material3TextFieldOptions) -> Material3TextFieldOptions)?
+        @Composable
+        get() {
+            return builtinValue(key = "_material3TextField", defaultValue = { -> null }) as (@Composable (Material3TextFieldOptions) -> Material3TextFieldOptions)?
+        }
+    internal fun set_material3TextField(newValue: (@Composable (Material3TextFieldOptions) -> Material3TextFieldOptions)?) {
+        setBuiltinValue(key = "_material3TextField", value = newValue, defaultValue = { -> null })
+    }
+
+    internal open val _material3TopAppBar: (@Composable (Material3TopAppBarOptions) -> Material3TopAppBarOptions)?
+        @Composable
+        get() {
+            return builtinValue(key = "_material3TopAppBar", defaultValue = { -> null }) as (@Composable (Material3TopAppBarOptions) -> Material3TopAppBarOptions)?
+        }
+    internal fun set_material3TopAppBar(newValue: (@Composable (Material3TopAppBarOptions) -> Material3TopAppBarOptions)?) {
+        setBuiltinValue(key = "_material3TopAppBar", value = newValue, defaultValue = { -> null })
+    }
+
+    internal open val _onSubmitState: OnSubmitState?
+        @Composable
+        get() {
+            return builtinValue(key = "_onSubmitState", defaultValue = { -> null }) as OnSubmitState?
+        }
+    internal fun set_onSubmitState(newValue: OnSubmitState?) {
+        setBuiltinValue(key = "_onSubmitState", value = newValue, defaultValue = { -> null })
+    }
+
+    internal open val _pickerStyle: PickerStyle?
+        @Composable
+        get() {
+            return builtinValue(key = "_pickerStyle", defaultValue = { -> null }) as PickerStyle?
+        }
+    internal fun set_pickerStyle(newValue: PickerStyle?) {
+        setBuiltinValue(key = "_pickerStyle", value = newValue, defaultValue = { -> null })
+    }
+
+    internal open val _placement: ViewPlacement
+        @Composable
+        get() {
+            return (builtinValue(key = "_placement", defaultValue = { -> ViewPlacement(rawValue = 0) }) as ViewPlacement).sref()
+        }
+    internal fun set_placement(newValue: ViewPlacement) {
+        setBuiltinValue(key = "_placement", value = newValue, defaultValue = { -> ViewPlacement(rawValue = 0) })
+    }
+
+    internal open val _progressViewStyle: ProgressViewStyle?
+        @Composable
+        get() {
+            return builtinValue(key = "_progressViewStyle", defaultValue = { -> null }) as ProgressViewStyle?
+        }
+    internal fun set_progressViewStyle(newValue: ProgressViewStyle?) {
+        setBuiltinValue(key = "_progressViewStyle", value = newValue, defaultValue = { -> null })
+    }
+
+    internal open val _tabViewStyle: TabViewStyle?
+        @Composable
+        get() {
+            return (builtinValue(key = "_tabViewStyle", defaultValue = { -> null }) as TabViewStyle?).sref()
+        }
+    internal fun set_tabViewStyle(newValue: TabViewStyle?) {
+        setBuiltinValue(key = "_tabViewStyle", value = newValue, defaultValue = { -> null })
+    }
+
+    internal open val _safeArea: SafeArea?
+        @Composable
+        get() {
+            return builtinValue(key = "_safeArea", defaultValue = { -> null }) as SafeArea?
+        }
+    internal fun set_safeArea(newValue: SafeArea?) {
+        setBuiltinValue(key = "_safeArea", value = newValue, defaultValue = { -> null })
+    }
+
+    internal open val _scrollAxes: Axis.Set
+        @Composable
+        get() {
+            return (builtinValue(key = "_scrollAxes", defaultValue = { -> Axis.Set(rawValue = 0) }) as Axis.Set).sref()
+        }
+    internal fun set_scrollAxes(newValue: Axis.Set) {
+        setBuiltinValue(key = "_scrollAxes", value = newValue, defaultValue = { -> Axis.Set(rawValue = 0) })
+    }
+
+    internal open val _scrollContentBackground: Visibility?
+        @Composable
+        get() {
+            return builtinValue(key = "_scrollContentBackground", defaultValue = { -> null }) as Visibility?
+        }
+    internal fun set_scrollContentBackground(newValue: Visibility?) {
+        setBuiltinValue(key = "_scrollContentBackground", value = newValue, defaultValue = { -> null })
+    }
+
+    internal open val _scrollTargetBehavior: ScrollTargetBehavior?
+        @Composable
+        get() {
+            return (builtinValue(key = "_scrollTargetBehavior", defaultValue = { -> null }) as ScrollTargetBehavior?).sref()
+        }
+    internal fun set_scrollTargetBehavior(newValue: ScrollTargetBehavior?) {
+        setBuiltinValue(key = "_scrollTargetBehavior", value = newValue, defaultValue = { -> null })
+    }
+
+    /// While `_scrollAxes` contains the effective scroll directions, this property contains the nominal directions
+    /// of any ancestor scroll view.
+    internal open val _scrollViewAxes: Axis.Set
+        @Composable
+        get() {
+            return (builtinValue(key = "_scrollViewAxes", defaultValue = { -> Axis.Set(rawValue = 0) }) as Axis.Set).sref()
+        }
+    internal fun set_scrollViewAxes(newValue: Axis.Set) {
+        setBuiltinValue(key = "_scrollViewAxes", value = newValue, defaultValue = { -> Axis.Set(rawValue = 0) })
+    }
+
+    internal open val _searchableState: SearchableState?
+        @Composable
+        get() {
+            return builtinValue(key = "_searchableState", defaultValue = { -> null }) as SearchableState?
+        }
+    internal fun set_searchableState(newValue: SearchableState?) {
+        setBuiltinValue(key = "_searchableState", value = newValue, defaultValue = { -> null })
+    }
+
+    internal open val _sheetDepth: Int
+        @Composable
+        get() {
+            return builtinValue(key = "_sheetDepth", defaultValue = { -> 0 }) as Int
+        }
+    internal fun set_sheetDepth(newValue: Int) {
+        setBuiltinValue(key = "_sheetDepth", value = newValue, defaultValue = { -> 0 })
+    }
+
+    internal open val _textEnvironment: TextEnvironment
+        @Composable
+        get() {
+            return (builtinValue(key = "_textEnvironment", defaultValue = { -> TextEnvironment() }) as TextEnvironment).sref()
+        }
+    internal fun set_textEnvironment(newValue: TextEnvironment) {
+        setBuiltinValue(key = "_textEnvironment", value = newValue, defaultValue = { -> TextEnvironment() })
+    }
+
+    internal open val _textFieldStyle: TextFieldStyle?
+        @Composable
+        get() {
+            return builtinValue(key = "_textFieldStyle", defaultValue = { -> null }) as TextFieldStyle?
+        }
+    internal fun set_textFieldStyle(newValue: TextFieldStyle?) {
+        setBuiltinValue(key = "_textFieldStyle", value = newValue, defaultValue = { -> null })
+    }
+
+    internal open val _tint: Color?
+        @Composable
+        get() {
+            return (builtinValue(key = "_tint", defaultValue = { -> null }) as Color?).sref()
+        }
+    internal fun set_tint(newValue: Color?) {
+        setBuiltinValue(key = "_tint", value = newValue, defaultValue = { -> null })
+    }
+
+    @androidx.annotation.Keep
+    companion object {
+        val shared = EnvironmentValues()
+    }
+}
+
+
+internal class EnvironmentObjectModifier: ModifierProtocol {
+    internal val type: KClass<*>
+    internal val value: Any?
+
+    internal constructor(type: KClass<*>, value: Any?) {
+        this.type = type
+        this.value = value.sref()
+    }
+
+    override val role: ModifierRole
+        get() = ModifierRole.unspecified
+
+    /// - Seealso: `EnvironmentValues.setValuesWithReturn`
+    @OptIn(InternalComposeApi::class)
+    @Composable
+    override fun Evaluate(content: View, context: ComposeContext, options: Int): kotlin.collections.List<Renderable>? {
+        val compositionLocal = EnvironmentValues.shared.objectCompositionLocal(type = type)
+        val value = (value ?: Unit).sref()
+        val provided = compositionLocal provides value
+        currentComposer.startProviders(listOf(provided).toTypedArray())
+        val renderables = ModifiedContent.Evaluate(content = content, context = context, options = options)
+        currentComposer.endProviders()
+        if (renderables.size == 1 && renderables[0] === content) {
+            return null
+        }
+        return renderables.map { it -> ModifiedContent(content = it, modifier = this) }
+    }
+
+    @Composable
+    override fun Render(content: Renderable, context: ComposeContext) {
+        val compositionLocal = EnvironmentValues.shared.objectCompositionLocal(type = type)
+        val value = (value ?: Unit).sref()
+        val provided = compositionLocal provides value
+        CompositionLocalProvider(provided) { -> content.Render(context = context) }
+    }
+}
+
+/*
+import protocol Combine.ObservableObject
+import struct CoreGraphics.CGFloat
+import struct Foundation.Calendar
+import struct Foundation.TimeZone
+import struct Foundation.Locale
+
+/// A property wrapper that reads a value from a view's environment.
+///
+/// Use the `Environment` property wrapper to read a value
+/// stored in a view's environment. Indicate the value to read using an
+/// ``EnvironmentValues`` key path in the property declaration. For example, you
+/// can create a property that reads the color scheme of the current
+/// view using the key path of the ``EnvironmentValues/colorScheme``
+/// property:
+///
+///     @Environment(\.colorScheme) var colorScheme: ColorScheme
+///
+/// You can condition a view's content on the associated value, which
+/// you read from the declared property's ``wrappedValue``. As with any property
+/// wrapper, you access the wrapped value by directly referring to the property:
+///
+///     if colorScheme == .dark { // Checks the wrapped value.
+///         DarkContent()
+///     } else {
+///         LightContent()
+///     }
+///
+/// If the value changes, SkipUI updates any parts of your view that depend on
+/// the value. For example, that might happen in the above example if the user
+/// changes the Appearance settings.
+///
+/// You can use this property wrapper to read --- but not set --- an environment
+/// value. SkipUI updates some environment values automatically based on system
+/// settings and provides reasonable defaults for others. You can override some
+/// of these, as well as set custom environment values that you define,
+/// using the ``View/environment(_:_:)`` view modifier.
+///
+/// For the complete list of environment values provided by SkipUI, see the
+/// properties of the ``EnvironmentValues`` structure. For information about
+/// creating custom environment values, see the ``EnvironmentKey`` protocol.
+@available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *)
+@frozen @propertyWrapper public struct Environment<Value> : DynamicProperty {
+
+/// Creates an environment property to read the specified key path.
+///
+/// Don’t call this initializer directly. Instead, declare a property
+/// with the ``Environment`` property wrapper, and provide the key path of
+/// the environment value that the property should reflect:
+///
+///     struct MyView: View {
+///         @Environment(\.colorScheme) var colorScheme: ColorScheme
+///
+///         // ...
+///     }
+///
+/// SkipUI automatically updates any parts of `MyView` that depend on
+/// the property when the associated environment value changes.
+/// You can't modify the environment value using a property like this.
+/// Instead, use the ``View/environment(_:_:)`` view modifier on a view to
+/// set a value for a view hierarchy.
+///
+/// - Parameter keyPath: A key path to a specific resulting value.
+@inlinable public init(_ keyPath: KeyPath<EnvironmentValues, Value>) { fatalError() }
+
+/// The current value of the environment property.
+///
+/// The wrapped value property provides primary access to the value's data.
+/// However, you don't access `wrappedValue` directly. Instead, you read the
+/// property variable created with the ``Environment`` property wrapper:
+///
+///     @Environment(\.colorScheme) var colorScheme: ColorScheme
+///
+///     var body: some View {
+///         if colorScheme == .dark {
+///             DarkContent()
+///         } else {
+///             LightContent()
+///         }
+///     }
+///
+@inlinable public var wrappedValue: Value { get { fatalError() } }
+}
+
+extension Environment {
+
+@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *)
+public init(_ objectType: Value.Type) where Value : AnyObject, Value : Observable { fatalError() }
+
+@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *)
+public init<T>(_ objectType: T.Type) where Value == T?, T : AnyObject, T : Observable { fatalError() }
+}
+
+/// A property wrapper type for an observable object supplied by a parent or
+/// ancestor view.
+///
+/// An environment object invalidates the current view whenever the observable
+/// object changes. If you declare a property as an environment object, be sure
+/// to set a corresponding model object on an ancestor view by calling its
+/// ``View/environmentObject(_:)`` modifier.
+@available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *)
+@frozen @propertyWrapper public struct EnvironmentObject<ObjectType> : DynamicProperty where ObjectType : ObservableObject {
+
+/// A wrapper of the underlying environment object that can create bindings
+/// to its properties using dynamic member lookup.
+@dynamicMemberLookup @frozen public struct Wrapper {
+
+/// Returns a binding to the resulting value of a given key path.
+///
+/// - Parameter keyPath: A key path to a specific resulting value.
+///
+/// - Returns: A new binding.
+public subscript<Subject>(dynamicMember keyPath: ReferenceWritableKeyPath<ObjectType, Subject>) -> Binding<Subject> { get { fatalError() } }
+}
+
+/// The underlying value referenced by the environment object.
+///
+/// This property provides primary access to the value's data. However, you
+/// don't access `wrappedValue` directly. Instead, you use the property
+/// variable created with the ``EnvironmentObject`` attribute.
+///
+/// When a mutable value changes, the new value is immediately available.
+/// However, a view displaying the value is updated asynchronously and may
+/// not show the new value immediately.
+@MainActor @inlinable public var wrappedValue: ObjectType { get { fatalError() } }
+
+/// A projection of the environment object that creates bindings to its
+/// properties using dynamic member lookup.
+///
+/// Use the projected value to pass an environment object down a view
+/// hierarchy.
+@MainActor public var projectedValue: EnvironmentObject<ObjectType>.Wrapper { get { fatalError() } }
+
+/// Creates an environment object.
+public init() { fatalError() }
+}
+
+extension EnvironmentValues {
+#if canImport(UIKit)
+/// Accesses the environment value associated with a custom key.
+///
+/// Create custom environment values by defining a key
+/// that conforms to the ``EnvironmentKey`` protocol, and then using that
+/// key with the subscript operator of the ``EnvironmentValues`` structure
+/// to get and set a value for that key:
+///
+///     private struct MyEnvironmentKey: EnvironmentKey {
+///         static let defaultValue: String = "Default value"
+///     }
+///
+///     extension EnvironmentValues {
+///         var myCustomValue: String {
+///             get { self[MyEnvironmentKey.self] }
+///             set { self[MyEnvironmentKey.self] = newValue }
+///         }
+///     }
+///
+/// You use custom environment values the same way you use system-provided
+/// values, setting a value with the ``View/environment(_:_:)`` view
+/// modifier, and reading values with the ``Environment`` property wrapper.
+/// You can also provide a dedicated view modifier as a convenience for
+/// setting the value:
+///
+///     extension View {
+///         func myCustomValue(_ myCustomValue: String) -> some View {
+///             environment(\.myCustomValue, myCustomValue)
+///         }
+///     }
+///
+@available(iOS 17.0, tvOS 17.0, *)
+@available(macOS, unavailable)
+@available(watchOS, unavailable)
+public subscript<K>(key: K.Type) -> K.Value where K : UITraitBridgedEnvironmentKey { get { fatalError() } }
+#endif
+}
+
+extension EnvironmentValues {
+
+/// A Boolean value that determines whether the view hierarchy has
+/// auto-correction enabled.
+///
+/// When the value is `nil`, SkipUI uses the system default. The default
+/// value is `nil`.
+@available(iOS, introduced: 13.0, deprecated: 100000.0, renamed: "autocorrectionDisabled")
+@available(macOS, introduced: 10.15, deprecated: 100000.0, renamed: "autocorrectionDisabled")
+@available(tvOS, introduced: 13.0, deprecated: 100000.0, renamed: "autocorrectionDisabled")
+@available(watchOS, introduced: 8.0, deprecated: 100000.0, renamed: "autocorrectionDisabled")
+public var disableAutocorrection: Bool? { fatalError() }
+}
+
+@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *)
+extension EnvironmentValues {
+
+/// The prominence of the background underneath views associated with this
+/// environment.
+///
+/// Foreground elements above an increased prominence background are
+/// typically adjusted to have higher contrast against a potentially vivid
+/// color, such as taking on a higher opacity monochrome appearance
+/// according to the `colorScheme`. System styles like `primary`,
+/// `secondary`, etc will automatically resolve to an appropriate style in
+/// this context. The property can be read and used for custom styled
+/// elements.
+///
+/// In the example below, a custom star rating element is in a list row
+/// alongside some text. When the row is selected and has an increased
+/// prominence appearance, the text and star rating will update their
+/// appearance, the star rating replacing its use of yellow with the
+/// standard `secondary` style.
+///
+///     struct RecipeList: View {
+///         var recipes: [Recipe]
+///         @Binding var selectedRecipe: Recipe.ID?
+///
+///         var body: some View {
+///             List(recipes, selection: $selectedRecipe) {
+///                 RecipeListRow(recipe: $0)
+///             }
+///         }
+///     }
+///
+///     struct RecipeListRow: View {
+///         var recipe: Recipe
+///         var body: some View {
+///             VStack(alignment: .leading) {
+///                 HStack(alignment: .firstTextBaseline) {
+///                     Text(recipe.name)
+///                     Spacer()
+///                     StarRating(rating: recipe.rating)
+///                 }
+///                 Text(recipe.description)
+///                     .foregroundStyle(.secondary)
+///                     .lineLimit(2, reservesSpace: true)
+///             }
+///         }
+///     }
+///
+///     private struct StarRating: View {
+///         var rating: Int
+///
+///         @Environment(\.backgroundProminence)
+///         private var backgroundProminence
+///
+///         var body: some View {
+///             HStack(spacing: 1) {
+///                 ForEach(0 until rating, id: \.self) { _ in
+///                     Image(systemName: "star.fill")
+///                 }
+///             }
+///             .foregroundStyle(backgroundProminence == .increased ?
+///                 AnyShapeStyle(.secondary) : AnyShapeStyle(.yellow))
+///             .imageScale(.small)
+///         }
+///     }
+///
+/// Note that the use of `backgroundProminence` was used by a view that
+/// was nested in additional stack containers within the row. This ensured
+/// that the value correctly reflected the environment within the list row
+/// itself, as opposed to the environment of the list as a whole. One way
+/// to ensure correct resolution would be to prefer using this in a custom
+/// ShapeStyle instead, for example:
+///
+///     private struct StarRating: View {
+///         var rating: Int
+///
+///         var body: some View {
+///             HStack(spacing: 1) {
+///                 ForEach(0 until rating, id: \.self) { _ in
+///                     Image(systemName: "star.fill")
+///                 }
+///             }
+///             .foregroundStyle(FillStyle())
+///             .imageScale(.small)
+///         }
+///     }
+///
+///     extension StarRating {
+///         struct FillStyle: ShapeStyle {
+///             func resolve(in env: EnvironmentValues) -> some ShapeStyle {
+///                 switch env.backgroundProminence {
+///                 case .increased: return AnyShapeStyle(.secondary)
+///                 default: return AnyShapeStyle(.yellow)
+///                 }
+///             }
+///         }
+///     }
+///
+/// Views like `List` and `Table` as well as standard shape styles like
+/// `ShapeStyle.selection` will automatically update the background
+/// prominence of foreground views. For custom backgrounds, this environment
+/// property can be explicitly set on views above custom backgrounds.
+public var backgroundProminence: BackgroundProminence { get { fatalError() } }
+}
+
+@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *)
+extension EnvironmentValues {
+
+/// The behavior of spring loaded interactions for the views associated
+/// with this environment.
+///
+/// Spring loading refers to a view being activated during a drag and drop
+/// interaction. On iOS this can occur when pausing briefly on top of a
+/// view with dragged content. On macOS this can occur with similar brief
+/// pauses or on pressure-sensitive systems by "force clicking" during the
+/// drag. This has no effect on tvOS or watchOS.
+///
+/// This is commonly used with views that have a navigation or presentation
+/// effect, allowing the destination to be revealed without pausing the
+/// drag interaction. For example, a button that reveals a list of folders
+/// that a dragged item can be dropped onto.
+///
+/// A value of `enabled` means that a view should support spring loaded
+/// interactions if it is able, and `disabled` means it should not.
+/// A value of `automatic` means that a view should follow its default
+/// behavior, such as a `TabView` automatically allowing spring loading,
+/// but a `Picker` with `segmented` style would not.
+public var springLoadingBehavior: SpringLoadingBehavior { get { fatalError() } }
+}
+
+@available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *)
+extension EnvironmentValues {
+
+/// The default minimum height of a row in a list.
+public var defaultMinListRowHeight: CGFloat { get { fatalError() } }
+
+/// The default minimum height of a header in a list.
+///
+/// When this value is `nil`, the system chooses the appropriate height. The
+/// default is `nil`.
+public var defaultMinListHeaderHeight: CGFloat? { fatalError() }
+}
+
+extension EnvironmentValues {
+
+/// The maximum number of lines that text can occupy in a view.
+///
+/// The maximum number of lines is `1` if the value is less than `1`. If the
+/// value is `nil`, the text uses as many lines as required. The default is
+/// `nil`.
+@available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *)
+public var lineLimit: Int? { get { fatalError() } }
+}
+
+@available(iOS 15.0, macOS 12.0, tvOS 15.0, watchOS 8.0, *)
+extension EnvironmentValues {
+
+/// The prominence to apply to section headers within a view.
+///
+/// The default is ``Prominence/standard``.
+public var headerProminence: Prominence { get { fatalError() } }
+}
+
+@available(iOS 15.0, macOS 12.0, tvOS 17.0, *)
+@available(watchOS, unavailable)
+extension EnvironmentValues {
+
+/// The menu indicator visibility to apply to controls within a view.
+///
+/// - Note: On tvOS, the standard button styles do not include a menu
+///         indicator, so this modifier will have no effect when using a
+///         built-in button style. You can implement an indicator in your
+///         own ``ButtonStyle`` implementation by checking the value of this
+///         environment value.
+public var menuIndicatorVisibility: Visibility { get { fatalError() } }
+}
+
+@available(iOS 17.0, macOS 14.0, tvOS 17.0, *)
+@available(watchOS, unavailable)
+extension EnvironmentValues {
+
+/// The allowed dynamic range for the view, or nil.
+public var allowedDynamicRange: Image.DynamicRange? { get { fatalError() } }
+}
+
+extension EnvironmentValues {
+
+/// A Boolean that indicates whether the quick actions feature is enabled.
+///
+/// The system uses quick actions to provide users with a
+/// fast alternative interaction method. Quick actions can be
+/// presented to users with a textual banner at the top of their
+/// screen and/or an outline around a view that is already on screen.
+@available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
+public var accessibilityQuickActionsEnabled: Bool { get { fatalError() } }
+}
+
+@available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *)
+extension EnvironmentValues {
+
+/// A Boolean value that indicates whether the view associated with this
+/// environment allows user interaction.
+///
+/// The default value is `true`.
+public var isEnabled: Bool { get { fatalError() } }
+}
+
+@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *)
+extension EnvironmentValues {
+
+/// A Boolean value that indicates whether the view associated with this
+/// environment allows focus effects to be displayed.
+///
+/// The default value is `true`.
+@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *)
+public var isFocusEffectEnabled: Bool { get { fatalError() } }
+}
+
+extension EnvironmentValues {
+
+/// Returns whether the nearest focusable ancestor has focus.
+///
+/// If there is no focusable ancestor, the value is `false`.
+@available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)
+public var isFocused: Bool { get { fatalError() } }
+}
+
+@available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 8.0, *)
+extension EnvironmentValues {
+
+/// A Boolean value that indicates whether the display or environment currently requires
+/// reduced luminance.
+///
+/// When you detect this condition, lower the overall brightness of your view.
+/// For example, you can change large, filled shapes to be stroked, and choose
+/// less bright colors:
+///
+///     @Environment(\.isLuminanceReduced) var isLuminanceReduced
+///
+///     var body: some View {
+///         if isLuminanceReduced {
+///             Circle()
+///                 .stroke(Color.gray, lineWidth: 10)
+///         } else {
+///             Circle()
+///                 .fill(Color.white)
+///         }
+///     }
+///
+/// In addition to the changes that you make, the system could also
+/// dim the display to achieve a suitable brightness. By reacting to
+/// `isLuminanceReduced`, you can preserve contrast and readability
+/// while helping to satisfy the reduced brightness requirement.
+///
+/// > Note: On watchOS, the system typically sets this value to `true` when the user
+/// lowers their wrist, but the display remains on. Starting in watchOS 8, the system keeps your
+/// view visible on wrist down by default. If you want the system to blur the screen
+/// instead, as it did in earlier versions of watchOS, set the value for the
+/// key in your app's
+/// file to `false`.
+public var isLuminanceReduced: Bool { get { fatalError() } }
+}
+
+@available(iOS 16.0, macOS 13.0, *)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
+extension EnvironmentValues {
+
+/// An window presentation action stored in a view's environment.
+///
+/// Use the `openWindow` environment value to get an ``OpenWindowAction``
+/// instance for a given ``Environment``. Then call the instance to open
+/// a window. You call the instance directly because it defines a
+/// ``OpenWindowAction/callAsFunction(id:)`` method that Swift calls
+/// when you call the instance.
+///
+/// For example, you can define a button that opens a new mail viewer
+/// window:
+///
+///     @main
+///     struct Mail: App {
+///         var body: some Scene {
+///             WindowGroup(id: "mail-viewer") {
+///                 MailViewer()
+///             }
+///         }
+///     }
+///
+///     struct NewViewerButton: View {
+///         @Environment(\.openWindow) private var openWindow
+///
+///         var body: some View {
+///             Button("Open new mail viewer") {
+///                 openWindow(id: "mail-viewer")
+///             }
+///         }
+///     }
+///
+/// You indicate which scene to open by providing one of the following:
+///  * A string identifier that you pass through the `id` parameter,
+///    as in the above example.
+///  * A `value` parameter that has a type that matches the type that
+///    you specify in the scene's initializer.
+///  * Both an identifier and a value. This enables you to define
+///    multiple window groups that take input values of the same type like a
+///    .
+///
+/// Use the first option to target either a ``WindowGroup`` or a
+/// ``Window`` scene in your app that has a matching identifier. For a
+/// `WindowGroup`, the system creates a new window for the group. If
+/// the window group presents data, the system provides the default value
+/// or `nil` to the window's root view. If the targeted scene is a
+/// `Window`, the system orders it to the front.
+///
+/// Use the other two options to target a `WindowGroup` and provide
+/// a value to present. If the interface already has a window from
+/// the group that's presenting the specified value, the system brings the
+/// window to the front. Otherwise, the system creates a new window and
+/// passes a binding to the specified value.
+public var openWindow: OpenWindowAction { get { fatalError() } }
+}
+
+extension EnvironmentValues {
+
+/// An action that activates the standard rename interaction.
+///
+/// Use the ``View/renameAction(_:)-6lghl`` modifier to configure the rename
+/// action in the environment.
+@available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
+public var rename: RenameAction? { get { fatalError() } }
+}
+
+@available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
+extension EnvironmentValues {
+
+/// A Boolean value that indicates whether the current platform supports
+/// opening multiple windows.
+///
+/// Read this property from the environment to determine if your app can
+/// use the ``EnvironmentValues/openWindow`` action to open new windows:
+///
+///     struct NewMailViewerButton: View {
+///         @Environment(\.supportsMultipleWindows) private var supportsMultipleWindows
+///         @Environment(\.openWindow) private var openWindow
+///
+///         var body: some View {
+///             Button("Open New Window") {
+///                 openWindow(id: "mail-viewer")
+///             }
+///             .disabled(!supportsMultipleWindows)
+///         }
+///     }
+///
+/// The reported value depends on both the platform and how you configure
+/// your app:
+///
+/// * In macOS, this property returns `true` for any app that uses the
+///   SkipUI app lifecycle.
+/// * In iPadOS, this property returns `true` for any app that uses the
+///   SkipUI app lifecycle and has the Information Property List key
+///  set to `true`.
+/// * For all other platforms and configurations, the value returns `false`.
+///
+/// If the value is false and you try to open a window, SkipUI
+/// ignores the action and logs a runtime error.
+public var supportsMultipleWindows: Bool { get { fatalError() } }
+}
+
+@available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *)
+extension EnvironmentValues {
+
+/// The display scale of this environment.
+public var displayScale: CGFloat { get { fatalError() } }
+
+/// The image scale for this environment.
+@available(macOS 11.0, *)
+public var imageScale: Image.Scale { get { fatalError() } }
+
+/// The size of a pixel on the screen.
+///
+/// This value is usually equal to `1` divided by
+/// ``EnvironmentValues/displayScale``.
+public var pixelLength: CGFloat { get { fatalError() } }
+
+/// The font weight to apply to text.
+///
+/// This value reflects the value of the Bold Text display setting found in
+/// the Accessibility settings.
+public var legibilityWeight: LegibilityWeight? { get { fatalError() } }
+
+/// The current locale that views should use.
+public var locale: Locale { get { fatalError() } }
+
+/// The current calendar that views should use when handling dates.
+public var calendar: Calendar { get { fatalError() } }
+
+/// The current time zone that views should use when handling dates.
+public var timeZone: TimeZone { get { fatalError() } }
+}
+
+extension EnvironmentValues {
+
+/// The visiblity to apply to scroll indicators of any
+/// vertically scrollable content.
+@available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
+public var verticalScrollIndicatorVisibility: ScrollIndicatorVisibility { get { fatalError() } }
+
+/// The visibility to apply to scroll indicators of any
+/// horizontally scrollable content.
+@available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
+public var horizontalScrollIndicatorVisibility: ScrollIndicatorVisibility { get { fatalError() } }
+}
+
+extension EnvironmentValues {
+
+/// A Boolean value that indicates whether any scroll views associated
+/// with this environment allow scrolling to occur.
+///
+/// The default value is `true`. Use the ``View/scrollDisabled(_:)``
+/// modifier to configure this property.
+@available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
+public var isScrollEnabled: Bool { get { fatalError() } }
+}
+
+extension EnvironmentValues {
+
+/// The scroll bounce mode for the vertical axis of scrollable views.
+///
+/// Use the ``View/scrollBounceBehavior(_:axes:)`` view modifier to set this
+/// value in the ``Environment``.
+@available(iOS 16.4, macOS 13.3, tvOS 16.4, watchOS 9.4, *)
+public var verticalScrollBounceBehavior: ScrollBounceBehavior { get { fatalError() } }
+
+/// The scroll bounce mode for the horizontal axis of scrollable views.
+///
+/// Use the ``View/scrollBounceBehavior(_:axes:)`` view modifier to set this
+/// value in the ``Environment``.
+@available(iOS 16.4, macOS 13.3, tvOS 16.4, watchOS 9.4, *)
+public var horizontalScrollBounceBehavior: ScrollBounceBehavior { get { fatalError() } }
+}
+
+extension EnvironmentValues {
+
+@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *)
+public subscript<T>(objectType: T.Type) -> T? where T : AnyObject, T : Observable { get { fatalError() } }
+}
+
+@available(iOS 17.0, tvOS 17.0, *)
+@available(macOS, unavailable)
+@available(watchOS, unavailable)
+extension EnvironmentValues {
+
+/// A Boolean value that indicates whether the view associated with this
+/// environment allows hover effects to be displayed.
+///
+/// The default value is `true`.
+public var isHoverEffectEnabled: Bool { get { fatalError() } }
+}
+
+@available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *)
+extension EnvironmentValues {
+
+/// A Boolean value that indicates whether the user has enabled an assistive
+/// technology.
+public var accessibilityEnabled: Bool { get { fatalError() } }
+}
+
+@available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *)
+extension EnvironmentValues {
+
+/// Whether the system preference for Differentiate without Color is enabled.
+///
+/// If this is true, UI should not convey information using color alone
+/// and instead should use shapes or glyphs to convey information.
+public var accessibilityDifferentiateWithoutColor: Bool { get { fatalError() } }
+
+/// Whether the system preference for Reduce Transparency is enabled.
+///
+/// If this property's value is true, UI (mainly window) backgrounds should
+/// not be semi-transparent; they should be opaque.
+public var accessibilityReduceTransparency: Bool { get { fatalError() } }
+
+/// Whether the system preference for Reduce Motion is enabled.
+///
+/// If this property's value is true, UI should avoid large animations,
+/// especially those that simulate the third dimension.
+public var accessibilityReduceMotion: Bool { get { fatalError() } }
+
+/// Whether the system preference for Invert Colors is enabled.
+///
+/// If this property's value is true then the display will be inverted.
+/// In these cases it may be needed for UI drawing to be adjusted to in
+/// order to display optimally when inverted.
+public var accessibilityInvertColors: Bool { get { fatalError() } }
+}
+
+@available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)
+extension EnvironmentValues {
+
+/// Whether the system preference for Show Button Shapes is enabled.
+///
+/// If this property's value is true, interactive custom controls
+/// such as buttons should be drawn in such a way that their edges
+/// and borders are clearly visible.
+public var accessibilityShowButtonShapes: Bool { get { fatalError() } }
+}
+
+@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *)
+extension EnvironmentValues {
+
+/// Whether the setting to reduce flashing or strobing lights in video
+/// content is on. This setting can also be used to determine if UI in
+/// playback controls should be shown to indicate upcoming content that
+/// includes flashing or strobing lights.
+public var accessibilityDimFlashingLights: Bool { get { fatalError() } }
+
+/// Whether the setting for playing animations in an animated image is
+/// on. When this value is false, any presented image that contains
+/// animation should not play automatically.
+public var accessibilityPlayAnimatedImages: Bool { get { fatalError() } }
+}
+
+@available(iOS 15.0, macOS 12.0, tvOS 15.0, watchOS 8.0, *)
+extension EnvironmentValues {
+
+/// A Boolean value that indicates whether the VoiceOver screen reader is in use.
+///
+/// The state changes as the user turns on or off the VoiceOver screen reader.
+public var accessibilityVoiceOverEnabled: Bool { get { fatalError() } }
+
+/// A Boolean value that indicates whether the Switch Control motor accessibility feature is in use.
+///
+/// The state changes as the user turns on or off the Switch Control feature.
+public var accessibilitySwitchControlEnabled: Bool { get { fatalError() } }
+}
+
+@available(iOS 15.0, macOS 12.0, tvOS 15.0, watchOS 8.0, *)
+extension EnvironmentValues {
+
+/// The current Dynamic Type size.
+///
+/// This value changes as the user's chosen Dynamic Type size changes. The
+/// default value is device-dependent.
+///
+/// When limiting the Dynamic Type size, consider if adding a
+/// large content view with ``View/accessibilityShowsLargeContentViewer()``
+/// would be appropriate.
+///
+/// On macOS, this value cannot be changed by users and does not affect the
+/// text size.
+public var dynamicTypeSize: DynamicTypeSize { get { fatalError() } }
+}
+
+@available(iOS 15.0, macOS 12.0, tvOS 15.0, watchOS 8.0, *)
+extension EnvironmentValues {
+
+/// A Boolean value that indicates when the user is searching.
+///
+/// You can read this value like any of the other ``EnvironmentValues``,
+/// by creating a property with the ``Environment`` property wrapper:
+///
+///     @Environment(\.isSearching) private var isSearching
+///
+/// Get the value to find out when the user interacts with a search
+/// field that's produced by one of the searchable modifiers, like
+/// ``View/searchable(text:placement:prompt:)-18a8f``:
+///
+///     struct SearchingExample: View {
+///         @State private var searchText = ""
+///
+///         var body: some View {
+///             NavigationStack {
+///                 SearchedView()
+///                     .searchable(text: $searchText)
+///             }
+///         }
+///     }
+///
+///     struct SearchedView: View {
+///         @Environment(\.isSearching) private var isSearching
+///
+///         var body: some View {
+///             Text(isSearching ? "Searching!" : "Not searching.")
+///         }
+///     }
+///
+/// When the user first taps or clicks in a search field, the
+/// `isSearching` property becomes `true`. When the user cancels the
+/// search operation, the property becomes `false`. To programmatically
+/// set the value to `false` and dismiss the search operation, use
+/// ``EnvironmentValues/dismissSearch``.
+///
+/// > Important: Access the value from inside the searched view, as the
+///   example above demonstrates, rather than from the searched view’s
+///   parent. SkipUI sets the value in the environment of the view that
+///   you apply the searchable modifier to, and doesn’t propagate the
+///   value up the view hierarchy.
+public var isSearching: Bool { get { fatalError() } }
+
+/// An action that ends the current search interaction.
+///
+/// Use this environment value to get the ``DismissSearchAction`` instance
+/// for the current ``Environment``. Then call the instance to dismiss
+/// the current search interaction. You call the instance directly because
+/// it defines a ``DismissSearchAction/callAsFunction()`` method that Swift
+/// calls when you call the instance.
+///
+/// When you dismiss search, SkipUI:
+///
+/// * Sets ``EnvironmentValues/isSearching`` to `false`.
+/// * Clears any text from the search field.
+/// * Removes focus from the search field.
+///
+/// > Note: Calling this instance has no effect if the user isn't
+/// interacting with a search field.
+///
+/// Use this action to dismiss a search operation based on
+/// another user interaction. For example, consider a searchable
+/// view with a ``Button`` that presents more information about the first
+/// matching item from a collection:
+///
+///     struct ContentView: View {
+///         @State private var searchText = ""
+///
+///         var body: some View {
+///             NavigationStack {
+///                 SearchedView(searchText: searchText)
+///                     .searchable(text: $searchText)
+///             }
+///         }
+///     }
+///
+///     private struct SearchedView: View {
+///         let searchText: String
+///
+///         let items = ["a", "b", "c"]
+///         var filteredItems: [String] { items.filter { $0 == searchText.lowercased() } }
+///
+///         @State private var isPresented = false
+///         @Environment(\.dismissSearch) private var dismissSearch
+///
+///         var body: some View {
+///             if let item = filteredItems.first {
+///                 Button("Details about \(item)") {
+///                     isPresented = true
+///                 }
+///                 .sheet(isPresented: $isPresented) {
+///                     NavigationStack {
+///                         DetailView(item: item, dismissSearch: dismissSearch)
+///                     }
+///                 }
+///             }
+///         }
+///     }
+///
+/// The button becomes visible only after the user enters search text
+/// that produces a match. When the user taps the button, SkipUI shows
+/// a sheet that provides more information about the item, including
+/// an Add button for adding the item to a stored list of items:
+///
+///     private struct DetailView: View {
+///         var item: String
+///         var dismissSearch: DismissSearchAction
+///
+///         @Environment(\.dismiss) private var dismiss
+///
+///         var body: some View {
+///             Text("Information about \(item).")
+///                 .toolbar {
+///                     Button("Add") {
+///                         // Store the item here...
+///
+///                         dismiss()
+///                         dismissSearch()
+///                     }
+///                 }
+///         }
+///     }
+///
+/// People can dismiss the sheet by dragging it down, effectively
+/// canceling the operation, leaving the in-progress search interaction
+/// intact. Alternatively, people can tap the Add button to store the item.
+/// Because the person using your app is likely to be done with both the
+/// detail view and the search interaction at this point, the button's
+/// closure also uses the ``EnvironmentValues/dismiss`` property to dismiss
+/// the sheet, and the ``EnvironmentValues/dismissSearch`` property to
+/// reset the search field.
+///
+/// > Important: Access the action from inside the searched view, as the
+///   example above demonstrates, rather than from the searched view’s
+///   parent, or another hierarchy, like that of a sheet. SkipUI sets the
+///   value in the environment of the view that you apply the searchable
+///   modifier to, and doesn’t propagate the value up the view hierarchy.
+public var dismissSearch: DismissSearchAction { get { fatalError() } }
+
+/// The current placement of search suggestions.
+///
+/// Search suggestions render based on the platform and surrounding context
+/// in which you place the searchable modifier containing suggestions.
+/// You can render search suggestions in two ways:
+///
+/// * In a menu attached to the search field.
+/// * Inline with the main content of the app.
+///
+/// You find the current search suggestion placement by querying the
+/// ``EnvironmentValues/searchSuggestionsPlacement`` in your
+/// search suggestions.
+///
+///     enum FruitSuggestion: String, Identifiable {
+///         case apple, banana, orange
+///         var id: Self { self }
+///     }
+///
+///     @State private var text: String = ""
+///     @State private var suggestions: [FruitSuggestion] = []
+///
+///     var body: some View {
+///         MainContent()
+///             .searchable(text: $text) {
+///                 FruitSuggestions(suggestions: suggestions)
+///             }
+///     }
+///
+///     struct FruitSuggestions: View {
+///         var suggestions: [FruitSuggestion]
+///
+///         @Environment(\.searchSuggestionsPlacement)
+///         private var placement
+///
+///         var body: some View {
+///             if shouldRender {
+///                 ForEach(suggestions) { suggestion in
+///                     Text(suggestion.rawValue.capitalized)
+///                         .searchCompletion(suggestion.rawValue)
+///                 }
+///             }
+///         }
+///
+///         var shouldRender: Bool {
+///             #if os(iOS)
+///             placement == .menu
+///             #else
+///             true
+///             #endif
+///         }
+///     }
+///
+/// In the above example, search suggestions only render in iOS
+/// if the searchable modifier displays them in a menu. You might want
+/// to do this to render suggestions in your own list alongside
+/// your own search results when they would render in a list.
+@available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
+public var searchSuggestionsPlacement: SearchSuggestionsPlacement { get { fatalError() } }
+}
+
+extension EnvironmentValues {
+
+/// The configuration of a document in a ``DocumentGroup``.
+///
+/// The value is `nil` for views that are not enclosed in a ``DocumentGroup``.
+///
+/// For example, if the app shows the document path in the footer
+/// of each document, it can get the URL from the environment:
+///
+///     struct ContentView: View {
+///         @Binding var document: TextDocument
+///         @Environment(\.documentConfiguration) private var configuration: DocumentConfiguration?
+///
+///         var body: some View {
+///             …
+///             Label(
+///                 configuration?.fileURL?.path ??
+///                     "", systemImage: "folder.circle"
+///             )
+///         }
+///     }
+///
+@available(iOS 17.0, macOS 14.0, *)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
+public var documentConfiguration: DocumentConfiguration? { get { fatalError() } }
+}
+
+@available(iOS 15.0, macOS 12.0, *)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
+extension EnvironmentValues {
+
+/// The keyboard shortcut that buttons in this environment will be triggered
+/// with.
+///
+/// This is particularly useful in button styles when a button's appearance
+/// depends on the shortcut associated with it. On macOS, for example, when
+/// a button is bound to the Return key, it is typically drawn with a
+/// special emphasis. This happens automatically when using the built-in
+/// button styles, and can be implemented manually in custom styles using
+/// this environment key:
+///
+///     private struct MyButtonStyle: ButtonStyle {
+///         @Environment(\.keyboardShortcut)
+///         private var shortcut: KeyboardShortcut?
+///
+///         func makeBody(configuration: Configuration) -> some View {
+///             let labelFont = Font.body
+///                 .weight(shortcut == .defaultAction ? .bold : .regular)
+///             configuration.label
+///                 .font(labelFont)
+///         }
+///     }
+///
+/// If no keyboard shortcut has been applied to the view or its ancestor,
+/// then the environment value will be `nil`.
+public var keyboardShortcut: KeyboardShortcut? { get { fatalError() } }
+}
+
+@available(iOS 15.0, macOS 12.0, tvOS 15.0, watchOS 8.0, *)
+extension EnvironmentValues {
+
+/// A Boolean value that indicates whether the view associated with this
+/// environment is currently presented.
+///
+/// You can read this value like any of the other ``EnvironmentValues``
+/// by creating a property with the ``Environment`` property wrapper:
+///
+///     @Environment(\.isPresented) private var isPresented
+///
+/// Read the value inside a view if you need to know when SkipUI
+/// presents that view. For example, you can take an action when SkipUI
+/// presents a view by using the ``View/onChange(of:perform:)``
+/// modifier:
+///
+///     .onChange(of: isPresented) { isPresented in
+///         if isPresented {
+///             // Do something when first presented.
+///         }
+///     }
+///
+/// This behaves differently than ``View/onAppear(perform:)``, which
+/// SkipUI can call more than once for a given presentation, like
+/// when you navigate back to a view that's already in the
+/// navigation hierarchy.
+///
+/// To dismiss the currently presented view, use
+/// ``EnvironmentValues/dismiss``.
+public var isPresented: Bool { get { fatalError() } }
+}
+
+@available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *)
+extension EnvironmentValues {
+
+/// A value that indicates how the layout truncates the last line of text to
+/// fit into the available space.
+///
+/// The default value is ``Text/TruncationMode/tail``. Some controls,
+/// however, might have a different default if appropriate.
+public var truncationMode: Text.TruncationMode { get { fatalError() } }
+
+/// The distance in points between the bottom of one line fragment and the
+/// top of the next.
+///
+/// This value is always nonnegative.
+public var lineSpacing: CGFloat { get { fatalError() } }
+
+/// A Boolean value that indicates whether inter-character spacing should
+/// tighten to fit the text into the available space.
+///
+/// The default value is `false`.
+public var allowsTightening: Bool { get { fatalError() } }
+
+/// The minimum permissible proportion to shrink the font size to fit
+/// the text into the available space.
+///
+/// In the example below, a label with a `minimumScaleFactor` of `0.5`
+/// draws its text in a font size as small as half of the actual font if
+/// needed to fit into the space next to the text input field:
+///
+///     HStack {
+///         Text("This is a very long label:")
+///             .lineLimit(1)
+///             .minimumScaleFactor(0.5)
+///         TextField("My Long Text Field", text: $myTextField)
+///             .frame(width: 250, height: 50, alignment: .center)
+///     }
+///
+/// ![A screenshot showing the effects of setting the minimumScaleFactor on
+///   the text in a view](SkipUI-View-minimumScaleFactor.png)
+///
+/// You can set the minimum scale factor to any value greater than `0` and
+/// less than or equal to `1`. The default value is `1`.
+///
+/// SkipUI uses this value to shrink text that doesn't fit in a view when
+/// it's okay to shrink the text. For example, a label with a
+/// `minimumScaleFactor` of `0.5` draws its text in a font size as small as
+/// half the actual font if needed.
+public var minimumScaleFactor: CGFloat { get { fatalError() } }
+
+/// A stylistic override to transform the case of `Text` when displayed,
+/// using the environment's locale.
+///
+/// The default value is `nil`, displaying the `Text` without any case
+/// changes.
+@available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)
+public var textCase: Text.Case? { get { fatalError() } }
+}
+
+@available(iOS 13.0, tvOS 13.0, *)
+@available(macOS, unavailable)
+@available(watchOS, unavailable)
+extension EnvironmentValues {
+
+/// An indication of whether the user can edit the contents of a view
+/// associated with this environment.
+///
+/// Read this environment value to receive a optional binding to the
+/// edit mode state. The binding contains an ``EditMode`` value
+/// that indicates whether edit mode is active, and that you can use to
+/// change the mode. To learn how to read an environment
+/// value, see ``EnvironmentValues``.
+///
+/// Certain built-in views automatically alter their appearance and behavior
+/// in edit mode. For example, a ``List`` with a ``ForEach`` that's
+/// configured with the ``DynamicViewContent/onDelete(perform:)`` or
+/// ``DynamicViewContent/onMove(perform:)`` modifier provides controls to
+/// delete or move list items while in edit mode. On devices without an
+/// attached keyboard and mouse or trackpad, people can make multiple
+/// selections in lists only when edit mode is active.
+///
+/// You can also customize your own views to react to edit mode.
+/// The following example replaces a read-only ``Text`` view with
+/// an editable ``TextField``, checking for edit mode by
+/// testing the wrapped value's ``EditMode/isEditing`` property:
+///
+///     @Environment(\.editMode) private var editMode
+///     @State private var name = "Maria Ruiz"
+///
+///     var body: some View {
+///         Form {
+///             if editMode?.wrappedValue.isEditing == true {
+///                 TextField("Name", text: $name)
+///             } else {
+///                 Text(name)
+///             }
+///         }
+///         .animation(nil, value: editMode?.wrappedValue)
+///         .toolbar { // Assumes embedding this view in a NavigationView.
+///             EditButton()
+///         }
+///     }
+///
+/// You can set the edit mode through the binding, or you can
+/// rely on an ``EditButton`` to do that for you, as the example above
+/// demonstrates. The button activates edit mode when the user
+/// taps the Edit button, and disables editing mode when the user taps Done.
+@available(macOS, unavailable)
+@available(watchOS, unavailable)
+public var editMode: Binding<EditMode>? { get { fatalError() } }
+}
+
+@available(iOS 15.0, macOS 10.15, watchOS 9.0, *)
+@available(tvOS, unavailable)
+extension EnvironmentValues {
+
+/// The size to apply to controls within a view.
+///
+/// The default is ``ControlSize/regular``.
+@available(tvOS, unavailable)
+public var controlSize: ControlSize { get { fatalError() } }
+}
+
+@available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
+extension EnvironmentValues {
+
+/// The current method of animating the contents of views.
+public var contentTransition: ContentTransition { get { fatalError() } }
+
+/// A Boolean value that controls whether views that render content
+/// transitions use GPU-accelerated rendering.
+///
+/// Setting this value to `true` causes SkipUI to wrap content transitions
+/// with a ``View/drawingGroup(opaque:colorMode:)`` modifier.
+public var contentTransitionAddsDrawingGroup: Bool { get { fatalError() } }
+}
+
+@available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
+extension EnvironmentValues {
+
+/// An optional style that overrides the default system background
+/// style when set.
+public var backgroundStyle: AnyShapeStyle? { get { fatalError() } }
+}
+
+extension EnvironmentValues {
+
+/// Whether the Large Content Viewer is enabled.
+///
+/// The system can automatically provide a large content view
+/// with ``View/accessibilityShowsLargeContentViewer()``
+/// or you can provide your own with ``View/accessibilityShowsLargeContentViewer(_:)``.
+///
+/// While it is not necessary to check this value before adding
+/// a large content view, it may be helpful if you need to
+/// adjust the behavior of a gesture. For example, a button with
+/// a long press handler might increase its long press duration
+/// so the user can read the text in the large content viewer first.
+@available(iOS 15.0, macOS 12.0, tvOS 15.0, watchOS 8.0, *)
+public var accessibilityLargeContentViewerEnabled: Bool { get { fatalError() } }
+}
+
+@available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *)
+extension EnvironmentValues {
+
+/// The color scheme of this environment.
+///
+/// Read this environment value from within a view to find out if SkipUI
+/// is currently displaying the view using the ``ColorScheme/light`` or
+/// ``ColorScheme/dark`` appearance. The value that you receive depends on
+/// whether the user has enabled Dark Mode, possibly superseded by
+/// the configuration of the current presentation's view hierarchy.
+///
+///     @Environment(\.colorScheme) private var colorScheme
+///
+///     var body: some View {
+///         Text(colorScheme == .dark ? "Dark" : "Light")
+///     }
+///
+/// You can set the `colorScheme` environment value directly,
+/// but that usually isn't what you want. Doing so changes the color
+/// scheme of the given view and its child views but *not* the views
+/// above it in the view hierarchy. Instead, set a color scheme using the
+/// ``View/preferredColorScheme(_:)`` modifier, which also propagates the
+/// value up through the view hierarchy to the enclosing presentation, like
+/// a sheet or a window.
+///
+/// When adjusting your app's user interface to match the color scheme,
+/// consider also checking the ``EnvironmentValues/colorSchemeContrast``
+/// property, which reflects a system-wide contrast setting that the user
+/// controls.
+///
+/// > Note: If you only need to provide different colors or
+/// images for different color scheme and contrast settings, do that in
+/// your app's Asset Catalog. See
+/// .
+public var colorScheme: ColorScheme { get { fatalError() } }
+
+/// The contrast associated with the color scheme of this environment.
+///
+/// Read this environment value from within a view to find out if SkipUI
+/// is currently displaying the view using ``ColorSchemeContrast/standard``
+/// or ``ColorSchemeContrast/increased`` contrast. The value that you read
+/// depends entirely on user settings, and you can't change it.
+///
+///     @Environment(\.colorSchemeContrast) private var colorSchemeContrast
+///
+///     var body: some View {
+///         Text(colorSchemeContrast == .standard ? "Standard" : "Increased")
+///     }
+///
+/// When adjusting your app's user interface to match the contrast,
+/// consider also checking the ``EnvironmentValues/colorScheme`` property
+/// to find out if SkipUI is displaying the view with a light or dark
+/// appearance.
+///
+/// > Note: If you only need to provide different colors or
+/// images for different color scheme and contrast settings, do that in
+/// your app's Asset Catalog. See
+/// .
+public var colorSchemeContrast: ColorSchemeContrast { get { fatalError() } }
+}
+
+@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *)
+extension EnvironmentValues {
+
+/// Whether buttons with this associated environment should repeatedly
+/// trigger their actions on prolonged interactions.
+///
+/// A value of `enabled` means that buttons will be able to repeatedly
+/// trigger their action, and `disabled` means they should not. A value of
+/// `automatic` means that buttons will defer to default behavior.
+public var buttonRepeatBehavior: ButtonRepeatBehavior { get { fatalError() } }
+}
+
+@available(iOS 15.0, macOS 12.0, tvOS 15.0, watchOS 8.0, *)
+extension EnvironmentValues {
+
+/// The material underneath the current view.
+///
+/// This value is `nil` if the current background isn't one of the standard
+/// materials. If you set a material, the standard content styles enable
+/// their vibrant rendering modes.
+///
+/// You set this value by calling one of the background modifiers that takes
+/// a ``ShapeStyle``, like ``View/background(_:ignoresSafeAreaEdges:)``
+/// or ``View/background(_:in:fillStyle:)-89n7j``, and passing in a
+/// ``Material``. You can also set the value manually, using
+/// `nil` to disable vibrant rendering, or a ``Material`` instance to
+/// enable the vibrancy style associated with the specified material.
+public var backgroundMaterial: Material? { get { fatalError() } }
+}
+
+@available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
+extension EnvironmentValues {
+
+/// The preferred order of items for menus presented from this view.
+///
+/// Set this value for a view hierarchy by calling the
+/// ``View/menuOrder(_:)`` view modifier.
+public var menuOrder: MenuOrder { get { fatalError() } }
+}
+
+@available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
+extension EnvironmentValues {
+
+/// The current size of sidebar rows.
+///
+/// On macOS, reflects the value of the "Sidebar icon size" in
+/// System Settings' Appearance settings.
+///
+/// This can be used to update the content shown in the sidebar in
+/// response to this size. And it can be overridden to force a sidebar to a
+/// particularly size, regardless of the user preference.
+///
+/// On other platforms, the value is always `.medium` and setting a
+/// different value has no effect.
+///
+/// SkipUI views like `Label` automatically adapt to the sidebar row size.
+public var sidebarRowSize: SidebarRowSize { get { fatalError() } }
+}
+
+@available(iOS 17.0, macOS 14.0, *)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
+extension EnvironmentValues {
+
+/// A window dismissal action stored in a view's environment.
+///
+/// Use the `dismissWindow` environment value to get an
+/// ``DismissWindowAction`` instance for a given ``Environment``. Then call
+/// the instance to dismiss a window. You call the instance directly because
+/// it defines a ``DismissWindowAction/callAsFunction(id:)`` method that
+/// Swift calls when you call the instance.
+///
+/// For example, you can define a button that dismisses an auxiliary window:
+///
+///     @main
+///     struct MyApp: App {
+///         var body: some Scene {
+///             WindowGroup {
+///                 ContentView()
+///             }
+///             #if os(macOS)
+///             Window("Auxiliary", id: "auxiliary") {
+///                 AuxiliaryContentView()
+///             }
+///             #endif
+///         }
+///     }
+///
+///     struct DismissWindowButton: View {
+///         @Environment(\.dismissWindow) private var dismissWindow
+///
+///         var body: some View {
+///             Button("Close Auxiliary Window") {
+///                 dismissWindow(id: "auxiliary")
+///             }
+///         }
+///     }
+public var dismissWindow: DismissWindowAction { get { fatalError() } }
+}
+
+@available(iOS 17.0, macOS 14.0, *)
+@available(watchOS, unavailable)
+@available(tvOS, unavailable)
+extension EnvironmentValues {
+
+/// The prominence to apply to badges associated with this environment.
+///
+/// The default is ``BadgeProminence/standard``.
+public var badgeProminence: BadgeProminence { get { fatalError() } }
+}
+
+/// A modifier that must resolve to a concrete modifier in an environment before
+/// use.
+@available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *)
+public protocol EnvironmentalModifier : ViewModifier where Self.Body == Never {
+
+/// The type of modifier to use after being resolved.
+associatedtype ResolvedModifier : ViewModifier
+
+/// Resolve to a concrete modifier in the given `environment`.
+func resolve(in environment: EnvironmentValues) -> Self.ResolvedModifier
+}
+*/
