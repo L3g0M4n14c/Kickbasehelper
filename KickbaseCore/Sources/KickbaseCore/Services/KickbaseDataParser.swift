@@ -102,7 +102,8 @@ public class KickbaseDataParser: ObservableObject {
         // Versuche verschiedene mögliche Response-Formate (sichere, nicht-generic Runtime casts)
         for key in ["leagues", "data", "l", "it", "anol"] {
             let arrRawAny = rawArray(from: json[key])
-            let arr = arrRawAny.compactMap { dict(from: $0) }
+            var arr: [[String: Any]] = []
+            for el in arrRawAny { if let d = dict(from: el) { arr.append(d) } }
             if !arr.isEmpty {
                 leaguesArray = arr
                 print("✅ Found \(key) array with \(arr.count) entries")
@@ -116,7 +117,11 @@ public class KickbaseDataParser: ObservableObject {
             print("✅ Found single league response")
         } else {
             // Erweiterte Behandlung für "it" und "anol" Keys
-            leaguesArray = findLeaguesInComplexStructure(json).compactMap { dict(from: $0) }
+            var arr: [[String: Any]] = []
+            for el in findLeaguesInComplexStructure(json) {
+                if let d = dict(from: el) { arr.append(d) }
+            }
+            leaguesArray = arr
         }
 
         var parsedLeagues: [League] = []
@@ -292,7 +297,14 @@ public class KickbaseDataParser: ObservableObject {
         print("🏆 Parsing league ranking... (isMatchDayQuery: \(isMatchDayQuery))")
 
         // The ranking uses "us" array according to API documentation
-        let usersArray = arrayOfDicts(from: json["us"])
+        let raw = rawArray(from: json["us"])
+        var usersArray: [[String: Any]] = []
+        var i = 0
+        while i < raw.count {
+            let el = raw[i]
+            if let d = dict(from: el) { usersArray.append(d) }
+            i += 1
+        }
         guard !usersArray.isEmpty else {
             print("⚠️ No users array found in ranking response")
             print("📋 Available keys: \(json.keys.sorted())")

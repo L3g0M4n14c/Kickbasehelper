@@ -41,7 +41,7 @@ class LeagueTableViewModel: ObservableObject {
 
     // MARK: - Dependencies
     private var kickbaseManager: KickbaseManager?
-    private var cancellables: [AnyCancellable] = []
+    private var cancellables: Set<AnyCancellable> = []
 
     // MARK: - Init
     init(kickbaseManager: KickbaseManager? = nil) {
@@ -98,6 +98,12 @@ class LeagueTableViewModel: ObservableObject {
             .store(in: &cancellables)
 
         // Observe leagueUsers changes
+        let c2 = manager.$leagueUsers
+            .sink { [weak self] users in
+                if self?.tableType == .overall {
+                    self?.displayedUsers = users
+                }
+            }
         manager.$leagueUsers
             .sink { [weak self] users in
                 if self?.tableType == .overall {
@@ -107,6 +113,12 @@ class LeagueTableViewModel: ObservableObject {
             .store(in: &cancellables)
 
         // Observe matchDayUsers changes
+        let c3 = manager.$matchDayUsers
+            .sink { [weak self] users in
+                if self?.tableType == .matchday {
+                    self?.displayedUsers = users
+                }
+            }
         manager.$matchDayUsers
             .sink { [weak self] users in
                 if self?.tableType == .matchday {
@@ -116,6 +128,10 @@ class LeagueTableViewModel: ObservableObject {
             .store(in: &cancellables)
 
         // Observe isLoading changes
+        let c4 = manager.$isLoading
+            .sink { [weak self] isLoading in
+                self?.isLoading = isLoading
+            }
         manager.$isLoading
             .sink { [weak self] isLoading in
                 self?.isLoading = isLoading

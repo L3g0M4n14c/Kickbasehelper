@@ -539,8 +539,8 @@ struct MatchRow: View {
         // Parse das Ergebnis (Format: "2:1" oder ähnlich)
         let components = match.result.split(separator: ":")
         guard components.count == 2,
-            let team1Goals = Int(components[0].trimmingCharacters(in: .whitespaces)),
-            let team2Goals = Int(components[1].trimmingCharacters(in: .whitespaces))
+            let team1Goals = Int(trimWhitespaceNewlines(components[0])),
+            let team2Goals = Int(trimWhitespaceNewlines(components[1]))
         else {
             return .primary  // Fallback wenn Ergebnis nicht parsbar ist
         }

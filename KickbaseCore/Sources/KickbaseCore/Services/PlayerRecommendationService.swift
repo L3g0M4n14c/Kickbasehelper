@@ -191,7 +191,7 @@ public class PlayerRecommendationService: ObservableObject {
             )
         }
 
-        // BATCH-PROCESSING: Verarbeite Spieler in Batches
+        // Batch processing: process players in batches
         let batchSize = 50
         var allRecommendations: [TransferRecommendation] = []
 
@@ -199,42 +199,32 @@ public class PlayerRecommendationService: ObservableObject {
             let batchEnd = min(batchStart + batchSize, qualityMarketPlayers.count)
             let batch = Array(qualityMarketPlayers[batchStart..<batchEnd])
 
-            // SKIP REPLACE:
-            // withTaskGroup(of = Any::class) { group ->
-            //     for (marketPlayer in batch.sref()) {
-            //         group.addTask(operation = suspend {
-            //             val result = Task.detached(operation = suspend {
-            //                 val analysis = this.analyzePlayerNonIsolated(marketPlayer, teamAnalysis = teamAnalysis)
-            //                 val recommendation = this.createRecommendationNonIsolated(marketPlayer = marketPlayer, analysis = analysis, teamAnalysis = teamAnalysis)
-            //                 if (recommendation.recommendationScore >= 2.0) recommendation else null
-            //             }).value()
-            //             (result ?: Unit)
-            //         })
-            //     }
-            //     for (result in group.sref()) {
-            //         val rec = result.sref() as? TransferRecommendation
-            //         if (rec != null) { batchRecommendations.append(rec) }
-            //     }
-            // }
-            // Verarbeite Batch parallel OFF the MainActor using detached tasks
             var batchRecommendations: [TransferRecommendation] = []
-            await withTaskGroup(of: TransferRecommendation?.self) { group in
+            await withTaskGroup(of: TransferRecommendation.self) { group in
                 for marketPlayer in batch {
                     group.addTask {
                         // Detached heavy CPU work off MainActor
-                        return await Task.detached { () -> TransferRecommendation? in
+                        return await Task.detached { () -> TransferRecommendation in
                             let analysis = self.analyzePlayerNonIsolated(
                                 marketPlayer, teamAnalysis: teamAnalysis)
                             let recommendation = self.createRecommendationNonIsolated(
                                 marketPlayer: marketPlayer, analysis: analysis,
                                 teamAnalysis: teamAnalysis)
-                            return recommendation.recommendationScore >= 2.0 ? recommendation : nil
+                            // Return a sentinel recommendation when score < 2.0 to avoid optionals
+                            return recommendation.recommendationScore >= 2.0
+                                ? recommendation
+                                : TransferRecommendation(
+                                    player: recommendation.player, recommendationScore: -1.0,
+                                    reasons: recommendation.reasons,
+                                    analysis: recommendation.analysis,
+                                    riskLevel: recommendation.riskLevel,
+                                    priority: recommendation.priority)
                         }.value
                     }
                 }
 
                 for await result in group {
-                    if let rec = result { batchRecommendations.append(rec) }
+                    if result.recommendationScore >= 2.0 { batchRecommendations.append(result) }
                 }
             }
 
@@ -427,7 +417,7 @@ public class PlayerRecommendationService: ObservableObject {
         }
     }
 
-    // Non-isolated wrapper for running analysis off the MainActor in detached Tasks
+    // Nonisolated wrapper for running analysis in detached tasks (keeps comment simple to avoid transpiler issues)
     nonisolated private func analyzePlayerNonIsolated(
         _ marketPlayer: MarketPlayer, teamAnalysis: TeamAnalysis
     )
@@ -554,7 +544,7 @@ public class PlayerRecommendationService: ObservableObject {
         )
     }
 
-    /// Lädt Stats für eine Liste von Spielern (parallel, max 10 gleichzeitig)
+    /// Loads stats for a list of players (parallel, max 10)
     private func loadStatsForPlayers(_ recommendations: [TransferRecommendation], leagueId: String)
         async
     {
@@ -568,7 +558,7 @@ public class PlayerRecommendationService: ObservableObject {
 
         if isVerboseLogging { print("📥 Loading stats for \(playersToLoad.count) players...") }
 
-        // Verarbeite in Batches von 10 parallel
+        // Process in batches of 10 in parallel
         for batchStart in stride(from: 0, to: playersToLoad.count, by: 10) {
             let batchEnd = min(batchStart + 10, playersToLoad.count)
             let batch = Array(playersToLoad[batchStart..<batchEnd])

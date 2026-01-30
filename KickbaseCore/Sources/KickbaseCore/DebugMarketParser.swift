@@ -25,7 +25,13 @@ class DebugMarketParser {
         //     dict(from = el)?.let { array.append(it) }
         // }
         let raw = rawArray(from: value)
-        let array = raw.compactMap { dict(from: $0) }
+        var array: [[String: Any]] = []
+        if raw.count > 0 {
+            for i in 0..<raw.count {
+                let el = raw[i]
+                if let d = dict(from: el) { array.append(d) }
+            }
+        }
         if !array.isEmpty {
             print("\(indent)📊 \(key): Array[\(array.count)]")
             if let firstItem = array.first {
@@ -107,7 +113,14 @@ class DebugMarketParser {
     }
 
     private static func looksLikeMarketPlayers(_ array: [Any]) -> Bool {
-        let firstItem = array.compactMap { dict(from: $0) }.first
+        var tmp: [[String: Any]] = []
+        if array.count > 0 {
+            for i in 0..<array.count {
+                let el = array[i]
+                if let d = dict(from: el) { tmp.append(d) }
+            }
+        }
+        let firstItem = tmp.first
         guard let firstItem = firstItem else { return false }
 
         let keys = Set(firstItem.keys)

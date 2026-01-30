@@ -25,6 +25,24 @@ extension String {
     public func splitBy(_ separator: String) -> [String] {
         return self.components(separatedBy: separator)
     }
+
+    /// Split a string by any of the provided characters (e.g., " _-") in a stable, explicit way
+    public func splitByCharacters(_ separators: String) -> [String] {
+        var out: [String] = []
+        var current = ""
+        for ch in self {
+            if separators.contains(ch) {
+                if !current.isEmpty {
+                    out.append(current)
+                    current = ""
+                }
+            } else {
+                current.append(ch)
+            }
+        }
+        if !current.isEmpty { out.append(current) }
+        return out
+    }
 }
 
 extension Substring {
@@ -42,5 +60,9 @@ extension Substring {
 
     public func splitBy(_ separator: String) -> [String] {
         return String(self).components(separatedBy: separator)
+    }
+
+    public func splitByCharacters(_ separators: String) -> [String] {
+        return String(self).splitByCharacters(separators)
     }
 }

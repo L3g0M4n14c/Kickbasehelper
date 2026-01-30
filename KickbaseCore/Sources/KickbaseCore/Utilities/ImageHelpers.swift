@@ -66,7 +66,12 @@ func chooseProfileBigUrl(_ details: PlayerDetailResponse?, _ playerData: [String
 
     // Candidate keys to try in order
     let keys = ["profileBigUrl", "imageUrl", "image", "photo", "pim"]
-    var candidates = keys.compactMap { playerData[$0] as? String }
+    var candidates: [String] = []
+    for k in keys {
+        if let s = playerData[k] as? String {
+            candidates.append(s)
+        }
+    }
 
     // Prefer explicit player images (e.g., contain '/player/team/') if present
     if let playerCandidate = candidates.first(where: {

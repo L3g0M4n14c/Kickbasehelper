@@ -234,8 +234,12 @@ class Image: View, Renderable, MutableStruct, skip.lib.SwiftProjecting {
         val tintColor = if (shouldTint) EnvironmentValues.shared._foregroundStyle?.asColor(opacity = 1.0, animationContext = context) ?: Color.primary.colorImpl() else null
 
         SubcomposeAsyncImage(model = model, contentDescription = null, loading = { _ ->
-
-        }, success = { state -> RenderPainter(painter = this.painter, tintColor = tintColor, scale = scale, aspectRatio = aspectRatio, contentMode = contentMode, context = context) }, error = { state ->  })
+            // Display a neutral placeholder while loading
+            RenderPainter(painter = ColorPainter(androidx.compose.ui.graphics.Color(0xFFECEFF1)), tintColor = null, scale = 1.0, aspectRatio = aspectRatio, contentMode = contentMode, context = context)
+        }, success = { state -> RenderPainter(painter = this.painter, tintColor = tintColor, scale = scale, aspectRatio = aspectRatio, contentMode = contentMode, context = context) }, error = { state ->
+            // Display a distinct error placeholder on failure
+            RenderPainter(painter = ColorPainter(androidx.compose.ui.graphics.Color(0xFFB0BEC5)), tintColor = null, scale = 1.0, aspectRatio = aspectRatio, contentMode = contentMode, context = context)
+        })
     }
 
     @Composable
@@ -746,6 +750,11 @@ class Image: View, Renderable, MutableStruct, skip.lib.SwiftProjecting {
                 "star.fill" -> return "Icons.Filled.Star" //􀋃
                 "hand.thumbsup.fill" -> return "Icons.Filled.ThumbUp" //􀊀
                 "exclamationmark.triangle.fill" -> return "Icons.Filled.Warning" //􀇿
+                // Additional mappings for Kickbase-specific SF symbols
+                "1.circle.fill" -> return "Icons.Filled.LooksOne" // numeric badge 1
+                "2.circle.fill" -> return "Icons.Filled.LooksTwo" // numeric badge 2
+                "person.fill.badge.minus" -> return "Icons.Filled.PersonRemoveAlt1" // person with minus
+                "xmark.circle.fill" -> return "Icons.Filled.Clear" // xmark inside circle
                 else -> return null
             }
         }

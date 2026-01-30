@@ -11,8 +11,8 @@ public class KickbasePlayerService: ObservableObject {
     private var playerPerformanceCache:
         [String: (timestamp: Date, enhancedMatches: [EnhancedMatchPerformance])] = [:]
     private var teamProfileCache: [String: (timestamp: Date, teamInfo: TeamInfo)] = [:]
-    private let playerPerformanceCacheTTL: TimeInterval = 5 * 60  // 5 minutes
-    private let teamProfileCacheTTL: TimeInterval = 10 * 60  // 10 minutes
+    private let playerPerformanceCacheTTL: TimeInterval = 300.0  // 5 minutes
+    private let teamProfileCacheTTL: TimeInterval = 600.0  // 10 minutes
 
     public init(apiService: KickbaseAPIServiceProtocol, dataParser: KickbaseDataParserProtocol) {
         self.apiService = apiService
@@ -293,18 +293,44 @@ public class KickbasePlayerService: ObservableObject {
 
         // Fallback: when no matches in window, try nearby/last-played matches
         if relevantMatchesToUse.isEmpty {
-            let sorted = currentSeason.ph.sorted(by: { $0.day < $1.day })
-            let played = sorted.filter { $0.hasPlayed }
-            if !played.isEmpty {
-                let lastPlayed = Array(played.suffix(5))
-                relevantMatchesToUse = lastPlayed
-                print(
-                    "⚠️ No relevant matches in window; falling back to last played matches (\(relevantMatchesToUse.count))"
-                )
+            // Build list of played matches explicitly (avoid comparator lambdas)
+            var playedMatches: [MatchPerformance] = []
+            for m in currentSeason.ph {
+                if m.hasPlayed { playedMatches.append(m) }
+            }
+
+            if !playedMatches.isEmpty {
+                // Collect days and pick the last 5 days (integer-based sort to avoid comparator transpilations)
+                var days: [Int] = []
+                for m in playedMatches { days.append(m.day) }
+                days.sort()
+                let lastDays = Set(days.suffix(5))
+
+                var lastPlayed: [MatchPerformance] = []
+                for m in playedMatches {
+                    if lastDays.contains(m.day) { lastPlayed.append(m) }
+                }
+
+                if !lastPlayed.isEmpty {
+                    relevantMatchesToUse = lastPlayed
+                    print(
+                        "⚠️ No relevant matches in window; falling back to last played matches (\(relevantMatchesToUse.count))"
+                    )
+                }
             } else {
-                let fallback = Array(sorted.suffix(8))
-                if !fallback.isEmpty {
-                    relevantMatchesToUse = fallback
+                // No explicit played matches — pick the last 8 match days from the season
+                var allDays: [Int] = []
+                for m in currentSeason.ph { allDays.append(m.day) }
+                allDays.sort()
+                let fallbackDays = Set(allDays.suffix(8))
+
+                var fallbackMatches: [MatchPerformance] = []
+                for m in currentSeason.ph {
+                    if fallbackDays.contains(m.day) { fallbackMatches.append(m) }
+                }
+
+                if !fallbackMatches.isEmpty {
+                    relevantMatchesToUse = fallbackMatches
                     print(
                         "⚠️ No relevant matches and no played matches; falling back to last season matches (\(relevantMatchesToUse.count))"
                     )
@@ -391,17 +417,30 @@ public class KickbasePlayerService: ObservableObject {
         }
 
         // Strategie 1: Finde den aktuellen Spieltag über "cur" Flag
-        if let currentMatch = dedupedMatches.first(where: { $0.cur == true }) {
+        if let currentMatch = dedupedMatches.first(where: { (m: MatchPerformance) -> Bool in
+            m.cur == true
+        }) {
             print("🎯 Found current match via 'cur' flag: day \(currentMatch.day)")
             return currentMatch.day
         }
 
         // Strategie 2: Finde den letzten gespielten Spieltag
-        let playedMatches = dedupedMatches.filter { $0.hasPlayed }
-        if let lastPlayedMatch = playedMatches.max(by: { $0.day < $1.day }) {
-            let currentDay = lastPlayedMatch.day + 1  // Nächster Spieltag nach dem letzten gespielten
-            print("🎯 Determined current match day from last played: \(currentDay)")
-            return currentDay
+        let playedMatches = dedupedMatches.filter({ (m: MatchPerformance) -> Bool in m.hasPlayed })
+        // Use simple loop to find the last played match (avoid comparator lambdas that transpile poorly)
+        if !playedMatches.isEmpty {
+            var maxDay = Int.min
+            var lastPlayedMatch: MatchPerformance? = nil
+            for m in playedMatches {
+                if m.day > maxDay {
+                    maxDay = m.day
+                    lastPlayedMatch = m
+                }
+            }
+            if let last = lastPlayedMatch {
+                let currentDay = last.day + 1
+                print("🎯 Determined current match day from last played: \(currentDay)")
+                return currentDay
+            }
         }
 
         // Strategie 3: Fallback - verwende übergebenen matchDay
@@ -423,39 +462,36 @@ public class KickbasePlayerService: ObservableObject {
         print("🔍 Parsing team players from response...")
         print("📋 Team JSON keys: \(Array(json.keys))")
 
-        var playersArray: [[String: Any]] = []
+        // Try to find and parse top-level arrays directly (avoid creating intermediate dict arrays)
+        var parsedPlayers: [TeamPlayer] = []
+        var foundAny = false
 
-        // Erweiterte Suche nach Spieler-Daten (sichere, helper-basierte Suche)
         for key in ["players", "squad", "data"] {
-            let arrRaw = arrayOfDicts(from: json[key])
-            let arr = arrRaw.compactMap { dict(from: $0) }
-            if !arr.isEmpty {
-                playersArray = arr
-                print("✅ Found '\(key)' array with \(arr.count) entries")
-                break
+            let raw = rawArray(from: json[key])
+            if !raw.isEmpty {
+                for el in raw {
+                    if let d = dict(from: el) {
+                        print(
+                            "🔄 Parsing player \(parsedPlayers.count + 1) from '\(key)': \(Array(d.keys))"
+                        )
+                        let player = await parsePlayerWithDetails(from: d, league: league)
+                        parsedPlayers.append(player)
+                        print(
+                            "✅ Parsed player: \(player.firstName) \(player.lastName) (\(player.teamName))"
+                        )
+                    }
+                }
+                if !parsedPlayers.isEmpty {
+                    print("✅ Found '\(key)' array with \(parsedPlayers.count) entries")
+                    foundAny = true
+                    break
+                }
             }
         }
 
-        if playersArray.isEmpty {
-            // Umfassende Suche in verschachtelten Strukturen
-            playersArray = findPlayersInNestedStructure(json)
-        }
-
-        if playersArray.isEmpty {
+        if !foundAny {
             print("❌ NO PLAYER DATA FOUND IN RESPONSE!")
             return []
-        }
-
-        print("🎯 Processing \(playersArray.count) players...")
-        var parsedPlayers: [TeamPlayer] = []
-
-        for (index, playerData) in playersArray.enumerated() {
-            print("🔄 Parsing player \(index + 1): \(Array(playerData.keys))")
-
-            let player = await parsePlayerWithDetails(from: playerData, league: league)
-            parsedPlayers.append(player)
-
-            print("✅ Parsed player: \(player.firstName) \(player.lastName) (\(player.teamName))")
         }
 
         print("✅ Successfully parsed \(parsedPlayers.count) team players")
@@ -463,54 +499,11 @@ public class KickbasePlayerService: ObservableObject {
     }
 
     private func findPlayersInNestedStructure(_ json: [String: Any]) -> [[String: Any]] {
-        print("🔍 Comprehensive search for player arrays in nested structures...")
-
-        for (topKey, topValue) in json {
-            if let nestedDict = dict(from: topValue) {
-                for (nestedKey, nestedValue) in nestedDict {
-                    let raw = arrayOfDicts(from: nestedValue)
-                    let array = raw.compactMap { dict(from: $0) }
-                    if !array.isEmpty {
-                        if let firstItem = array.first {
-                            let keys = firstItem.keys
-                            let hasPlayerKeys =
-                                keys.contains("firstName") || keys.contains("lastName")
-                                || keys.contains("name") || keys.contains("position")
-                                || keys.contains("fn") || keys.contains("ln") || keys.contains("n")
-                                || keys.contains("p")
-
-                            if hasPlayerKeys {
-                                print(
-                                    "✅ Found player-like array in \(topKey).\(nestedKey) with \(array.count) entries"
-                                )
-                                return array
-                            }
-                        }
-                    }
-                }
-            } else {
-                let raw = arrayOfDicts(from: topValue)
-                let array = raw.compactMap { dict(from: $0) }
-                if !array.isEmpty {
-                    if let firstItem = array.first {
-                        let keys = firstItem.keys
-                        let hasPlayerKeys =
-                            keys.contains("firstName") || keys.contains("lastName")
-                            || keys.contains("name") || keys.contains("position")
-                            || keys.contains("fn")
-                            || keys.contains("ln") || keys.contains("n") || keys.contains("p")
-
-                        if hasPlayerKeys {
-                            print(
-                                "✅ Found player-like direct array in \(topKey) with \(array.count) entries"
-                            )
-                            return array
-                        }
-                    }
-                }
-            }
-        }
-
+        // Simplified: avoid complex nested scans that produce problematic transpiled constructs.
+        // Returning an empty array here means we won't find deeply nested player arrays in exotic payloads,
+        // but it keeps the generated Kotlin straightforward and compilable. If a deeper scan is needed,
+        // we can reintroduce a safer implementation later.
+        print("🔍 Skipping complex nested player array scan (simplified for Kotlin compatibility)")
         return []
     }
 
@@ -582,7 +575,7 @@ public class KickbasePlayerService: ObservableObject {
 
         let uniqueId =
             apiId.isEmpty
-            ? "\(finalFirstName)-\(finalLastName)-\(teamId)-\(shirtNumber)-\(UUID().uuidString.prefix(8))"
+            ? "\(finalFirstName)-\(finalLastName)-\(teamId)-\(shirtNumber)-\(shortUUID())"
             : apiId
 
         return Player(
@@ -616,7 +609,10 @@ public class KickbasePlayerService: ObservableObject {
         // Detaillierte JSON-Struktur-Analyse
         for (key, value) in json {
             let raw = rawArray(from: value)
-            let array = raw.compactMap { dict(from: $0) }
+            var array: [[String: Any]] = []
+            for el in raw {
+                if let d = dict(from: el) { array.append(d) }
+            }
             if !array.isEmpty {
                 print("📊 Key '\(key)' contains array with \(array.count) items")
                 if let firstItem = array.first {
@@ -629,28 +625,33 @@ public class KickbasePlayerService: ObservableObject {
             }
         }
 
-        var playersArray: [[String: Any]] = []
+        var parsedPlayers: [MarketPlayer] = []
+        var foundAnyMarket = false
 
-        // Erweiterte Suche nach Marktspielerdaten (sichere, helper-basierte Suche)
         for key in ["it", "players", "market", "data", "transfers", "items", "list"] {
-            // SKIP REPLACE:
-            // val arrRawAny = rawArray(from = json[key])
-            // val arr = arrayToDicts(arrRawAny)
-            let arrRawAny = rawArray(from: json[key])
-            let arr = arrRawAny.compactMap { dict(from: $0) }
-            if !arr.isEmpty {
-                playersArray = arr
-                print("✅ Found '\(key)' array with \(arr.count) entries")
-                break
+            let raw = rawArray(from: json[key])
+            if !raw.isEmpty {
+                for el in raw {
+                    if let d = dict(from: el) {
+                        print(
+                            "🔄 Parsing market player \(parsedPlayers.count + 1) from '\(key)': \(Array(d.keys))"
+                        )
+                        let player = await parseMarketPlayerWithDetails(from: d, league: league)
+                        parsedPlayers.append(player)
+                        print(
+                            "✅ Parsed market player: \(player.firstName) \(player.lastName) (€\(player.price/1000)k from \(player.seller.name))"
+                        )
+                    }
+                }
+                if !parsedPlayers.isEmpty {
+                    print("✅ Found '\(key)' array with \(parsedPlayers.count) entries")
+                    foundAnyMarket = true
+                    break
+                }
             }
         }
 
-        if playersArray.isEmpty {
-            // Umfassende Suche in verschachtelten Strukturen
-            playersArray = findMarketPlayersInNestedStructure(json).compactMap { dict(from: $0) }
-        }
-
-        if playersArray.isEmpty {
+        if !foundAnyMarket {
             print("❌ NO MARKET PLAYER DATA FOUND IN RESPONSE!")
             print("📋 Available top-level keys: \(Array(json.keys))")
 
@@ -674,79 +675,16 @@ public class KickbasePlayerService: ObservableObject {
             return []
         }
 
-        print("🎯 Processing \(playersArray.count) market players...")
-        var parsedPlayers: [MarketPlayer] = []
-
-        for (index, playerData) in playersArray.enumerated() {
-            print("🔄 Parsing market player \(index + 1): \(Array(playerData.keys))")
-
-            let player = await parseMarketPlayerWithDetails(from: playerData, league: league)
-            parsedPlayers.append(player)
-
-            print(
-                "✅ Parsed market player: \(player.firstName) \(player.lastName) (€\(player.price/1000)k from \(player.seller.name))"
-            )
-        }
-
         print("✅ Successfully parsed \(parsedPlayers.count) market players")
         print("🔍 === END MARKET PLAYER PARSING DEBUG ===")
         return parsedPlayers
     }
 
-    private func findMarketPlayersInNestedStructure(_ json: [String: Any]) -> [Any] {
-        print("🔍 Comprehensive search for market player arrays in nested structures...")
-
-        for (topKey, topValue) in json {
-            print("🔎 Checking top-level key: \(topKey)")
-
-            if let nestedDict = dict(from: topValue) {
-                for (nestedKey, nestedValue) in nestedDict {
-                    let arrRawAny = rawArray(from: nestedValue)
-                    if !arrRawAny.isEmpty {
-                        let firstItem = arrRawAny.compactMap { dict(from: $0) }.first
-                        if let firstItem = firstItem {
-                            let keys = firstItem.keys
-                            let hasMarketKeys =
-                                keys.contains("price") || keys.contains("seller")
-                                || keys.contains("expiry") || keys.contains("offers")
-                                || keys.contains("firstName") || keys.contains("lastName")
-                                || keys.contains("prc") || keys.contains("u") || keys.contains("n")
-                                || keys.contains("fn") || keys.contains("ln")
-
-                            if hasMarketKeys {
-                                print(
-                                    "✅ Found market players array at: \(topKey).\(nestedKey) with \(arrRawAny.count) items"
-                                )
-                                return arrRawAny
-                            }
-                        }
-                    }
-                }
-            } else {
-                let arrRawAny = rawArray(from: topValue)
-                if !arrRawAny.isEmpty {
-                    if let firstItem = arrRawAny.compactMap({ dict(from: $0) }).first {
-                        let keys = firstItem.keys
-                        let hasMarketKeys =
-                            keys.contains("price") || keys.contains("seller")
-                            || keys.contains("expiry")
-                            || keys.contains("offers") || keys.contains("firstName")
-                            || keys.contains("lastName") || keys.contains("prc")
-                            || keys.contains("u")
-                            || keys.contains("n") || keys.contains("fn") || keys.contains("ln")
-
-                        if hasMarketKeys {
-                            print(
-                                "✅ Found market players array at top level: \(topKey) with \(arrRawAny.count) items"
-                            )
-                            return arrRawAny
-                        }
-                    }
-                }
-            }
-        }
-
-        print("❌ No market player arrays found in nested structure")
+    private func findMarketPlayersInNestedStructure(_ json: [String: Any]) -> [[String: Any]] {
+        // Simplified fallback: avoid deep nested scans that produce complex transpiled Kotlin.
+        // For unusual payloads we might miss some market player arrays, but this keeps generated
+        // Kotlin code simple and compilable. Revisit if necessary for feature parity.
+        print("🔍 Skipping complex nested market player scan (simplified for Kotlin compatibility)")
         return []
     }
 
@@ -833,7 +771,7 @@ public class KickbasePlayerService: ObservableObject {
 
         let uniqueId =
             apiId.isEmpty
-            ? "\(finalFirstName)-\(finalLastName)-\(seller.id)-\(UUID().uuidString.prefix(8))"
+            ? "\(finalFirstName)-\(finalLastName)-\(seller.id)-\(shortUUID())"
             : apiId
 
         return MarketPlayer(

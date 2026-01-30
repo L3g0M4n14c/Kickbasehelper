@@ -21,10 +21,10 @@ class MainActivity : ComponentActivity() {
         
         setContent {
             val ligainsiderService = remember { LigainsiderService() }
-            MaterialTheme {
+            com.kickbasehelper.ui.theme.KickbaseTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                    color = androidx.compose.material3.MaterialTheme.colorScheme.background
                 ) {
                     ContentView()
                         .environmentObject(ligainsiderService)

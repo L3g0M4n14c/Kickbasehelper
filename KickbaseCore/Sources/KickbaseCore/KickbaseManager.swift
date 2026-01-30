@@ -488,8 +488,14 @@ public class KickbaseManager: ObservableObject {
             print("📋 Squad API Response keys: \(json.keys.sorted())")
 
             // Squad endpoint returns players in "it" field
-            let playersRaw = arrayOfDicts(from: json["it"])
-            let playersArray = playersRaw.compactMap { dict(from: $0) }
+            let raw = rawArray(from: json["it"])
+            var playersArray: [[String: Any]] = []
+            var i = 0
+            while i < raw.count {
+                let el = raw[i]
+                if let d = dict(from: el) { playersArray.append(d) }
+                i += 1
+            }
             if playersArray.isEmpty {
                 print(
                     "⚠️ No 'it' array found or empty in squad response. Available keys: \(json.keys.sorted())"

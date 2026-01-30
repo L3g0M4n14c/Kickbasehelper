@@ -3,12 +3,10 @@ import Foundation
 enum SessionSanitizer {
     /// Returns true when running under XCTest (test environment)
     static func isRunningUnderXCTest() -> Bool {
-        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
-            return true
-        }
-        // Some test runners may not set the env var; two other ways to detect XCTest
-        if NSClassFromString("XCTestCase") != nil {
-            return true
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil { return true }
+        // Some test runners may not set the env var; check bundles for .xctest suffix (explicit loop avoids ObjC runtime helpers)
+        for b in Bundle.allBundles {
+            if b.bundlePath.hasSuffix(".xctest") { return true }
         }
         return false
     }

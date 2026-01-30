@@ -194,34 +194,9 @@ public class LigainsiderService: ObservableObject {
         }
     }
 
-    // Helper für Normalisierung (entfernt Akzente und Sonderzeichen)
+    // Helper für Normalisierung (verwendet zentrale, transpiler‑freundliche Implementierung)
     private func normalize(_ text: String) -> String {
-        // Manuelle Transliteration für deutsche Umlaute (da IDs oft ae/oe/ue nutzen)
-        let manualReplacement = text.lowercased()
-            .replacingOccurrences(of: "ä", with: "ae")
-            .replacingOccurrences(of: "ö", with: "oe")
-            .replacingOccurrences(of: "ü", with: "ue")
-            .replacingOccurrences(of: "ß", with: "ss")
-            // Manuelle Transliteration für kroatische/slawische Buchstaben
-            .replacingOccurrences(of: "ć", with: "c")
-            .replacingOccurrences(of: "č", with: "c")
-            .replacingOccurrences(of: "š", with: "s")
-            .replacingOccurrences(of: "ž", with: "z")
-            .replacingOccurrences(of: "đ", with: "d")
-
-        #if !SKIP
-            return
-                manualReplacement
-                .folding(options: .diacriticInsensitive, locale: .current)
-                .replacingOccurrences(of: "-", with: " ")
-                .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
-        #else
-            // Android: Einfache Normalisierung ohne Diacritic Removal (da folding nicht verfügbar)
-            return
-                manualReplacement
-                .replacingOccurrences(of: "-", with: " ")
-                .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
-        #endif
+        return normalizeForSearch(text)
     }
 
     // MARK: - Matching Logic
@@ -242,12 +217,18 @@ public class LigainsiderService: ObservableObject {
         // First try: exact lastName match (as separate word)
         var candidates = playerCache.filter { key, _ in
             let normalizedKey = normalize(key)
-            // Split by space and underscore to get name parts
-            let keyParts = normalizedKey.components(separatedBy: CharacterSet(charactersIn: " _-"))
-            return keyParts.contains(normalizedLastName)
-        }
-
-        print(
+            // Split by space and underscore to get name parts (use safe helper to avoid CharacterSet in transpilation)
+            // Inline split by characters to avoid generating CharacterSet-based calls in the transpiled Kotlin
+            var keyParts: [String] = []
+            var cur = ""
+            for ch in normalizedKey {
+                if " _-".contains(ch) {
+                    if !cur.isEmpty { keyParts.append(cur); cur = "" }
+                } else {
+                    cur.append(ch)
+                }
+            }
+            if !cur.isEmpty { keyParts.append(cur) }
             "   → Step 1: Found \(candidates.count) candidates by last name '\(normalizedLastName)'"
         )
         if candidates.count > 0 && candidates.count <= 3 {
@@ -258,8 +239,17 @@ public class LigainsiderService: ObservableObject {
         if candidates.isEmpty && !normalizedFirstName.isEmpty {
             let firstBased = playerCache.filter { key, _ in
                 let normalizedKey = normalize(key)
-                let keyParts = normalizedKey.components(
-                    separatedBy: CharacterSet(charactersIn: " _-"))
+                // Inline split to avoid CharacterSet in transpiled Kotlin
+                var keyParts: [String] = []
+                var cur = ""
+                for ch in normalizedKey {
+                    if " _-".contains(ch) {
+                        if !cur.isEmpty { keyParts.append(cur); cur = "" }
+                    } else {
+                        cur.append(ch)
+                    }
+                }
+                if !cur.isEmpty { keyParts.append(cur) }
                 return keyParts.contains(normalizedFirstName)
             }
             if !firstBased.isEmpty {
@@ -280,8 +270,17 @@ public class LigainsiderService: ObservableObject {
             if !normalizedFirstName.isEmpty {
                 if let bothMatch = candidates.first(where: { key, _ in
                     let normalizedKey = normalize(key)
-                    let keyParts = normalizedKey.components(
-                        separatedBy: CharacterSet(charactersIn: " _-"))
+                    // Inline split to avoid CharacterSet in transpiled Kotlin
+                    var keyParts: [String] = []
+                    var cur = ""
+                    for ch in normalizedKey {
+                        if " _-".contains(ch) {
+                            if !cur.isEmpty { keyParts.append(cur); cur = "" }
+                        } else {
+                            cur.append(ch)
+                        }
+                    }
+                    if !cur.isEmpty { keyParts.append(cur) }
                     return keyParts.contains(normalizedFirstName)
                         && keyParts.contains(normalizedLastName)
                 }) {
@@ -295,8 +294,17 @@ public class LigainsiderService: ObservableObject {
             // Multiple matches: use firstName to disambiguate
             let bestMatch = candidates.first(where: { key, _ in
                 let normalizedKey = normalize(key)
-                let keyParts = normalizedKey.components(
-                    separatedBy: CharacterSet(charactersIn: " _-"))
+                // Inline split to avoid CharacterSet in transpiled Kotlin
+                var keyParts: [String] = []
+                var cur = ""
+                for ch in normalizedKey {
+                    if " _-".contains(ch) {
+                        if !cur.isEmpty { keyParts.append(cur); cur = "" }
+                    } else {
+                        cur.append(ch)
+                    }
+                }
+                if !cur.isEmpty { keyParts.append(cur) }
                 return keyParts.contains(normalizedFirstName)
             })
             if let match = bestMatch {
@@ -403,8 +411,17 @@ public class LigainsiderService: ObservableObject {
             if !normalizedFirstName.isEmpty && !normalizedLastName.isEmpty {
                 if let both = candidates.first(where: { key, _ in
                     let normalizedKey = normalize(key)
-                    let parts = normalizedKey.components(
-                        separatedBy: CharacterSet(charactersIn: " _-"))
+                    // Inline split to avoid CharacterSet in transpiled Kotlin
+                    var parts: [String] = []
+                    var cur = ""
+                    for ch in normalizedKey {
+                        if " _-".contains(ch) {
+                            if !cur.isEmpty { parts.append(cur); cur = "" }
+                        } else {
+                            cur.append(ch)
+                        }
+                    }
+                    if !cur.isEmpty { parts.append(cur) }
                     return parts.contains(normalizedFirstName) && parts.contains(normalizedLastName)
                 }) {
                     foundPlayer = both.1
@@ -579,7 +596,9 @@ public class LigainsiderService: ObservableObject {
                 if let qIndex = slug.firstIndex(of: "?") {
                     slug = String(slug[..<qIndex])
                 }
-                slug = slug.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                // Trim leading/trailing slashes without relying on CharacterSet to avoid transpiler issues
+                while slug.hasPrefix("/") { slug.removeFirst() }
+                while slug.hasSuffix("/") { slug.removeLast() }
 
                 // Validierung
                 if !slug.contains("_") { continue }
@@ -589,7 +608,7 @@ public class LigainsiderService: ObservableObject {
 
                 // 2. Name extrahieren
                 guard let rawName = component.substringBetween(">", "</a>") else { continue }
-                let name = removeHtmlTags(rawName).trimmingCharacters(in: .whitespacesAndNewlines)
+let name = trimWhitespaceNewlines(removeHtmlTags(rawName))
 
                 if name.isEmpty || name.count > 50 { continue }
 
@@ -640,45 +659,34 @@ public class LigainsiderService: ObservableObject {
                             // srcset="..."
                             let ssParts = html.components(separatedBy: "srcset=\"")
                             for p in ssParts.dropFirst() {
-                                if let val = p.substringBefore("\"") {
-                                    let first = val.components(separatedBy: ",").first?
-                                        .trimmingCharacters(in: .whitespacesAndNewlines)
-                                    if let token = first?.components(separatedBy: " ").first {
+                                if let rawVal = p.substringBefore("\"") {
+                                    let firstRaw = rawVal.components(separatedBy: ",").first ?? ""
+                                    let first = trimWhitespaceNewlines(firstRaw)
+                                    if let token = first.components(separatedBy: " ").first {
                                         out.append(token)
                                     }
                                 }
                             }
 
-                            // background-image:url(...)
-                            var searchStart = html.startIndex
-                            while let bgRange = html.range(
-                                of: "background-image", options: [],
-                                range: searchStart..<html.endIndex)
-                            {
-                                if let urlStart = html.range(
-                                    of: "url(", options: [],
-                                    range: bgRange.upperBound..<html.endIndex)
-                                {
-                                    let after = html[urlStart.upperBound...]
-                                    if let close = after.firstIndex(of: ")") {
-                                        var candidate = String(after[..<close])
-                                        candidate = candidate.replacingOccurrences(
-                                            of: "\"", with: "")
-                                        candidate = candidate.replacingOccurrences(
-                                            of: "'", with: "")
-                                        out.append(
-                                            candidate.trimmingCharacters(
-                                                in: .whitespacesAndNewlines))
-                                        searchStart = close
-                                        continue
+                            // background-image:url(...) (avoid range/options overloads)
+                            let bgParts = html.components(separatedBy: "background-image")
+                            for p in bgParts.dropFirst() {
+                                if let urlAfter = p.substringAfter("url(") {
+                                    if let closeIndex = urlAfter.firstIndex(of: ")") {
+                                        var candidate = String(urlAfter[..<closeIndex])
+                                        candidate = candidate.replacingOccurrences(of: "\"", with: "")
+                                        candidate = candidate.replacingOccurrences(of: "'", with: "")
+                                        out.append(trimWhitespaceNewlines(candidate))
                                     }
                                 }
-                                break
                             }
 
-                            return out.compactMap {
-                                $0.trimmingCharacters(in: .whitespacesAndNewlines)
-                            }.filter { !$0.isEmpty }
+                            var cleaned: [String] = []
+                            for raw in out {
+                                let t = trimWhitespaceNewlines(raw)
+                                if !t.isEmpty { cleaned.append(t) }
+                            }
+                            return cleaned
                         }
 
                         let allCandidates = extractImageCandidates(previousComponent)
@@ -781,7 +789,7 @@ public class LigainsiderService: ObservableObject {
 
         // 3. Details laden (parallel für bessere Performance)
         print("Starte paralleles Laden der Match-Details...")
-        return await withTaskGroup(of: LigainsiderMatch?.self) { group in
+        return await withTaskGroup(of: LigainsiderMatch.self) { group in
             for pair in matchPairs {
                 group.addTask {
                     let homeUrl = pair[0]
@@ -804,14 +812,16 @@ public class LigainsiderService: ObservableObject {
                         )
                     } catch {
                         print("Fehler bei Match Paar: \(error)")
-                        return nil
+                        // Return a placeholder match; we'll filter empty entries afterwards
+                        return LigainsiderMatch(homeTeam: "", awayTeam: "", homeLogo: nil, awayLogo: nil, homeLineup: [], awayLineup: [], homeSquad: [], awaySquad: [], url: homeUrl)
                     }
                 }
             }
 
             var finalMatches: [LigainsiderMatch] = []
             for await match in group {
-                if let match = match {
+                // Filter out placeholder entries
+                if !(match.homeTeam.isEmpty && match.awayTeam.isEmpty) {
                     finalMatches.append(match)
                 }
             }
@@ -861,12 +871,12 @@ public class LigainsiderService: ObservableObject {
 
             let partAfterName = nameComponents[1]  // > Team name </h2> ...
             if let name = partAfterName.substringBetween(">", "</h2>") {
-                teamName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+                teamName = trimWhitespaceNewlines(name)
             }
         } else if let title = html.substringBetween("<title>", "</title>") {
-            teamName =
-                title.components(separatedBy: "|").first?.trimmingCharacters(
-                    in: .whitespacesAndNewlines) ?? "Team"
+            let parts = title.splitBy("|")
+            let tPart = parts.first ?? ""
+            teamName = trimWhitespaceNewlines(tPart.isEmpty ? "Team" : tPart)
         }
 
         var formationRows: [[LigainsiderPlayer]] = []
@@ -951,8 +961,14 @@ public class LigainsiderService: ObservableObject {
 
                         // HTML Tags entfernen bevor getrimmt wird
                         let clearName = removeHtmlTags(rawName)
-                        var name = clearName.trimmingCharacters(
-                            in: CharacterSet.whitespacesAndNewlines)
+                        var name = clearName
+                        // Manuelles Trimmen ohne CharacterSet (vermeidet transpiler-Problemfälle)
+                        while let first = name.first, first == " " || first == "\n" {
+                            name.removeFirst()
+                        }
+                        while let last = name.last, last == " " || last == "\n" {
+                            name.removeLast()
+                        }
 
                         // Fallback: Wenn Name leer ist (z.B. bei Live-Ansicht wo nur ein IMG Tag drin ist), versuche title/alt attribute zu lesen
                         if name.isEmpty {
@@ -1038,7 +1054,7 @@ public class LigainsiderService: ObservableObject {
                         let isMainPlayer = (index == 0)
                         let alternativeField =
                             isMainPlayer && namesInColumn.count > 1 ? namesInColumn[1].name : nil
-                        
+
                         allParsedPlayers.append(
                             LigainsiderPlayer(
                                 name: playerData.name,
@@ -1059,7 +1075,7 @@ public class LigainsiderService: ObservableObject {
         // Kader laden: Kombiniere geparste Spieler mit fetchSquad (für zusätzliche Spieler die nicht in Aufstellung sind)
         let path = URL(string: url)?.path ?? ""
         let fetchedSquad = await fetchSquad(path: path, teamName: teamName)
-    
+
         // Merge allParsedPlayers mit fetchedSquad
         // Strategie: Priorisiere Spieler mit Bildern aus allParsedPlayers (Aufstellungsseite),
         // behalte aber fetchedSquad-Einträge für Spieler die nicht in der Aufstellung sind
@@ -1112,6 +1128,18 @@ public class LigainsiderService: ObservableObject {
             }
         }
         return result
+    }
+
+    // Helper zum Trimmen von Whitespace und Newlines ohne CharacterSet (vermeidet Transpiler-Probleme)
+    private func trimWhitespaceNewlines(_ s: String) -> String {
+        var r = s
+        while let first = r.first, first == " " || first == "\n" || first == "\t" {
+            r.removeFirst()
+        }
+        while let last = r.last, last == " " || last == "\n" || last == "\t" {
+            r.removeLast()
+        }
+        return r
     }
 
     // Backup (Lokal Speichern)
