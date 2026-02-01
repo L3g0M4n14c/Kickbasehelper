@@ -18,6 +18,11 @@ public class PlayerRecommendationService: ObservableObject {
 
     // Aktueller Spieltag (wird bei generateRecommendations gesetzt)
     private var currentMatchDay: Int = 10
+    
+    // Constants for synthetic market player data (other users' players not on market)
+    private static let NOT_ON_MARKET_EXPIRY = ""  // Empty string indicates player is not on market
+    private static let NO_EXPIRY_TIMESTAMP = 0  // 0 indicates no expiry timestamp for non-market players
+    private static let NO_OFFERS = 0  // 0 offers for players not on market
 
     public init(kickbaseManager: KickbaseManager) {
         self.kickbaseManager = kickbaseManager
@@ -71,14 +76,14 @@ public class PlayerRecommendationService: ObservableObject {
                         marketValue: player.marketValue,
                         marketValueTrend: player.marketValueTrend,
                         price: player.marketValue, // Use market value as price
-                        expiry: "", // Not on market, no expiry
-                        offers: 0, // Not on market, no offers
+                        expiry: Self.NOT_ON_MARKET_EXPIRY,
+                        offers: Self.NO_OFFERS,
                         seller: MarketSeller(id: user.id, name: user.name),
                         stl: player.stl,
                         status: player.status,
                         prlo: player.prlo,
                         owner: nil,
-                        exs: 0 // Not on market, no expiry timestamp
+                        exs: Self.NO_EXPIRY_TIMESTAMP
                     )
                     otherUsersPlayers.append(marketPlayer)
                 }
