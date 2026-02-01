@@ -164,4 +164,72 @@ final class PlayerRecommendationServiceTests: XCTestCase {
             }
         }
     }
+
+    // New tests for budget-respecting lineup generation
+    func testHybridLineupFilteredWhenBudgetNegativeAndSalesInsufficient() async {
+        let manager = KickbaseManager()
+        let service = PlayerRecommendationService(kickbaseManager: manager)
+
+        // Team has only two players; bench sale proceeds won't cover needed investment
+        let tp1 = makeTeamPlayer(id: "p1", position: 1, marketValue: 100_000, avg: 8.0)
+        let tp2 = makeTeamPlayer(id: "p2", position: 2, marketValue: 50_000, avg: 7.0)
+
+        // Market player needed costs 1_000_000 which is unaffordable
+        // Ensure market player passes pre-filter (totalPoints >= 140)
+        let mp1 = makeMarketPlayer(id: "m1", position: 2, price: 1_000_000, avg: 90.0, total: 200)
+
+        let league = League(
+            id: "ltest", name: "L", creatorName: "C", adminName: "A", created: "d", season: "s",
+            matchDay: 1,
+            currentUser: LeagueUser(
+                id: "u", name: "n", teamName: "t", budget: -100_000, teamValue: 0, points: 0,
+                placement: 1,
+                won: 0, drawn: 0, lost: 0, se11: 0, ttm: 0, mpst: 3))
+
+        let comparison = await service.generateOptimalLineupComparison(
+            for: league,
+            teamPlayers: [tp1, tp2],
+            marketPlayers: [mp1],
+            formation: [1, 1, 0, 0],
+            respectBudget: true
+        )
+
+        XCTAssertNil(comparison.hybridLineup)
+        XCTAssertTrue(comparison.hybridFilteredForBudget)
+    }
+
+    func testHybridLineupKeptWhenBudgetNegativeButSalesCoverCost() async {
+        let manager = KickbaseManager()
+        let service = PlayerRecommendationService(kickbaseManager: manager)
+
+        // Team has sellable players worth 1_200_000 so we can cover a 1_000_000 investment
+        let tp1 = makeTeamPlayer(id: "p1", position: 1, marketValue: 800_000, avg: 8.0)
+        let tp2 = makeTeamPlayer(id: "p2", position: 2, marketValue: 500_000, avg: 7.0)
+        // Add another bench player whose sale proceeds will help covering the cost
+        let tp3 = makeTeamPlayer(id: "p3", position: 3, marketValue: 600_000, avg: 5.0)
+
+        // Market player needed costs 1_000_000 which should be affordable after selling non-started players
+        // Ensure market player passes pre-filter (totalPoints >= 140)
+        let mp1 = makeMarketPlayer(id: "m1", position: 2, price: 1_000_000, avg: 90.0, total: 200)
+
+        let league = League(
+            id: "ltest2", name: "L", creatorName: "C", adminName: "A", created: "d", season: "s",
+            matchDay: 1,
+            currentUser: LeagueUser(
+                id: "u", name: "n", teamName: "t", budget: -100_000, teamValue: 0, points: 0,
+                placement: 1,
+                won: 0, drawn: 0, lost: 0, se11: 0, ttm: 0, mpst: 3))
+
+        let comparison = await service.generateOptimalLineupComparison(
+            for: league,
+            teamPlayers: [tp1, tp2, tp3],
+            marketPlayers: [mp1],
+            formation: [1, 1, 0, 0],
+            respectBudget: true
+        )
+
+        // Hybrid lineup should be kept
+        XCTAssertNotNil(comparison.hybridLineup)
+        XCTAssertFalse(comparison.hybridFilteredForBudget)
+    }
 }

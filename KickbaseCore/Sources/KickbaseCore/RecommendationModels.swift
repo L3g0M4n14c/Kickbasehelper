@@ -307,14 +307,19 @@ public struct LineupComparison: Identifiable {
     public let id: UUID
     public let teamOnlyLineup: OptimalLineupResult
     public let hybridLineup: OptimalLineupResult?
+    /// If true, a previously computed hybrid lineup was filtered out because it could not be afforded
+    /// by selling non-starting own players when respecting the budget constraint.
+    public let hybridFilteredForBudget: Bool
 
     public init(
         teamOnlyLineup: OptimalLineupResult,
-        hybridLineup: OptimalLineupResult? = nil
+        hybridLineup: OptimalLineupResult? = nil,
+        hybridFilteredForBudget: Bool = false
     ) {
         self.id = UUID()
         self.teamOnlyLineup = teamOnlyLineup
         self.hybridLineup = hybridLineup
+        self.hybridFilteredForBudget = hybridFilteredForBudget
     }
 
     public var performanceGainWithHybrid: Double {
@@ -364,7 +369,7 @@ public struct BudgetAnalysis: Codable {
 }
 
 public struct PositionalRecommendation: Identifiable, Codable {
-    public let id = UUID()
+    public var id = UUID()
     public let position: TeamAnalysis.Position
     public let priority: Int  // 1-5 scale
     public let reasoning: String

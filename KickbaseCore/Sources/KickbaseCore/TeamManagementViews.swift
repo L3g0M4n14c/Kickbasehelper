@@ -43,36 +43,35 @@ struct TeamTab: View {
             isGeneratingLineup = true
             lineupGenerationError = nil
 
-            
-                guard let league = kickbaseManager.selectedLeague else {
-                    lineupGenerationError = "Keine Liga ausgewählt"
-                    isGeneratingLineup = false
-                    return
-                }
+            guard let league = kickbaseManager.selectedLeague else {
+                lineupGenerationError = "Keine Liga ausgewählt"
+                isGeneratingLineup = false
+                return
+            }
 
-                print("🎯 TeamTab: Starting lineup generation for league: \(league.name)")
+            print("🎯 TeamTab: Starting lineup generation for league: \(league.name)")
 
-                // Verwende den shared PlayerRecommendationService vom KickbaseManager
-                let recommendationService = kickbaseManager.playerRecommendationService
+            // Verwende den shared PlayerRecommendationService vom KickbaseManager
+            let recommendationService = kickbaseManager.playerRecommendationService
 
-                // Standard-Formation: 4-2-3-1 [1 TW, 4 ABW, 2 MF, 3 MF, 1 ST]
-                // Die API gibt uns die möglichen Formationen, aber für jetzt verwenden wir eine Standard-Formation
-                let formation = [1, 4, 4, 2]  // 4-4-2 als Alternative
+            // Standard-Formation: 4-2-3-1 [1 TW, 4 ABW, 2 MF, 3 MF, 1 ST]
+            // Die API gibt uns die möglichen Formationen, aber für jetzt verwenden wir eine Standard-Formation
+            let formation = [1, 4, 4, 2]  // 4-4-2 als Alternative
 
-                let comparison = await recommendationService.generateOptimalLineupComparison(
-                    for: league,
-                    teamPlayers: kickbaseManager.teamPlayers,
-                    marketPlayers: kickbaseManager.marketPlayers,
-                    formation: formation
-                )
+            let comparison = await recommendationService.generateOptimalLineupComparison(
+                for: league,
+                teamPlayers: kickbaseManager.teamPlayers,
+                marketPlayers: kickbaseManager.marketPlayers,
+                formation: formation
+            )
 
-                await MainActor.run {
-                    self.lineupComparison = comparison
-                    self.showLineupOptimization = true
-                    isGeneratingLineup = false
-                    print("✅ Lineup generation completed")
-                }
-            
+            await MainActor.run {
+                self.lineupComparison = comparison
+                self.showLineupOptimization = true
+                isGeneratingLineup = false
+                print("✅ Lineup generation completed")
+            }
+
         }
     }
 

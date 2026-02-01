@@ -2,6 +2,7 @@ import SwiftUI
 
 struct LineupComparisonView: View {
     let comparison: LineupComparison
+
     @EnvironmentObject var kickbaseManager: KickbaseManager
     @State private var showTeamOnly = true
 
@@ -17,6 +18,30 @@ struct LineupComparisonView: View {
                 }
                 .pickerStyle(.segmented)
                 .padding()
+
+                // If hybrid was filtered out due budget constrain, show message
+                if comparison.hybridFilteredForBudget {
+                    HStack(alignment: .top, spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.orange)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Keine erschwingliche Hybrid-Aufstellung gefunden")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                            Text(
+                                "Mit dem aktuellen Kontostand und dem Verkauf nicht aufgestellter Spieler lässt sich die Investition nicht finanzieren."
+                            )
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            Text(
+                                "Tipp: Schalte die Budget-Option in der Aufstellungsempfehlung ein, um eine bezahlbare Aufstellung zu prüfen."
+                            )
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                        }
+                    }
+                    .padding(.horizontal)
+                }
 
                 if showTeamOnly {
                     LineupDetailView(
@@ -498,7 +523,7 @@ struct LineupInfoRow: View {
         hybridLineup: hybridLineup
     )
 
-    return NavigationView {
+    NavigationView {
         LineupComparisonView(comparison: comparison)
             .environmentObject(KickbaseManager())
     }
