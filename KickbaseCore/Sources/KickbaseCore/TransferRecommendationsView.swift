@@ -510,7 +510,7 @@ struct TransferRecommendationsView: View {
 
             loadingMessage = "Analysiere Spieler..."
             let results = try await recommendationService.generateRecommendations(
-                for: selectedLeague, budget: budget)
+                for: selectedLeague, budget: budget, includeOtherUsersPlayers: filters.includeOtherUsersPlayers)
 
             loadingMessage = "Bereite Empfehlungen vor..."
 
@@ -1429,6 +1429,12 @@ struct FilterSheet: View {
                             #endif
                     }
                 }
+
+                Section("Spieler-Quellen") {
+                    Toggle("Spieler anderer User einbeziehen", isOn: $filters.includeOtherUsersPlayers)
+                        .toggleStyle(SwitchToggleStyle())
+                }
+                .listRowBackground(Color.clear)
             }
             .navigationTitle("Filter")
             .toolbar {
@@ -1738,6 +1744,7 @@ struct RecommendationFilters {
     var minPriority: TransferRecommendation.Priority = .optional
     var formTrend: PlayerAnalysis.FormTrend?
     var minConfidence: Double?
+    var includeOtherUsersPlayers: Bool = false
 
 }
 

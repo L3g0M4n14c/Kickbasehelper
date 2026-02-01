@@ -7,7 +7,7 @@ public class PlayerRecommendationService: ObservableObject {
     private let kickbaseManager: KickbaseManager
 
     // Cache für Empfehlungen
-    private var cachedRecommendations: [String: CachedRecommendations] = [:]
+    private var cachedRecommendations: [RecommendationCacheKey: CachedRecommendations] = [:]
     private let cacheValidityDuration: TimeInterval = 300  // 5 Minuten Cache
 
     // Cache für Spieler-Statistiken (smdc, ismc, smc)
@@ -18,6 +18,11 @@ public class PlayerRecommendationService: ObservableObject {
 
     // Aktueller Spieltag (wird bei generateRecommendations gesetzt)
     private var currentMatchDay: Int = 10
+    
+    // Constants for synthetic market player data (other users' players not on market)
+    private static let notOnMarketExpiry = ""  // Empty string indicates player is not on market
+    private static let noExpiryTimestamp = 0  // 0 indicates no expiry timestamp for non-market players
+    private static let noOffers = 0  // 0 offers for players not on market
 
     public init(kickbaseManager: KickbaseManager) {
         self.kickbaseManager = kickbaseManager
@@ -33,12 +38,79 @@ public class PlayerRecommendationService: ObservableObject {
         return try await kickbaseManager.authenticatedPlayerService.loadMarketPlayers(for: league)
     }
 
+    /// Load players from other users' teams and convert them to MarketPlayer format
+    private func loadOtherUsersPlayers(for league: League, currentUser: LeagueUser) async -> [MarketPlayer] {
+        var otherUsersPlayers: [MarketPlayer] = []
+        
+        // Get all league users from KickbaseManager
+        guard let leagueUsers = kickbaseManager.leagueUsers else {
+            print("⚠️ No league users available")
+            return []
+        }
+        
+        // Filter out the current user
+        let otherUsers = leagueUsers.filter { $0.id != currentUser.id }
+        
+        if isVerboseLogging {
+            print("👥 Loading squads from \(otherUsers.count) other users")
+        }
+        
+        // Load squads from other users
+        for user in otherUsers {
+            if let userSquad = await kickbaseManager.loadUserSquad(leagueId: league.id, userId: user.id) {
+                // Convert TeamPlayer to MarketPlayer
+                for player in userSquad {
+                    // Create a MarketPlayer with synthetic market data
+                    // Price is set to marketValue, seller is the user who owns the player
+                    let marketPlayer = MarketPlayer(
+                        id: player.id,
+                        firstName: player.firstName,
+                        lastName: player.lastName,
+                        profileBigUrl: player.profileBigUrl,
+                        teamName: player.teamName,
+                        teamId: player.teamId,
+                        position: player.position,
+                        number: player.number,
+                        averagePoints: player.averagePoints,
+                        totalPoints: player.totalPoints,
+                        marketValue: player.marketValue,
+                        marketValueTrend: player.marketValueTrend,
+                        price: player.marketValue, // Use market value as price
+                        expiry: Self.notOnMarketExpiry,
+                        offers: Self.noOffers,
+                        seller: MarketSeller(id: user.id, name: user.name),
+                        stl: player.stl,
+                        status: player.status,
+                        prlo: player.prlo,
+                        owner: nil,
+                        exs: Self.noExpiryTimestamp
+                    )
+                    otherUsersPlayers.append(marketPlayer)
+                }
+                if isVerboseLogging {
+                    print("   ✅ Loaded \(userSquad.count) players from user \(user.name)")
+                }
+            }
+        }
+        
+        if isVerboseLogging {
+            print("✅ Total players from other users: \(otherUsersPlayers.count)")
+        }
+        
+        return otherUsersPlayers
+    }
+
     // MARK: - Helper Structures
 
     private struct PlayerMatchStats {
         let smdc: Int  // Aktueller Spieltag
         let ismc: Int  // Spiele auf dem Platz (Startelf + Einwechslung)
         let smc: Int  // Spiele in Startelf (Starting Match Count)
+    }
+    
+    private struct RecommendationCacheKey: Hashable {
+        let leagueId: String
+        let includeOtherUsersPlayers: Bool
     }
 
     // MARK: - Main Recommendation Functions
@@ -112,15 +184,17 @@ public class PlayerRecommendationService: ObservableObject {
         return saleRecommendations
     }
 
-    public func generateRecommendations(for league: League, budget: Int) async throws
+    public func generateRecommendations(for league: League, budget: Int, includeOtherUsersPlayers: Bool = false) async throws
         -> [TransferRecommendation]
     {
         if isVerboseLogging {
             print("🎯 Generating transfer recommendations for league: \(league.name)")
+            print("   Include other users' players: \(includeOtherUsersPlayers)")
         }
 
-        // Prüfe Cache
-        if let cached = cachedRecommendations[league.id],
+        // Prüfe Cache (cache key now includes the includeOtherUsersPlayers flag)
+        let cacheKey = RecommendationCacheKey(leagueId: league.id, includeOtherUsersPlayers: includeOtherUsersPlayers)
+        if let cached = cachedRecommendations[cacheKey],
             Date().timeIntervalSince(cached.timestamp) < cacheValidityDuration
         {
             if isVerboseLogging {
@@ -135,6 +209,19 @@ public class PlayerRecommendationService: ObservableObject {
         async let marketPlayersTask = getMarketPlayers(for: league)
 
         let (teamPlayers, marketPlayers) = try await (teamPlayersTask, marketPlayersTask)
+
+        // Load other users' players if toggle is enabled
+        var allAvailablePlayers: [MarketPlayer] = marketPlayers
+        if includeOtherUsersPlayers {
+            if isVerboseLogging {
+                print("🔄 Loading players from other users...")
+            }
+            let otherUsersPlayers = await loadOtherUsersPlayers(for: league, currentUser: league.currentUser)
+            allAvailablePlayers.append(contentsOf: otherUsersPlayers)
+            if isVerboseLogging {
+                print("✅ Added \(otherUsersPlayers.count) players from other users (total: \(allAvailablePlayers.count))")
+            }
+        }
 
         // Hole aktuellen Spieltag und Stats von einem beliebigen Spieler
         let firstPlayerId = teamPlayers.first?.id ?? marketPlayers.first?.id
@@ -163,7 +250,7 @@ public class PlayerRecommendationService: ObservableObject {
         }
         if isVerboseLogging {
             print(
-                "✅ Loaded \(teamPlayers.count) team players and \(marketPlayers.count) market players in parallel"
+                "✅ Loaded \(teamPlayers.count) team players and \(allAvailablePlayers.count) available players (market + other users if enabled)"
             )
         }
         let currentUser = league.currentUser
@@ -172,7 +259,7 @@ public class PlayerRecommendationService: ObservableObject {
         let teamAnalysis = analyzeTeam(teamPlayers: teamPlayers, user: currentUser, budget: budget)
 
         // OPTIMIERTE FILTERUNG: Frühe Aussortierung ungeeigneter Spieler
-        let qualityMarketPlayers = marketPlayers.filter { player in
+        let qualityMarketPlayers = allAvailablePlayers.filter { player in
             // Schnellste Checks zuerst (Status)
             guard player.status != 8 && player.status != 16 else { return false }
 
@@ -187,7 +274,7 @@ public class PlayerRecommendationService: ObservableObject {
         }
         if isVerboseLogging {
             print(
-                "📊 Pre-filtered from \(marketPlayers.count) to \(qualityMarketPlayers.count) quality players"
+                "📊 Pre-filtered from \(allAvailablePlayers.count) to \(qualityMarketPlayers.count) quality players"
             )
         }
 
@@ -298,7 +385,7 @@ public class PlayerRecommendationService: ObservableObject {
                 20))
 
         // Cache speichern
-        cachedRecommendations[league.id] = CachedRecommendations(
+        cachedRecommendations[cacheKey] = CachedRecommendations(
             recommendations: finalRecommendations,
             timestamp: Date()
         )
@@ -662,7 +749,8 @@ public class PlayerRecommendationService: ObservableObject {
     }
 
     public func clearCacheForLeague(_ leagueId: String) {
-        cachedRecommendations.removeValue(forKey: leagueId)
+        // Remove all cache entries for this league (both with and without other users' players)
+        cachedRecommendations = cachedRecommendations.filter { $0.key.leagueId != leagueId }
         if isVerboseLogging { print("🗑️ Cache cleared for league: \(leagueId)") }
     }
 
