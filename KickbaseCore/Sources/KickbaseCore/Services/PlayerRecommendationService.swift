@@ -7,7 +7,7 @@ public class PlayerRecommendationService: ObservableObject {
     private let kickbaseManager: KickbaseManager
 
     // Cache für Empfehlungen
-    private var cachedRecommendations: [String: CachedRecommendations] = [:]
+    private var cachedRecommendations: [RecommendationCacheKey: CachedRecommendations] = [:]
     private let cacheValidityDuration: TimeInterval = 300  // 5 Minuten Cache
 
     // Cache für Spieler-Statistiken (smdc, ismc, smc)
@@ -20,9 +20,9 @@ public class PlayerRecommendationService: ObservableObject {
     private var currentMatchDay: Int = 10
     
     // Constants for synthetic market player data (other users' players not on market)
-    private static let NOT_ON_MARKET_EXPIRY = ""  // Empty string indicates player is not on market
-    private static let NO_EXPIRY_TIMESTAMP = 0  // 0 indicates no expiry timestamp for non-market players
-    private static let NO_OFFERS = 0  // 0 offers for players not on market
+    private static let notOnMarketExpiry = ""  // Empty string indicates player is not on market
+    private static let noExpiryTimestamp = 0  // 0 indicates no expiry timestamp for non-market players
+    private static let noOffers = 0  // 0 offers for players not on market
 
     public init(kickbaseManager: KickbaseManager) {
         self.kickbaseManager = kickbaseManager
@@ -76,14 +76,14 @@ public class PlayerRecommendationService: ObservableObject {
                         marketValue: player.marketValue,
                         marketValueTrend: player.marketValueTrend,
                         price: player.marketValue, // Use market value as price
-                        expiry: Self.NOT_ON_MARKET_EXPIRY,
-                        offers: Self.NO_OFFERS,
+                        expiry: Self.notOnMarketExpiry,
+                        offers: Self.noOffers,
                         seller: MarketSeller(id: user.id, name: user.name),
                         stl: player.stl,
                         status: player.status,
                         prlo: player.prlo,
                         owner: nil,
-                        exs: Self.NO_EXPIRY_TIMESTAMP
+                        exs: Self.noExpiryTimestamp
                     )
                     otherUsersPlayers.append(marketPlayer)
                 }
@@ -106,6 +106,11 @@ public class PlayerRecommendationService: ObservableObject {
         let smdc: Int  // Aktueller Spieltag
         let ismc: Int  // Spiele auf dem Platz (Startelf + Einwechslung)
         let smc: Int  // Spiele in Startelf (Starting Match Count)
+    }
+    
+    private struct RecommendationCacheKey: Hashable {
+        let leagueId: String
+        let includeOtherUsersPlayers: Bool
     }
 
     // MARK: - Main Recommendation Functions
@@ -188,7 +193,7 @@ public class PlayerRecommendationService: ObservableObject {
         }
 
         // Prüfe Cache (cache key now includes the includeOtherUsersPlayers flag)
-        let cacheKey = "\(league.id)_\(includeOtherUsersPlayers)"
+        let cacheKey = RecommendationCacheKey(leagueId: league.id, includeOtherUsersPlayers: includeOtherUsersPlayers)
         if let cached = cachedRecommendations[cacheKey],
             Date().timeIntervalSince(cached.timestamp) < cacheValidityDuration
         {
@@ -744,7 +749,8 @@ public class PlayerRecommendationService: ObservableObject {
     }
 
     public func clearCacheForLeague(_ leagueId: String) {
-        cachedRecommendations.removeValue(forKey: leagueId)
+        // Remove all cache entries for this league (both with and without other users' players)
+        cachedRecommendations = cachedRecommendations.filter { $0.key.leagueId != leagueId }
         if isVerboseLogging { print("🗑️ Cache cleared for league: \(leagueId)") }
     }
 
