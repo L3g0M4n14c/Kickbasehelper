@@ -299,36 +299,61 @@ public class LigainsiderService: ObservableObject {
             )
             return candidates.first?.1
         } else if candidates.count > 1 {
+            print(
+                "[MATCHING] ⚠️ Multiple candidates (\(candidates.count)) for \(firstName) \(lastName):"
+            )
+            candidates.forEach { print("[MATCHING]   - \($0.key)") }
+            
             // Multiple matches: try entries that contain BOTH first and last name when possible
             if !normalizedFirstName.isEmpty {
-                if let bothMatch = candidates.first(where: { key, _ in
+                // First try: exact match of both first and last name as separate words
+                let exactBothMatch = candidates.first(where: { key, _ in
                     let normalizedKey = normalize(key)
                     let keyParts = normalizedKey.components(
                         separatedBy: CharacterSet(charactersIn: " _-"))
                     return keyParts.contains(normalizedFirstName)
                         && keyParts.contains(normalizedLastName)
-                }) {
+                })
+                
+                if let match = exactBothMatch {
                     print(
-                        "[Ligainsider] FOUND (both names present): \(firstName) \(lastName) -> \(bothMatch.key)"
+                        "[Ligainsider] FOUND (both names exact): \(firstName) \(lastName) -> \(match.key)"
                     )
-                    return bothMatch.1
+                    return match.1
+                }
+                
+                // Second try: key starts with "firstname-lastname" pattern (most common format)
+                let startsWithFullName = candidates.first(where: { key, _ in
+                    let normalizedKey = normalize(key)
+                    let expectedPattern = "\(normalizedFirstName)-\(normalizedLastName)"
+                    return normalizedKey.hasPrefix(expectedPattern)
+                })
+                
+                if let match = startsWithFullName {
+                    print(
+                        "[Ligainsider] FOUND (fullname pattern): \(firstName) \(lastName) -> \(match.key)"
+                    )
+                    return match.1
                 }
             }
 
-            // Multiple matches: use firstName to disambiguate
-            let bestMatch = candidates.first(where: { key, _ in
-                let normalizedKey = normalize(key)
-                let keyParts = normalizedKey.components(
-                    separatedBy: CharacterSet(charactersIn: " _-"))
-                return keyParts.contains(normalizedFirstName)
-            })
-            if let match = bestMatch {
-                print(
-                    "[Ligainsider] FOUND (firstName disamb): \(firstName) \(lastName) -> \(match.key)"
-                )
-                return match.1
+            // Third try: use firstName to disambiguate (key contains firstName as word part)
+            if !normalizedFirstName.isEmpty {
+                let firstNameMatch = candidates.first(where: { key, _ in
+                    let normalizedKey = normalize(key)
+                    let keyParts = normalizedKey.components(
+                        separatedBy: CharacterSet(charactersIn: " _-"))
+                    return keyParts.contains(normalizedFirstName)
+                })
+                if let match = firstNameMatch {
+                    print(
+                        "[Ligainsider] FOUND (firstName disamb): \(firstName) \(lastName) -> \(match.key)"
+                    )
+                    return match.1
+                }
             }
-            // If no firstName match, try to find one where lastName is first in the key
+            
+            // Fourth try: if no firstName match, try to find one where lastName is first in the key
             let firstLastNameMatch = candidates.first(where: { key, _ in
                 let normalizedKey = normalize(key)
                 return normalizedKey.hasPrefix(normalizedLastName)
@@ -339,9 +364,13 @@ public class LigainsiderService: ObservableObject {
                     "[Ligainsider] FOUND (prefix match): \(firstName) \(lastName) -> \(match.key)")
                 return match.1
             }
+            
+            // Last resort: return first match but log warning
             if let match = candidates.first {
                 print(
-                    "[Ligainsider] FOUND (first of many): \(firstName) \(lastName) -> \(match.key)")
+                    "[MATCHING] ⚠️ WARNING: Ambiguous match for \(firstName) \(lastName) -> using first: \(match.key)")
+                print(
+                    "[MATCHING] ⚠️ This may result in wrong player photo. Consider improving matching logic.")
                 return match.1
             }
         }
@@ -429,42 +458,83 @@ public class LigainsiderService: ObservableObject {
             foundPlayer = candidates.first?.1
             foundId = candidates.first?.0
         } else if candidates.count > 1 {
-            // Prefer entries that contain both names when available
+            print(
+                "[MATCHING STATUS] ⚠️ Multiple candidates (\(candidates.count)) for \(firstName) \(lastName):"
+            )
+            candidates.forEach { print("[MATCHING STATUS]   - \($0.key)") }
+            
+            // Improved disambiguation logic matching getLigainsiderPlayer
+            // First try: exact match of both first and last name as separate words
             if !normalizedFirstName.isEmpty && !normalizedLastName.isEmpty {
-                if let both = candidates.first(where: { key, _ in
+                let exactBothMatch = candidates.first(where: { key, _ in
                     let normalizedKey = normalize(key)
                     let parts = normalizedKey.components(
                         separatedBy: CharacterSet(charactersIn: " _-"))
                     return parts.contains(normalizedFirstName) && parts.contains(normalizedLastName)
-                }) {
+                })
+                
+                if let both = exactBothMatch {
                     foundPlayer = both.1
                     foundId = both.0
+                    print(
+                        "[MATCHING STATUS] FOUND (both names exact): \(firstName) \(lastName) -> \(both.key)"
+                    )
                 }
             }
 
-            if foundPlayer == nil {
-                // If we used first-name fallback, prefer candidates containing the first name explicitly
-                if usedFirstNameFallback {
-                    if let byFirst = candidates.first(where: { key, _ in
-                        let normalizedKey = normalize(key)
-                        return normalizedKey.contains(normalizedFirstName)
-                    }) {
-                        foundPlayer = byFirst.1
-                        foundId = byFirst.0
-                    }
+            // Second try: key starts with "firstname-lastname" pattern
+            if foundPlayer == nil && !normalizedFirstName.isEmpty {
+                let startsWithFullName = candidates.first(where: { key, _ in
+                    let normalizedKey = normalize(key)
+                    let expectedPattern = "\(normalizedFirstName)-\(normalizedLastName)"
+                    return normalizedKey.hasPrefix(expectedPattern)
+                })
+                
+                if let match = startsWithFullName {
+                    foundPlayer = match.1
+                    foundId = match.0
+                    print(
+                        "[MATCHING STATUS] FOUND (fullname pattern): \(firstName) \(lastName) -> \(match.key)"
+                    )
                 }
             }
 
-            if foundPlayer == nil {
-                // Try to disambiguate by first name occurrence
+            // Third try: if we used first-name fallback, prefer candidates containing the first name
+            if foundPlayer == nil && usedFirstNameFallback {
+                if let byFirst = candidates.first(where: { key, _ in
+                    let normalizedKey = normalize(key)
+                    return normalizedKey.contains(normalizedFirstName)
+                }) {
+                    foundPlayer = byFirst.1
+                    foundId = byFirst.0
+                    print(
+                        "[MATCHING STATUS] FOUND (first-name fallback): \(firstName) \(lastName) -> \(byFirst.key)"
+                    )
+                }
+            }
+
+            // Fourth try: disambiguate by first name occurrence
+            if foundPlayer == nil && !normalizedFirstName.isEmpty {
                 let bestMatch = candidates.first(where: { key, _ in
                     let normalizedKey = normalize(key)
                     return normalizedKey.contains(normalizedFirstName)
                 })
-                if let match = bestMatch ?? candidates.first {
+                if let match = bestMatch {
                     foundPlayer = match.1
                     foundId = match.0
+                    print(
+                        "[MATCHING STATUS] FOUND (firstName contains): \(firstName) \(lastName) -> \(match.key)"
+                    )
                 }
+            }
+            
+            // Last resort: use first candidate but log warning
+            if foundPlayer == nil, let first = candidates.first {
+                foundPlayer = first.1
+                foundId = first.0
+                print(
+                    "[MATCHING STATUS] ⚠️ WARNING: Ambiguous match for \(firstName) \(lastName) -> using first: \(first.key)"
+                )
             }
         }
 
@@ -1188,19 +1258,28 @@ public class LigainsiderService: ObservableObject {
         }
 
         // Dann allParsedPlayers einfügen.
-        // Strategy: Prefer squad images (fetchedSquad) over lineup images. Only use the lineup image
-        // if the squad entry has no image. This ensures squad page is the single source of images.
+        // Strategy: ONLY use squad images. Never use lineup images for photos.
+        // Lineup data is only used to determine who is in the starting lineup (status).
         for player in allParsedPlayers {
             if let id = player.ligainsiderId {
                 if let existingPlayer = squadMap[id] {
-                    // Only overwrite if the existing (squad) has no image and the lineup provides one
-                    if existingPlayer.imageUrl == nil && player.imageUrl != nil {
-                        squadMap[id] = player
-                    }
-                    // Otherwise, keep squad's data (prefer squad image even if lineup has one)
+                    // Keep the squad entry's image always. Only update the alternative field
+                    // from lineup data (needed for correct status display)
+                    squadMap[id] = LigainsiderPlayer(
+                        name: existingPlayer.name,
+                        alternative: player.alternative,  // Use lineup alternative info
+                        ligainsiderId: existingPlayer.ligainsiderId,
+                        imageUrl: existingPlayer.imageUrl  // Always keep squad image
+                    )
                 } else {
-                    // Neuer Spieler, füge hinzu
-                    squadMap[id] = player
+                    // New player not in squad list - add without image
+                    // (squad page is the only source of images)
+                    squadMap[id] = LigainsiderPlayer(
+                        name: player.name,
+                        alternative: player.alternative,
+                        ligainsiderId: player.ligainsiderId,
+                        imageUrl: nil  // Don't use lineup image
+                    )
                 }
             }
         }
