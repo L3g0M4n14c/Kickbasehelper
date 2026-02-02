@@ -753,4 +753,32 @@ public class KickbaseAPIService: ObservableObject {
         let (data, _) = try await makeRequest(endpoint: "/v4/chat/refreshtoken")
         return jsonDict(from: data)
     }
+
+    // MARK: - Device Token Endpoints
+
+    /// POST /v4/user/devicetoken - Register Device Token for Push Notifications
+    public func registerDeviceToken(_ token: String) async throws {
+        let payload: [String: Any] = [
+            "token": token,
+            "platform": "iOS",
+        ]
+
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: payload) else {
+            throw APIError.parsingFailed
+        }
+
+        let (_, response) = try await makeRequest(
+            endpoint: "/v4/user/devicetoken",
+            method: "POST",
+            body: jsonData,
+            requiresAuth: true
+        )
+
+        guard response.statusCode == 200 || response.statusCode == 201 else {
+            throw APIError.networkError(
+                "Device token registration failed with status \(response.statusCode)")
+        }
+
+        print("✅ Device token registered successfully")
+    }
 }
