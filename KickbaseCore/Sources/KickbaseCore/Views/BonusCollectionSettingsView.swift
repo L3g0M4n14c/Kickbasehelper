@@ -4,9 +4,9 @@ import SwiftUI
 public struct BonusCollectionSettingsView: View {
     @EnvironmentObject private var backgroundTaskManager: BackgroundTaskManager
     @State private var isCollecting = false
-    
+
     public init() {}
-    
+
     public var body: some View {
         Form {
             Section(header: Text("Täglicher Bonus").font(.headline)) {
@@ -14,14 +14,16 @@ public struct BonusCollectionSettingsView: View {
                     Text("Automatisches Sammeln")
                         .font(.subheadline)
                         .fontWeight(.semibold)
-                    
-                    Text("Die App sammelt automatisch jeden Tag deinen Kickbase-Bonus im Hintergrund.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+
+                    Text(
+                        "Die App sammelt automatisch jeden Tag deinen Kickbase-Bonus im Hintergrund."
+                    )
+                    .font(.caption)
+                    .foregroundColor(.secondary)
                 }
                 .padding(.vertical, 5)
             }
-            
+
             Section(header: Text("Status").font(.headline)) {
                 HStack {
                     Text("Letztes Sammeln")
@@ -34,7 +36,7 @@ public struct BonusCollectionSettingsView: View {
                             .foregroundColor(.secondary)
                     }
                 }
-                
+
                 HStack {
                     Text("Status")
                     Spacer()
@@ -51,7 +53,7 @@ public struct BonusCollectionSettingsView: View {
                             .foregroundColor(.orange)
                     }
                 }
-                
+
                 if let error = backgroundTaskManager.lastBonusCollectionError {
                     VStack(alignment: .leading, spacing: 5) {
                         Text("Fehlerdetails")
@@ -64,7 +66,7 @@ public struct BonusCollectionSettingsView: View {
                     .padding(.vertical, 5)
                 }
             }
-            
+
             Section {
                 Button(action: {
                     Task {
@@ -84,29 +86,29 @@ public struct BonusCollectionSettingsView: View {
                     }
                 }
                 .disabled(isCollecting || isCollectedToday())
-                
+
                 if isCollectedToday() {
                     Text("Heute bereits gesammelt")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
             }
-            
+
             Section(header: Text("Information").font(.headline)) {
                 VStack(alignment: .leading, spacing: 10) {
-                    InfoRow(
+                    InfoIconRow(
                         icon: "clock.fill",
                         title: "Zeitplan",
                         description: "Täglich um 6:00 Uhr"
                     )
-                    
-                    InfoRow(
+
+                    InfoIconRow(
                         icon: "bolt.fill",
                         title: "Batterieverbrauch",
                         description: "< 1% pro Tag"
                     )
-                    
-                    InfoRow(
+
+                    InfoIconRow(
                         icon: "bell.fill",
                         title: "Benachrichtigungen",
                         description: "Bei erfolgreicher Sammlung"
@@ -115,11 +117,11 @@ public struct BonusCollectionSettingsView: View {
             }
         }
         .navigationTitle("Bonus-Sammlung")
-        #if !SKIP
-        .navigationBarTitleDisplayMode(.inline)
+        #if !os(macOS)
+            .navigationBarTitleDisplayMode(.inline)
         #endif
     }
-    
+
     private func formatDate(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateStyle = .short
@@ -127,7 +129,7 @@ public struct BonusCollectionSettingsView: View {
         formatter.locale = Locale(identifier: "de_DE")
         return formatter.string(from: date)
     }
-    
+
     private func isCollectedToday() -> Bool {
         guard let lastDate = backgroundTaskManager.lastBonusCollectionDate else {
             return false
@@ -136,18 +138,18 @@ public struct BonusCollectionSettingsView: View {
     }
 }
 
-/// Helper view for displaying info rows
-public struct InfoRow: View {
+/// Helper view for displaying info rows (icon)
+public struct InfoIconRow: View {
     let icon: String
     let title: String
     let description: String
-    
+
     public var body: some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon)
                 .foregroundColor(.blue)
                 .frame(width: 24)
-            
+
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(.subheadline)
