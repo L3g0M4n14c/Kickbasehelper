@@ -1,0 +1,148 @@
+name: CI - Generate skipstone & Android Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch: {}
+
+jobs:
+  generate-skipstone:
+    name: Generate skipstone (macOS)
+    runs-on: macos-latest
+    outputs:
+      artifact-name: skipstone
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run CI post-clone script (patch SPM / Xcode)
+        run: |
+          if [ -f ci_scripts/ci_post_clone.sh ]; then
+            bash ci_scripts/ci_post_clone.sh || true
+          fi
+
+      - name: Build KickbaseCore (generate skipstone)
+        run: |
+          cd KickbaseCore
+          swift build --configuration debug
+
+      - name: Sanitize skipstone outputs
+        run: |
+          bash scripts/sanitize_skipstone.sh
+
+      - name: Package skipstone outputs
+        run: |
+          mkdir -p /tmp/skipstone
+          if [ -d KickbaseCore/.build/plugins/outputs ]; then
+            cp -R KickbaseCore/.build/plugins/outputs/* /tmp/skipstone || true
+          fi
+          if [ -d /tmp/skipstone ]; then
+            tar -czf skipstone.tar.gz -C /tmp skipstone
+          else
+            echo "No skipstone outputs found" && exit 1
+          fi
+
+      - name: Generate deterministic skipstone snapshot
+        run: |
+          bash scripts/generate_skipstone_snapshot.sh
+
+      - name: Upload skipstone snapshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: skipstone_snapshot
+          path: /tmp/skipstone_snapshot.tar.gz
+
+      - name: Upload skipstone artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: skipstone
+          path: skipstone.tar.gz
+
+  android-build:
+    name: Android Build (Ubuntu)
+    runs-on: ubuntu-latest
+    needs: generate-skipstone
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download skipstone artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: skipstone
+          path: ./skipstone_artifact
+
+      - name: Extract skipstone into KickbaseCore
+        run: |
+          if [ -f skipstone_artifact/skipstone.tar.gz ]; then
+            tar -xzf skipstone_artifact/skipstone.tar.gz -C .
+            mkdir -p KickbaseCore/.build/plugins/outputs
+            cp -R skipstone/* KickbaseCore/.build/plugins/outputs/ || true
+          else
+            echo "skipstone artifact missing" && exit 1
+          fi
+
+      - name: Sanitize extracted outputs (safety)
+        run: |
+          bash scripts/sanitize_skipstone.sh
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Run Gradle assemble & tests
+        run: |
+          cd Android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
+          ./gradlew test --no-daemon --stacktrace
+
+      - name: Run ktlint (format check)
+        run: |
+          if [ -f Android/gradlew ]; then
+            cd Android
+            ./gradlew ktlintCheck || true
+          fi
+
+      - name: Upload APK to Firebase App Distribution
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${{ secrets.FIREBASE_APP_ID }}
+          token: ${{ secrets.FIREBASE_TOKEN }}
+          groups: 'testers'
+          file: Android/app/build/outputs/apk/debug/app-debug.apk
+          # For AAB/release builds, set 'file' to the release bundle path and manage signing accordingly
+
+  snapshot-diff:
+    name: Snapshot diff
+    needs: generate-skipstone
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (snapshots)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download generated snapshot
+        uses: actions/download-artifact@v4
+        with:
+          name: skipstone_snapshot
+          path: ./skipstone_snapshot_artifact
+
+      - name: Compare snapshots
+        run: |
+          bash scripts/compare_skipstone_snapshot.sh ./skipstone_snapshot_artifact/skipstone_snapshot.tar.gz

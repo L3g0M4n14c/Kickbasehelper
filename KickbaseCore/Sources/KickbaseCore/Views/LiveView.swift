@@ -155,6 +155,16 @@ struct LivePlayerRow: View {
                         .background(Color.gray.opacity(0.2))
                     #endif
             }
+            .onAppear {
+                print(
+                    "Loading live player image for \(player.name): \(photoUrl?.absoluteString ?? "nil")"
+                )
+            }
+            .onChange(of: photoUrl) {
+                print(
+                    "Live player image URL changed for \(player.name): \(photoUrl?.absoluteString ?? "nil")"
+                )
+            }
             .frame(width: 40, height: 40)
             .clipShape(Circle())
 

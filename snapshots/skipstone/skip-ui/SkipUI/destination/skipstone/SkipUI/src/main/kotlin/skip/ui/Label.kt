@@ -1,0 +1,453 @@
+package skip.ui
+
+import skip.lib.*
+
+// Copyright 2023–2025 Skip
+// SPDX-License-Identifier: LGPL-3.0-only WITH LGPL-3.0-linking-exception
+import skip.foundation.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.ContentAlpha
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.unit.dp
+
+@androidx.annotation.Keep
+class Label: View, Renderable, skip.lib.SwiftProjecting {
+    internal val title: ComposeBuilder
+    internal val image: ComposeBuilder
+
+    constructor(title: () -> View, icon: () -> View) {
+        this.title = ComposeBuilder.from(title)
+        this.image = ComposeBuilder.from(icon)
+    }
+
+    constructor(bridgedTitle: View, bridgedImage: View) {
+        this.title = ComposeBuilder.from { -> bridgedTitle }
+        this.image = ComposeBuilder.from { -> bridgedImage }
+    }
+
+    constructor(titleKey: LocalizedStringKey, image: String, @Suppress("UNUSED_PARAMETER") unusedp_0: Nothing? = null): this(title = { ->
+        ComposeBuilder { composectx: ComposeContext ->
+            Text(titleKey).Compose(composectx)
+            ComposeResult.ok
+        }
+    }, icon = { ->
+        ComposeBuilder { composectx: ComposeContext ->
+            Image(image, bundle = Bundle.main).Compose(composectx)
+            ComposeResult.ok
+        }
+    }) {
+    }
+
+    constructor(titleResource: LocalizedStringResource, image: String, @Suppress("UNUSED_PARAMETER") unusedp_0: Nothing? = null): this(title = { ->
+        ComposeBuilder { composectx: ComposeContext ->
+            Text(titleResource).Compose(composectx)
+            ComposeResult.ok
+        }
+    }, icon = { ->
+        ComposeBuilder { composectx: ComposeContext ->
+            Image(image, bundle = Bundle.main).Compose(composectx)
+            ComposeResult.ok
+        }
+    }) {
+    }
+
+    constructor(titleKey: LocalizedStringKey, systemImage: String): this(title = { ->
+        ComposeBuilder { composectx: ComposeContext ->
+            Text(titleKey).Compose(composectx)
+            ComposeResult.ok
+        }
+    }, icon = { ->
+        ComposeBuilder { composectx: ComposeContext ->
+            Image(systemName = systemImage).Compose(composectx)
+            ComposeResult.ok
+        }
+    }) {
+    }
+
+    constructor(titleResource: LocalizedStringResource, systemImage: String): this(title = { ->
+        ComposeBuilder { composectx: ComposeContext ->
+            Text(titleResource).Compose(composectx)
+            ComposeResult.ok
+        }
+    }, icon = { ->
+        ComposeBuilder { composectx: ComposeContext ->
+            Image(systemName = systemImage).Compose(composectx)
+            ComposeResult.ok
+        }
+    }) {
+    }
+
+    constructor(title: String, image: String, @Suppress("UNUSED_PARAMETER") unusedp_0: Nothing? = null): this(title = { ->
+        ComposeBuilder { composectx: ComposeContext ->
+            Text(verbatim = title).Compose(composectx)
+            ComposeResult.ok
+        }
+    }, icon = { ->
+        ComposeBuilder { composectx: ComposeContext ->
+            Image(image, bundle = Bundle.main).Compose(composectx)
+            ComposeResult.ok
+        }
+    }) {
+    }
+
+    constructor(title: String, systemImage: String): this(title = { ->
+        ComposeBuilder { composectx: ComposeContext ->
+            Text(verbatim = title).Compose(composectx)
+            ComposeResult.ok
+        }
+    }, icon = { ->
+        ComposeBuilder { composectx: ComposeContext ->
+            Image(systemName = systemImage).Compose(composectx)
+            ComposeResult.ok
+        }
+    }) {
+    }
+
+    @Composable
+    override fun Render(context: ComposeContext) {
+        var style = EnvironmentValues.shared._labelStyle ?: LabelStyle.automatic
+        val placement = EnvironmentValues.shared._placement.sref()
+        if (style == LabelStyle.automatic) {
+            if (placement.contains(ViewPlacement.toolbar)) {
+                style = LabelStyle.iconOnly
+            } else {
+                style = LabelStyle.titleAndIcon
+            }
+        }
+        var imageColor: Color? = null
+        var titlePadding = 0.0
+        if (placement.contains(ViewPlacement.systemTextColor) && !EnvironmentValues.shared.isEnabled && EnvironmentValues.shared._foregroundStyle == null) {
+            imageColor = Color.primary.opacity(Double(ContentAlpha.disabled))
+        } else if (placement.contains(ViewPlacement.onPrimaryColor) && EnvironmentValues.shared._foregroundStyle == null) {
+            var imageColor = Color(colorImpl = { -> MaterialTheme.colorScheme.onPrimary })
+            if (!EnvironmentValues.shared.isEnabled) {
+                imageColor = imageColor.opacity(Double(ContentAlpha.disabled))
+            }
+        } else if (placement.contains(ViewPlacement.listItem)) {
+            imageColor = (EnvironmentValues.shared._foregroundStyle as? Color ?: EnvironmentValues.shared._listItemTint ?: Color.accentColor).sref()
+            titlePadding = 6.0
+        }
+        when (style) {
+            LabelStyle.titleOnly -> RenderTitle(context = context)
+            LabelStyle.iconOnly -> RenderImage(context = context, imageColor = imageColor)
+            else -> RenderLabel(context = context, imageColor = imageColor, titlePadding = titlePadding)
+        }
+    }
+
+    @Composable
+    private fun RenderLabel(context: ComposeContext, imageColor: Color?, titlePadding: Double) {
+        Row(modifier = context.modifier, horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) { ->
+            RenderImage(context = context.content(), imageColor = imageColor)
+            Box(modifier = Modifier.padding(start = titlePadding.dp)) { -> RenderTitle(context = context.content()) }
+        }
+    }
+
+    /// Render only the title of this label.
+    @Composable
+    internal fun RenderTitle(context: ComposeContext) {
+        title.Compose(context = context)
+    }
+
+    /// Render only the image of this label.
+    @Composable
+    internal fun RenderImage(context: ComposeContext, imageColor: Color? = null) {
+        if (imageColor != null) {
+            EnvironmentValues.shared.setValues(l@{ it ->
+                it.set_foregroundStyle(imageColor)
+                return@l ComposeResult.ok
+            }, in_ = { -> image.Compose(context = context) })
+        } else {
+            image.Compose(context = context)
+        }
+    }
+
+    override fun Swift_projection(options: Int): () -> Any = Swift_projectionImpl(options)
+    private external fun Swift_projectionImpl(options: Int): () -> Any
+
+    @androidx.annotation.Keep
+    companion object {
+    }
+}
+
+class LabelStyle: RawRepresentable<Int> {
+    override val rawValue: Int
+
+    constructor(rawValue: Int) {
+        this.rawValue = rawValue
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (other !is LabelStyle) return false
+        return rawValue == other.rawValue
+    }
+
+    @androidx.annotation.Keep
+    companion object {
+
+        val automatic = LabelStyle(rawValue = 0) // For bridging
+        val titleOnly = LabelStyle(rawValue = 1) // For bridging
+        val iconOnly = LabelStyle(rawValue = 2) // For bridging
+        val titleAndIcon = LabelStyle(rawValue = 3) // For bridging
+    }
+}
+
+class LabeledContent {
+    @Deprecated("This API is not yet available in Skip. Consider placing it within a #if !SKIP block. You can file an issue against the owning library at https://github.com/skiptools, or see the library README for information on adding support", level = DeprecationLevel.ERROR)
+    constructor(content: () -> View, label: () -> View) {
+    }
+
+    @Deprecated("This API is not yet available in Skip. Consider placing it within a #if !SKIP block. You can file an issue against the owning library at https://github.com/skiptools, or see the library README for information on adding support", level = DeprecationLevel.ERROR)
+    constructor(titleKey: LocalizedStringKey, content: () -> View) {
+    }
+
+    @Deprecated("This API is not yet available in Skip. Consider placing it within a #if !SKIP block. You can file an issue against the owning library at https://github.com/skiptools, or see the library README for information on adding support", level = DeprecationLevel.ERROR)
+    constructor(titleResource: LocalizedStringResource, content: () -> View) {
+    }
+
+    @Deprecated("This API is not yet available in Skip. Consider placing it within a #if !SKIP block. You can file an issue against the owning library at https://github.com/skiptools, or see the library README for information on adding support", level = DeprecationLevel.ERROR)
+    constructor(title: String, content: () -> View) {
+    }
+
+    @Deprecated("This API is not yet available in Skip. Consider placing it within a #if !SKIP block. You can file an issue against the owning library at https://github.com/skiptools, or see the library README for information on adding support", level = DeprecationLevel.ERROR)
+    constructor(titleKey: LocalizedStringKey, value: String) {
+    }
+
+    @Deprecated("This API is not yet available in Skip. Consider placing it within a #if !SKIP block. You can file an issue against the owning library at https://github.com/skiptools, or see the library README for information on adding support", level = DeprecationLevel.ERROR)
+    constructor(titleResource: LocalizedStringResource, value: String) {
+    }
+
+    @Deprecated("This API is not yet available in Skip. Consider placing it within a #if !SKIP block. You can file an issue against the owning library at https://github.com/skiptools, or see the library README for information on adding support", level = DeprecationLevel.ERROR)
+    constructor(title: String, value: String) {
+    }
+
+    @androidx.annotation.Keep
+    companion object {
+    }
+}
+
+class LabeledContentStyle: RawRepresentable<Int> {
+    override val rawValue: Int
+
+    constructor(rawValue: Int) {
+        this.rawValue = rawValue
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (other !is LabeledContentStyle) return false
+        return rawValue == other.rawValue
+    }
+
+    @androidx.annotation.Keep
+    companion object {
+
+        val automatic = LabeledContentStyle(rawValue = 0)
+    }
+}
+
+/*
+import protocol Foundation.ParseableFormatStyle
+import protocol Foundation.FormatStyle
+import protocol Foundation.ReferenceConvertible
+
+@available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)
+extension Label /* where Title == LabelStyleConfiguration.Title, Icon == LabelStyleConfiguration.Icon */ {
+
+/// Creates a label representing the configuration of a style.
+///
+/// You can use this initializer within the ``LabelStyle/makeBody(configuration:)``
+/// method of a ``LabelStyle`` instance to create an instance of the label
+/// that's being styled. This is useful for custom label styles that only
+/// wish to modify the current style, as opposed to implementing a brand new
+/// style.
+///
+/// For example, the following style adds a red border around the label,
+/// but otherwise preserves the current style:
+///
+///     struct RedBorderedLabelStyle: LabelStyle {
+///         func makeBody(configuration: Configuration) -> some View {
+///             Label(configuration)
+///                 .border(Color.red)
+///         }
+///     }
+///
+/// - Parameter configuration: The label style to use.
+public init(_ configuration: LabelStyleConfiguration) { fatalError() }
+}
+
+/// The properties of a label.
+@available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)
+public struct LabelStyleConfiguration {
+
+/// A type-erased title view of a label.
+public struct Title {
+
+/// The type of view representing the body of this view.
+///
+/// When you create a custom view, Swift infers this type from your
+/// implementation of the required ``View/body-swift.property`` property.
+public typealias Body = NeverView
+}
+
+/// A type-erased icon view of a label.
+public struct Icon {
+
+/// The type of view representing the body of this view.
+///
+/// When you create a custom view, Swift infers this type from your
+/// implementation of the required ``View/body-swift.property`` property.
+public typealias Body = NeverView
+}
+
+/// A description of the labeled item.
+public var title: LabelStyleConfiguration.Title { get { fatalError() } }
+
+/// A symbolic representation of the labeled item.
+public var icon: LabelStyleConfiguration.Icon { get { fatalError() } }
+}
+
+@available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)
+extension LabelStyleConfiguration.Title : View {
+public var body: Body { fatalError() }
+}
+
+@available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)
+extension LabelStyleConfiguration.Icon : View {
+public var body: Body { fatalError() }
+}
+
+//@available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
+//extension LabeledContent where Label == Text, Content == Text {
+/// Creates a labeled informational view from a formatted value.
+///
+/// This initializer creates a ``Text`` label on your behalf, and treats the
+/// localized key similar to ``Text/init(_:tableName:bundle:comment:)``. See
+/// `Text` for more information about localizing strings.
+///
+///     Form {
+///         LabeledContent("Age", value: person.age, format: .number)
+///         LabeledContent("Height", value: person.height,
+///             format: .measurement(width: .abbreviated))
+///     }
+///
+/// - Parameters:
+///   - titleKey: The key for the view's localized title, that describes
+///     the purpose of the view.
+///   - value: The value being labeled.
+///   - format: A format style of type `F` to convert the underlying value
+///     of type `F.FormatInput` to a string representation.
+//    public init<F>(_ titleKey: LocalizedStringKey, value: F.FormatInput, format: F) where F : FormatStyle, F.FormatInput : Equatable, F.FormatOutput == String { fatalError() }
+
+/// Creates a labeled informational view from a formatted value.
+///
+/// This initializer creates a ``Text`` label on your behalf, and treats the
+/// title similar to ``Text/init(_:)-9d1g4``. See `Text` for more
+/// information about localizing strings.
+///
+///     Form {
+///         Section("Downloads") {
+///             ForEach(download) { file in
+///                 LabeledContent(file.name, value: file.downloadSize,
+///                     format: .byteCount(style: .file))
+///            }
+///         }
+///     }
+///
+/// - Parameters:
+///   - title: A string that describes the purpose of the view.
+///   - value: The value being labeled.
+///   - format: A format style of type `F` to convert the underlying value
+///     of type `F.FormatInput` to a string representation.
+//    public init<S, F>(_ title: S, value: F.FormatInput, format: F) where S : StringProtocol, F : FormatStyle, F.FormatInput : Equatable, F.FormatOutput == String { fatalError() }
+//}
+
+//@available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
+//extension LabeledContent where Label == LabeledContentStyleConfiguration.Label, Content == LabeledContentStyleConfiguration.Content {
+
+/// Creates labeled content based on a labeled content style configuration.
+///
+/// You can use this initializer within the
+/// ``LabeledContentStyle/makeBody(configuration:)`` method of a
+/// ``LabeledContentStyle`` to create a labeled content instance.
+/// This is useful for custom styles that only modify the current style,
+/// as opposed to implementing a brand new style.
+///
+/// For example, the following style adds a red border around the labeled
+/// content, but otherwise preserves the current style:
+///
+///     struct RedBorderLabeledContentStyle: LabeledContentStyle {
+///         func makeBody(configuration: Configuration) -> some View {
+///             LabeledContent(configuration)
+///                 .border(.red)
+///         }
+///     }
+///
+/// - Parameter configuration: The properties of the labeled content
+//    public init(_ configuration: LabeledContentStyleConfiguration) { fatalError() }
+//}
+
+/// The properties of a labeled content instance.
+@available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
+public struct LabeledContentStyleConfiguration {
+
+/// A type-erased label of a labeled content instance.
+public struct Label : View {
+
+/// The type of view representing the body of this view.
+///
+/// When you create a custom view, Swift infers this type from your
+/// implementation of the required ``View/body-swift.property`` property.
+public typealias Body = NeverView
+public var body: Body { fatalError() }
+}
+
+/// A type-erased content of a labeled content instance.
+public struct Content : View {
+
+/// The type of view representing the body of this view.
+///
+/// When you create a custom view, Swift infers this type from your
+/// implementation of the required ``View/body-swift.property`` property.
+public typealias Body = NeverView
+public var body: Body { fatalError() }
+}
+
+/// The label of the labeled content instance.
+public let label: LabeledContentStyleConfiguration.Label = { fatalError() }()
+
+/// The content of the labeled content instance.
+public let content: LabeledContentStyleConfiguration.Content = { fatalError() }()
+}
+
+/// A view that represents the body of a control group with a specified
+/// label.
+///
+/// You don't create this type directly. SkipUI creates it when you build
+/// a ``ControlGroup``.
+@available(iOS 16.0, macOS 13.0, tvOS 17.0, *)
+@available(watchOS, unavailable)
+public struct LabeledControlGroupContent<Content, Label> : View where Content : View, Label : View {
+
+@MainActor public var body: some View { get { return stubView() } }
+
+//    public typealias Body = some View
+}
+
+/// A view that represents the view of a toolbar item group with a specified
+/// label.
+///
+/// You don't create this type directly. SkipUI creates it when you build
+/// a ``ToolbarItemGroup``.
+@available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
+public struct LabeledToolbarItemGroupContent<Content, Label> : View where Content : View, Label : View {
+
+@MainActor public var body: some View { get { return stubView() } }
+
+//    public typealias Body = some View
+}
+*/

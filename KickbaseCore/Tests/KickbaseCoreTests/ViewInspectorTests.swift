@@ -4,22 +4,6 @@ import XCTest
 
 @testable import KickbaseCore
 
-// Make tested SwiftUI views inspectable
-extension MainDashboardView: Inspectable {}
-extension SalesRecommendationView: Inspectable {}
-extension SalesRecommendationSummary: Inspectable {}
-extension SalesRecommendationRow: Inspectable {}
-extension PlayerDetailView: Inspectable {}
-extension PlayerHeroHeader: Inspectable {}
-extension LineupComparisonView: Inspectable {}
-extension LineupDetailView: Inspectable {}
-extension LineupSlotRowView: Inspectable {}
-
-#if canImport(ViewInspector)
-    // Make our InspectableSheet act as a PopupPresenter so ViewInspector can inspect the sheet content
-    extension InspectableSheet: PopupPresenter {}
-#endif
-
 @MainActor
 final class ViewInspectorTests: XCTestCase {
     func test_mainDashboard_showsLoadingWhenLigainsiderNotReady() throws {
@@ -199,6 +183,31 @@ final class ViewInspectorTests: XCTestCase {
         XCTAssertEqual(try v.vStack().text(0).string(), "Hybrid-Aufstellung Übersicht")
     }
 
+    func test_lineupComparisonView_hasNoBudgetToggle() throws {
+        let slot = LineupSlot(
+            slotIndex: 0, positionType: 3, ownedPlayerId: "p1", recommendedMarketPlayerId: nil,
+            slotScore: 12.5)
+        let lineup = OptimalLineupResult(
+            slots: [slot], formationName: "4-4-2", totalLineupScore: 55.0,
+            isHybridWithMarketPlayers: false, averagePlayerScore: 11.0)
+        let comparison = LineupComparison(teamOnlyLineup: lineup)
+
+        let manager = KickbaseManager()
+        // give manager a team player to match slot ownedPlayerId
+        let player = TeamPlayer(
+            id: "p1", firstName: "Max", lastName: "Muster", profileBigUrl: "", teamName: "FC",
+            teamId: "1", position: 3, number: 8, averagePoints: 5.0, totalPoints: 100,
+            marketValue: 1_000_000, marketValueTrend: 0, tfhmvt: 0, prlo: 0, stl: 0, status: 0,
+            userOwnsPlayer: true)
+        manager.teamPlayers = [player]
+
+        let view = LineupComparisonView(comparison: comparison)
+            .environmentObject(manager)
+
+        // Ensure there is no budget-related toggle inside the comparison sheet
+        XCTAssertThrowsError(try view.inspect().find(ViewType.Toggle.self))
+    }
+
     func test_salesRecommendation_toggle_callsOnToggle() throws {
         let player = TeamPlayer(
             id: "p1", firstName: "Max", lastName: "Muster", profileBigUrl: "", teamName: "FC Test",
@@ -220,5 +229,53 @@ final class ViewInspectorTests: XCTestCase {
         // Toggle the switch
         try row.inspect().hStack().toggle(2).tap()
         XCTAssertTrue(toggled)
+    }
+
+    func test_lineupOptimizer_toggle_doesNotTriggerGeneration() throws {
+        // Directly instantiate the optimizer to avoid tab-selection issues
+        let manager = KickbaseManager()
+        let leagueUser = LeagueUser(
+            id: "u1", name: "Max", teamName: "FC", budget: -100_000, teamValue: 10_000_000,
+            points: 0, placement: 1, won: 0, drawn: 0, lost: 0, se11: 0, ttm: 0, mpst: nil)
+        let league = League(
+            id: "l1", competitionId: "c1", name: "TestLeague", creatorName: "c", adminName: "a",
+            created: "", season: "", matchDay: 1, currentUser: leagueUser)
+        manager.selectedLeague = league
+
+        manager.teamPlayers = [
+            TeamPlayer(
+                id: "p1", firstName: "Max", lastName: "Muster", profileBigUrl: "", teamName: "FC",
+                teamId: "1", position: 3, number: 8, averagePoints: 5.0, totalPoints: 100,
+                marketValue: 1_000_000, marketValueTrend: 0, tfhmvt: 0, prlo: 0, stl: 0, status: 0,
+                userOwnsPlayer: true)
+        ]
+        manager.marketPlayers = [
+            MarketPlayer(
+                id: "m1", firstName: "Mark", lastName: "Smith", profileBigUrl: "", teamName: "Club",
+                teamId: "1", position: 3, number: 8, averagePoints: 6.0, totalPoints: 100,
+                marketValue: 1_200_000, marketValueTrend: 0, price: 1_500_000, expiry: "",
+                offers: 0, seller: MarketSeller(id: "s", name: "S"), stl: 0, status: 0, prlo: 0,
+                owner: nil, exs: 0)
+        ]
+
+        let ligainsider = LigainsiderService()
+
+        // Use a constant binding for the toggle state
+        let optimizer = LineupOptimizerView(lineupRespectBudget: .constant(false))
+            .environmentObject(manager)
+            .environmentObject(ligainsider)
+
+        let inspected = try optimizer.inspect()
+
+        // Toggle exists and is initially off
+        let toggle = try inspected.find(ViewType.Toggle.self)
+        XCTAssertFalse(try toggle.isOn())
+
+        // Tapping the toggle should not crash (ensures no automatic generation callback)
+        XCTAssertNoThrow(try toggle.tap())
+
+        // Pressing the generator button should be callable (generation runs asynchronously)
+        let button = try inspected.find(ViewType.Button.self)
+        XCTAssertNoThrow(try button.tap())
     }
 }

@@ -57,6 +57,7 @@ struct MainDashboardView: View {
     @EnvironmentObject var authManager: AuthenticationManager
     @EnvironmentObject var ligainsiderService: LigainsiderService
     @State private var selectedTab = 0
+    @State private var lineupRespectBudget: Bool = false
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
 
     var body: some View {
@@ -202,7 +203,7 @@ struct MainDashboardView: View {
                     case 2:
                         SalesRecommendationView()
                     case 3:
-                        LineupOptimizerView()
+                        LineupOptimizerView(lineupRespectBudget: $lineupRespectBudget)
                     case 4:
                         TransferRecommendationsView(kickbaseManager: kickbaseManager)
                     case 5:
@@ -263,7 +264,7 @@ struct MainDashboardView: View {
 
             // Lineup Optimizer Tab
             NavigationStack {
-                LineupOptimizerView()
+                LineupOptimizerView(lineupRespectBudget: $lineupRespectBudget)
                     .modifier(StandardNavigationModifier())
             }
             .tabItem {
@@ -684,6 +685,16 @@ struct PlayerRowViewWithSale: View {
                     @unknown default:
                         PositionBadge(position: player.position)
                     }
+                }
+                .onAppear {
+                    print(
+                        "Loading dashboard player image for \(player.fullName): \(url.absoluteString)"
+                    )
+                }
+                .onChange(of: url) {
+                    print(
+                        "Dashboard player image URL changed for \(player.fullName): \(url.absoluteString)"
+                    )
                 }
                 .frame(width: 32, height: 32)
             } else {
@@ -1365,6 +1376,19 @@ struct SalesRecommendationView: View {
             let end = Swift.min(players.count, start + concurrency)
             let slice = Array(players[start..<end])
 
+            // SKIP REPLACE:
+            // withTaskGroup(of = Any::class) l@{ group ->
+            //     for (player in slice.sref()) {
+            //         group.addTask(operation = suspend {
+            //             val maybe = this.analyzePlayerForSale(player = player, allPlayers = players, currentBudget = currentBudget, optimizationGoal = selectedGoal)
+            //             (maybe ?: Unit)
+            //         })
+            //     }
+            //     for (result in group.sref()) {
+            //         val rec = result.sref() as? SalesRecommendation
+            //         if (rec != null) { newRecommendations.append(rec) }
+            //     }
+            // }
             await withTaskGroup(of: SalesRecommendation?.self) { group in
                 for player in slice {
                     group.addTask { [selectedGoal, currentBudget] in
@@ -2221,6 +2245,8 @@ struct LineupOptimizerView: View {
     @State private var lineupComparison: LineupComparison?
     @State private var showOptimalComparison = false
     @State private var isGeneratingComparison = false
+    // Toggle state for budget-respecting lineup generation inside the optimizer
+    @Binding var lineupRespectBudget: Bool
 
     enum OptimizationType: String, CaseIterable {
         case averagePoints = "Durchschnittspunkte"
@@ -2270,6 +2296,10 @@ struct LineupOptimizerView: View {
                     }
                 }
                 .pickerStyle(.segmented)
+
+                // Budget respect toggle for optimizer (only affects the generation when button pressed)
+                Toggle("Budget beachten (bei negativem Kontostand)", isOn: $lineupRespectBudget)
+                    .padding(.horizontal)
 
                 // Button für optimale Aufstellung mit Marktspieler
                 Button(action: generateOptimalLineupComparison) {
@@ -2366,6 +2396,7 @@ struct LineupOptimizerView: View {
                 .environmentObject(kickbaseManager)
                 .environmentObject(ligainsiderService)
         }
+
     }
 
     private func generateOptimalLineupComparison() {
@@ -2388,7 +2419,8 @@ struct LineupOptimizerView: View {
                     for: league,
                     teamPlayers: kickbaseManager.teamPlayers,
                     marketPlayers: kickbaseManager.marketPlayers,
-                    formation: bestFormation
+                    formation: bestFormation,
+                    respectBudget: lineupRespectBudget
                 )
 
                 await MainActor.run {

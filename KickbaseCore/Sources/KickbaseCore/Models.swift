@@ -466,9 +466,9 @@ public struct MatchPerformance: Codable, Identifiable {
     public let st: Int  // Status (0=nicht gespielt, 1=?, 3=eingewechselt, 4=nicht im Kader, 5=startelf)
     public let cur: Bool  // Current (aktueller Spieltag?)
     public let mdst: Int  // Match Day Status
-    public let ap: Int  // Average Points (Durchschnittspunkte)
-    public let tp: Int  // Total Points (Gesamtpunkte)
-    public let asp: Int  // Average Season Points
+    public let ap: Int?  // Average Points (Durchschnittspunkte)
+    public let tp: Int?  // Total Points (Gesamtpunkte)
+    public let asp: Int?  // Average Season Points
     //let t1im: String          // Team 1 Image
     //let t2im: String          // Team 2 Image
 
@@ -486,9 +486,9 @@ public struct MatchPerformance: Codable, Identifiable {
     public var status: Int { st }
     public var isCurrent: Bool { cur }
     public var matchDayStatus: Int { mdst }
-    public var averagePoints: Int { ap }
-    public var totalPoints: Int { tp }
-    public var averageSeasonPoints: Int { asp }
+    public var averagePoints: Int { ap ?? 0 }
+    public var totalPoints: Int { tp ?? 0 }
+    public var averageSeasonPoints: Int { asp ?? 0 }
     //var team1Image: String { t1im }
     //var team2Image: String { t2im }
 

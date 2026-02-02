@@ -112,7 +112,7 @@ final class KickbasePlayerServiceTests: XCTestCase {
         XCTAssertEqual(details?.fn, "Max")
         XCTAssertEqual(details?.ln, "Mustermann")
         XCTAssertEqual(details?.teamId, nil)
-        XCTAssertEqual(details?.profileBigUrl, "https://img")
+        XCTAssertNil(details?.profileBigUrl)
         XCTAssertEqual(details?.totalPoints, 123)
     }
 
@@ -165,6 +165,153 @@ final class KickbasePlayerServiceTests: XCTestCase {
         XCTAssertEqual(players.first?.teamName, "Team X")
     }
 
+    func testMarketParsingIgnoresPimFlagImageAndReturnsEmptyProfileBigUrl() async throws {
+        let mock = MockAPI()
+        // market response where only 'pim' is present and it's a flag image
+        mock.marketPlayersResponse = [
+            "it": [
+                [
+                    "i": "p1",
+                    "fn": "Flagy",
+                    "ln": "Player",
+                    "pim": "https://example.com/flags/de.png",
+                    "price": 1000,
+                ]
+            ]
+        ]
+
+        let parser = MockParser()
+        let service = KickbasePlayerService(apiService: mock, dataParser: parser)
+
+        let league = League(
+            id: "l", name: "L", creatorName: "C", adminName: "A", created: "d", season: "s",
+            matchDay: 1,
+            currentUser: LeagueUser(
+                id: "u", name: "n", teamName: "t", budget: 0, teamValue: 0, points: 0, placement: 1,
+                won: 0, drawn: 0, lost: 0, se11: 0, ttm: 0, mpst: nil))
+
+        let marketPlayers = try await service.loadMarketPlayers(for: league)
+        XCTAssertEqual(marketPlayers.count, 1)
+        XCTAssertEqual(marketPlayers.first?.profileBigUrl, "")
+    }
+
+    func testMarketParsingIgnoresKickbasePimAndReturnsEmpty() async throws {
+        let mock = MockAPI()
+        // market response where 'pim' points to a Kickbase CDN image which we should ignore
+        mock.marketPlayersResponse = [
+            "it": [
+                [
+                    "i": "p2",
+                    "fn": "Kick",
+                    "ln": "Base",
+                    "pim": "https://kickbase.b-cdn.net/images/player123.jpg",
+                    "price": 900,
+                ]
+            ]
+        ]
+
+        let parser = MockParser()
+        let service = KickbasePlayerService(apiService: mock, dataParser: parser)
+
+        let league = League(
+            id: "l", name: "L", creatorName: "C", adminName: "A", created: "d", season: "s",
+            matchDay: 1,
+            currentUser: LeagueUser(
+                id: "u", name: "n", teamName: "t", budget: 0, teamValue: 0, points: 0, placement: 1,
+                won: 0, drawn: 0, lost: 0, se11: 0, ttm: 0, mpst: nil))
+
+        let marketPlayers = try await service.loadMarketPlayers(for: league)
+        XCTAssertEqual(marketPlayers.count, 1)
+        XCTAssertEqual(marketPlayers.first?.profileBigUrl, "")
+    }
+
+    func testMarketParsingAcceptsNonFlagLigainsiderImage() async throws {
+        let mock = MockAPI()
+        // market response where 'pim' contains a non-flag ligainsider image
+        mock.marketPlayersResponse = [
+            "it": [
+                [
+                    "i": "p1",
+                    "fn": "Player",
+                    "ln": "One",
+                    "pim": "https://www.ligainsider.de/images/player123.jpg",
+                    "price": 1000,
+                ]
+            ]
+        ]
+
+        let parser = MockParser()
+        let service = KickbasePlayerService(apiService: mock, dataParser: parser)
+
+        let league = League(
+            id: "l", name: "L", creatorName: "C", adminName: "A", created: "d", season: "s",
+            matchDay: 1,
+            currentUser: LeagueUser(
+                id: "u", name: "n", teamName: "t", budget: 0, teamValue: 0, points: 0, placement: 1,
+                won: 0, drawn: 0, lost: 0, se11: 0, ttm: 0, mpst: nil))
+
+        let marketPlayers = try await service.loadMarketPlayers(for: league)
+        XCTAssertEqual(marketPlayers.count, 1)
+        XCTAssertEqual(
+            marketPlayers.first?.profileBigUrl, "https://www.ligainsider.de/images/player123.jpg")
+    }
+
+    func testMarketFallbackUsesLigainsiderCache() async throws {
+        // Prepare LigainsiderService with a cached player image
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [URLProtocolMock.self]
+        let session = URLSession(configuration: config)
+        let ligasvc = LigainsiderService(session: session)
+
+        let html = """
+                <div>
+                    <img src=\"https://www.ligainsider.de/player/team/squad-player.jpg\" />
+                </div>
+                <a href=\"/john-doe_12345\">John Doe</a>
+            """.data(using: .utf8)!
+
+        URLProtocolMock.requestHandler = { request in
+            let resp = HTTPURLResponse(
+                url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            return (resp, html)
+        }
+
+        // Populate Ligainsider cache
+        await ligasvc.fetchAllSquadsAsync()
+
+        // Market response without a valid image
+        let mock = MockAPI()
+        mock.marketPlayersResponse = [
+            "it": [
+                [
+                    "i": "p1",
+                    "fn": "John",
+                    "ln": "Doe",
+                    // No 'pim' field -> chooseProfileBigUrl returns empty
+                    "price": 1000,
+                ]
+            ]
+        ]
+
+        let parser = MockParser()
+        // Inject the LigainsiderService to allow cache fallback
+        let service = KickbasePlayerService(
+            apiService: mock, dataParser: parser, ligainsiderService: ligasvc)
+
+        let league = League(
+            id: "l", name: "L", creatorName: "C", adminName: "A", created: "d", season: "s",
+            matchDay: 1,
+            currentUser: LeagueUser(
+                id: "u", name: "n", teamName: "t", budget: 0, teamValue: 0, points: 0, placement: 1,
+                won: 0, drawn: 0, lost: 0, se11: 0, ttm: 0, mpst: nil))
+
+        let marketPlayers = try await service.loadMarketPlayers(for: league)
+        XCTAssertEqual(marketPlayers.count, 1)
+        XCTAssertEqual(
+            marketPlayers.first?.profileBigUrl,
+            "https://www.ligainsider.de/player/team/squad-player.jpg")
+    }
+
     func testLoadPlayerPerformanceWithTeamInfoCachesResults() async throws {
         class CountingMock: MockAPI {
             var playerPerformanceCalls = 0
@@ -206,5 +353,74 @@ final class KickbasePlayerServiceTests: XCTestCase {
         let res2 = try await service.loadPlayerPerformanceWithTeamInfo(playerId: "p", leagueId: "l")
         XCTAssertNotNil(res2)
         XCTAssertEqual(mock.playerPerformanceCalls, 1)
+    }
+
+    func testLoadPlayerPerformanceHandlesRequestCancelled() async throws {
+        class CancelMock: MockAPI {
+            override func getPlayerPerformance(leagueId: String, playerId: String) async throws
+                -> PlayerPerformanceResponse
+            {
+                throw APIError.requestCancelled
+            }
+        }
+
+        let mock = CancelMock()
+        let parser = MockParser()
+        let service = KickbasePlayerService(apiService: mock, dataParser: parser)
+
+        let res = try await service.loadPlayerPerformanceWithTeamInfo(playerId: "p", leagueId: "l")
+        XCTAssertNil(res)
+    }
+
+    func testLoadPlayerPerformanceWithTeamInfo_DeduplicatesByDay_KeepFirst() async throws {
+        let mock = MockAPI()
+
+        // Create matches: first occurrence for day 5 should be kept
+        let matchPlayed = MatchPerformance(
+            day: 4, p: 5, mp: "90'", md: "2025-01-04", t1: "t1", t2: "t2", t1g: 1, t2g: 0,
+            pt: "t1", k: [], st: 5, cur: false, mdst: 0, ap: 5, tp: 5, asp: 5)
+        let matchA = MatchPerformance(
+            day: 5, p: nil, mp: nil, md: "2025-01-05-1", t1: "t1", t2: "t2", t1g: nil, t2g: nil,
+            pt: "t1", k: nil, st: 0, cur: false, mdst: 0, ap: 0, tp: 0, asp: 0)
+        let matchB = MatchPerformance(
+            day: 5, p: nil, mp: nil, md: "2025-01-05-2", t1: "t2", t2: "t3", t1g: nil, t2g: nil,
+            pt: "t2", k: nil, st: 0, cur: false, mdst: 0, ap: 0, tp: 0, asp: 0)
+
+        let season = SeasonPerformance(ti: "s", n: "L", ph: [matchA, matchB, matchPlayed])
+        mock.performanceResponse = PlayerPerformanceResponse(it: [season])
+
+        let parser = MockParser()
+        let service = KickbasePlayerService(apiService: mock, dataParser: parser)
+
+        let res = try await service.loadPlayerPerformanceWithTeamInfo(playerId: "p", leagueId: "l")
+        XCTAssertNotNil(res)
+        let day5Matches = res?.filter { $0.matchDay == 5 } ?? []
+        XCTAssertEqual(day5Matches.count, 1)
+        XCTAssertEqual(day5Matches.first?.matchDate, "2025-01-05-1")
+    }
+
+    func testLoadPlayerPerformanceWithTeamInfo_DeduplicatesByDay_WhenBothCurTrue_KeepFirst()
+        async throws
+    {
+        let mock = MockAPI()
+
+        let matchA = MatchPerformance(
+            day: 10, p: nil, mp: nil, md: "2025-02-10-a", t1: "t1", t2: "t2", t1g: nil, t2g: nil,
+            pt: "t1", k: nil, st: 0, cur: true, mdst: 0, ap: 0, tp: 0, asp: 0)
+        let matchB = MatchPerformance(
+            day: 10, p: nil, mp: nil, md: "2025-02-10-b", t1: "t2", t2: "t3", t1g: nil, t2g: nil,
+            pt: "t2", k: nil, st: 0, cur: true, mdst: 0, ap: 0, tp: 0, asp: 0)
+
+        let season = SeasonPerformance(ti: "s", n: "L", ph: [matchA, matchB])
+        mock.performanceResponse = PlayerPerformanceResponse(it: [season])
+
+        let parser = MockParser()
+        let service = KickbasePlayerService(apiService: mock, dataParser: parser)
+
+        let res = try await service.loadPlayerPerformanceWithTeamInfo(playerId: "p", leagueId: "l")
+        XCTAssertNotNil(res)
+        let day10Matches = res?.filter { $0.matchDay == 10 } ?? []
+        XCTAssertEqual(day10Matches.count, 1)
+        XCTAssertEqual(day10Matches.first?.matchDate, "2025-02-10-a")
     }
 }

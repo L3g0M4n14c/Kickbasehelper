@@ -161,6 +161,7 @@ enum APIError: Error, LocalizedError {
     case allEndpointsFailed
     case parsingFailed
     case networkError(String)
+    case requestCancelled
 
     public var errorDescription: String? {
         switch self {
@@ -179,6 +180,8 @@ enum APIError: Error, LocalizedError {
             return "Fehler beim Verarbeiten der Server-Antwort"
         case .networkError(let message):
             return "Netzwerkfehler: \(message)"
+        case .requestCancelled:
+            return "Request wurde abgebrochen"
         }
     }
 }

@@ -543,13 +543,14 @@ struct EnhancedRecommendationCard: View {
     let recommendation: TransferRecommendation
     let onTap: () -> Void
     @EnvironmentObject var ligainsiderService: LigainsiderService
-    
+
     private var playerImageUrl: URL? {
-        guard let ligaPlayer = ligainsiderService.getLigainsiderPlayer(
-            firstName: recommendation.player.firstName,
-            lastName: recommendation.player.lastName),
-              let imgString = ligaPlayer.imageUrl,
-              let url = URL(string: imgString)
+        guard
+            let ligaPlayer = ligainsiderService.getLigainsiderPlayer(
+                firstName: recommendation.player.firstName,
+                lastName: recommendation.player.lastName),
+            let imgString = ligaPlayer.imageUrl,
+            let url = URL(string: imgString)
         else {
             return nil
         }
@@ -563,41 +564,56 @@ struct EnhancedRecommendationCard: View {
                 // Player Photo from Ligainsider
                 if let url = playerImageUrl {
                     #if !SKIP
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .empty:
-                            Circle()
-                                .fill(Color.gray.opacity(0.3))
-                                .frame(width: 50, height: 50)
-                                .overlay {
-                                    ProgressView()
-                                }
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(width: 50, height: 50)
-                                .clipShape(Circle())
-                        case .failure:
-                            Circle()
-                                .fill(positionColor(for: recommendation.player.position).opacity(0.3))
-                                .frame(width: 50, height: 50)
-                                .overlay {
-                                    Image(systemName: "person.fill")
-                                        .foregroundColor(positionColor(for: recommendation.player.position))
-                                }
-                        @unknown default:
-                            EmptyView()
+                        AsyncImage(url: url) { phase in
+                            switch phase {
+                            case .empty:
+                                Circle()
+                                    .fill(Color.gray.opacity(0.3))
+                                    .frame(width: 50, height: 50)
+                                    .overlay {
+                                        ProgressView()
+                                    }
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(width: 50, height: 50)
+                                    .clipShape(Circle())
+                            case .failure:
+                                Circle()
+                                    .fill(
+                                        positionColor(for: recommendation.player.position).opacity(
+                                            0.3)
+                                    )
+                                    .frame(width: 50, height: 50)
+                                    .overlay {
+                                        Image(systemName: "person.fill")
+                                            .foregroundColor(
+                                                positionColor(for: recommendation.player.position))
+                                    }
+                            @unknown default:
+                                EmptyView()
+                            }
                         }
-                    }
+                        .onAppear {
+                            print(
+                                "Loading recommended player image for \(recommendation.player.fullName): \(url.absoluteString)"
+                            )
+                        }
+                        .onChange(of: url) {
+                            print(
+                                "Recommended player image URL changed for \(recommendation.player.fullName): \(url.absoluteString)"
+                            )
+                        }
                     #else
-                    Circle()
-                        .fill(positionColor(for: recommendation.player.position).opacity(0.3))
-                        .frame(width: 50, height: 50)
-                        .overlay {
-                            Image(systemName: "person.fill")
-                                .foregroundColor(positionColor(for: recommendation.player.position))
-                        }
+                        Circle()
+                            .fill(positionColor(for: recommendation.player.position).opacity(0.3))
+                            .frame(width: 50, height: 50)
+                            .overlay {
+                                Image(systemName: "person.fill")
+                                    .foregroundColor(
+                                        positionColor(for: recommendation.player.position))
+                            }
                     #endif
                 }
 

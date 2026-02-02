@@ -199,6 +199,23 @@ public class PlayerRecommendationService: ObservableObject {
             let batchEnd = min(batchStart + batchSize, qualityMarketPlayers.count)
             let batch = Array(qualityMarketPlayers[batchStart..<batchEnd])
 
+            // SKIP REPLACE:
+            // withTaskGroup(of = Any::class) { group ->
+            //     for (marketPlayer in batch.sref()) {
+            //         group.addTask(operation = suspend {
+            //             val result = Task.detached(operation = suspend {
+            //                 val analysis = this.analyzePlayerNonIsolated(marketPlayer, teamAnalysis = teamAnalysis)
+            //                 val recommendation = this.createRecommendationNonIsolated(marketPlayer = marketPlayer, analysis = analysis, teamAnalysis = teamAnalysis)
+            //                 if (recommendation.recommendationScore >= 2.0) recommendation else null
+            //             }).value()
+            //             (result ?: Unit)
+            //         })
+            //     }
+            //     for (result in group.sref()) {
+            //         val rec = result.sref() as? TransferRecommendation
+            //         if (rec != null) { batchRecommendations.append(rec) }
+            //     }
+            // }
             // Verarbeite Batch parallel OFF the MainActor using detached tasks
             var batchRecommendations: [TransferRecommendation] = []
             await withTaskGroup(of: TransferRecommendation?.self) { group in
@@ -1118,9 +1135,12 @@ extension PlayerRecommendationService {
         for league: League,
         teamPlayers: [TeamPlayer],
         marketPlayers: [MarketPlayer],
-        formation: [Int]  // z.B. [1,4,4,2] für 4-2-3-1 (1 TW, 4 ABW, 4 MF, 2 ST)
+        formation: [Int],  // z.B. [1,4,4,2] für 4-2-3-1 (1 TW, 4 ABW, 4 MF, 2 ST)
+        respectBudget: Bool = false
     ) async -> LineupComparison {
-        print("🎯 Generating optimal lineup comparison for formation: \(formation)")
+        print(
+            "🎯 Generating optimal lineup comparison for formation: \(formation) (respectBudget=\(respectBudget))"
+        )
 
         // Schritt 1: Generiere Team-Only Aufstellung
         let teamOnlyLineup = generateTeamOnlyLineup(
@@ -1143,16 +1163,55 @@ extension PlayerRecommendationService {
             maxPlayersPerTeam: league.currentUser.mpst ?? 3
         )
 
+        // Budget checking: if requested, and user's current budget is negative, ensure the hybrid lineup
+        // can be financed by selling non-starting team players. If not affordable, filter out the hybrid lineup.
+        let currentBudget = kickbaseManager.userStats?.budget ?? league.currentUser.budget
+        var filteredHybrid: OptimalLineupResult? = hybridLineup
+        var filteredForBudget = false
+
+        if respectBudget && currentBudget < 0, let hybrid = hybridLineup {
+            if !isHybridLineupAffordable(
+                hybrid, teamPlayers: teamPlayers, currentBudget: currentBudget)
+            {
+                filteredHybrid = nil
+                filteredForBudget = true
+                print(
+                    "⚠️ Hybrid lineup filtered due to budget constraints: gap cannot be closed by selling non-started players"
+                )
+            } else {
+                print("✅ Hybrid lineup is affordable by selling non-started players")
+            }
+        }
+
         let comparison = LineupComparison(
             teamOnlyLineup: teamOnlyLineup,
-            hybridLineup: hybridLineup
+            hybridLineup: filteredHybrid,
+            hybridFilteredForBudget: filteredForBudget
         )
 
         print(
-            "✅ Lineup comparison generated - Team only score: \(teamOnlyLineup.totalLineupScore), Hybrid score: \(hybridLineup?.totalLineupScore ?? 0)"
+            "✅ Lineup comparison generated - Team only score: \(teamOnlyLineup.totalLineupScore), Hybrid score: \(filteredHybrid?.totalLineupScore ?? 0)"
         )
 
         return comparison
+    }
+
+    /// Returns true if the hybrid lineup's totalMarketCost can be covered by currentBudget + sum of marketValue of non-starting team players
+    private func isHybridLineupAffordable(
+        _ lineup: OptimalLineupResult, teamPlayers: [TeamPlayer], currentBudget: Int
+    ) -> Bool {
+        // Sellable players are those NOT used in the lineup's ownedPlayerId slots
+        let startingOwnedIds = Set(lineup.slots.compactMap { $0.ownedPlayerId })
+        let sellablePlayers = teamPlayers.filter { !startingOwnedIds.contains($0.id) }
+
+        let saleProceeds = sellablePlayers.reduce(0) { sum, player in sum + player.marketValue }
+        let totalAvailable = currentBudget + saleProceeds
+
+        print(
+            "🔎 Budget affordability check: currentBudget=\(currentBudget), saleProceeds=\(saleProceeds), totalAvailable=\(totalAvailable), required=\(lineup.totalMarketCost)"
+        )
+
+        return totalAvailable >= lineup.totalMarketCost
     }
 
     /// Generiert optimale Aufstellung nur mit eigenen Spielern
