@@ -3,14 +3,25 @@ import SwiftUI
 struct StandardNavigationModifier: SwiftUI.ViewModifier {
     @EnvironmentObject var kickbaseManager: KickbaseManager
     @EnvironmentObject var authManager: AuthenticationManager
+    @State private var showingBonusSettings = false
 
     func body(content: Content) -> some View {
         content
             .navigationTitle(kickbaseManager.selectedLeague?.name ?? "Kickbase Helper")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailingCompat) {
-                    Button("Logout") {
-                        authManager.logout()
+                    HStack(spacing: 12) {
+                        Button(action: { showingBonusSettings = true }) {
+                            Image(systemName: "gift.fill")
+                                #if !SKIP
+                                    .imageScale(.large)
+                                #endif
+                                .accessibilityLabel("Bonus-Sammlung")
+                        }
+
+                        Button("Logout") {
+                            authManager.logout()
+                        }
                     }
                 }
 
@@ -20,6 +31,12 @@ struct StandardNavigationModifier: SwiftUI.ViewModifier {
                             .scaleEffect(0.8)
                     }
                 }
+            }
+            .sheet(isPresented: $showingBonusSettings) {
+                NavigationStack {
+                    BonusCollectionSettingsView()
+                }
+                .environmentObject(BackgroundTaskManager.shared)
             }
             #if os(iOS)
                 .navigationBarTitleDisplayMode(.inline)
