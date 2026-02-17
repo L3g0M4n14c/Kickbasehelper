@@ -198,6 +198,33 @@ Einige Funktionen können angepasst werden:
 
 ---
 
+## 📚 Dokumentation für Entwickler
+
+### Für neue Entwickler und KI-Coding-Agents
+
+Wir haben umfassende Dokumentation für alle, die zum Projekt beitragen möchten:
+
+- **[ARCHITECTURE.md](./ARCHITECTURE.md)**: Detaillierte technische Architektur-Dokumentation
+  - Architektur-Pattern (MVVM)
+  - Projekt-Struktur und Module
+  - Datenmodelle und Services
+  - API-Integration
+  - Wie man neue Features hinzufügt
+  
+- **[CONTRIBUTING.md](./CONTRIBUTING.md)**: Entwickler-Leitfaden für Beiträge
+  - Schnellstart für Entwickler
+  - Code-Standards und Best Practices
+  - Testing-Richtlinien
+  - Pull Request Prozess
+  
+- **[.github/copilot-instructions.md](./.github/copilot-instructions.md)**: Richtlinien für GitHub Copilot und KI-Agents
+  - Architektur-Regeln für AI Agents
+  - Code-Templates und Patterns
+  - Dokumentations-Anforderungen
+  - Testing-Pflichten
+
+---
+
 ## 📞 Kontakt & Support
 
 - **Entwickler**: Marco Corro (L3g0M4n14c)
